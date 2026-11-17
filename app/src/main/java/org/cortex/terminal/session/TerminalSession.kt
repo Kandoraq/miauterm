@@ -218,7 +218,7 @@ class TerminalSession(
                             Log.e(tag, "Emulator could not process PTY output", e)
                             if (emulatorFailures >= 3) {
                                 val msg = "\r\n[Miauterm could not render Linux output - see diagnostic log]\r\n"
-                                runCatching { emulator.processInput(msg.toByteArray(), 0, msg.size) }
+                                runCatching { emulator.processInput(msg.toByteArray(), 0, msg.length) }
                                 break
                             }
                         }
@@ -237,10 +237,10 @@ class TerminalSession(
                     isRunning = false
                     if (code != 0) {
                         val msg = "\r\n[Linux session exited with code $code - see Settings > Debian system > diagnostic log]\r\n"
-                        runCatching { emulator.processInput(msg.toByteArray(), 0, msg.size) }
+                        runCatching { emulator.processInput(msg.toByteArray(), 0, msg.length) }
                     } else if (duration <= 1500) {
                         val msg = "\r\n[Debian shell exited immediately - see Settings > Debian system > diagnostic log]\r\n"
-                        runCatching { emulator.processInput(msg.toByteArray(), 0, msg.size) }
+                        runCatching { emulator.processInput(msg.toByteArray(), 0, msg.length) }
                     }
                     onSessionFinished?.invoke(code)
                 }

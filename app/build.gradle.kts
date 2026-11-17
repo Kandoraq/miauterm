@@ -67,7 +67,7 @@ android {
 
     if (!hasReleaseSigning) {
         project.tasks.matching {
-            (it.name.startsWith("assemble") || it.name.startsWith("bundle") || it.name.startsWith("package")) &&
+            (it.name.startsWith("assemble") || it.name.startsWith("bundle")) &&
                 it.name.contains("Release", ignoreCase = true)
         }.configureEach {
             doFirst {
