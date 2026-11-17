@@ -172,7 +172,7 @@ class ExtraKeysView @JvmOverloads constructor(
             ExtraKeysLayout.Special.CTRL -> { { toggleCtrl() } }
             ExtraKeysLayout.Special.ALT -> { { toggleAlt() } }
             ExtraKeysLayout.Special.MENU -> { { onMenuClick?.invoke() } }
-            ExtraKeysLayout.Special.FIND -> { null }
+            ExtraKeysLayout.Special.FIND -> { {} }
             ExtraKeysLayout.Special.PASTE -> { { terminalView?.pasteFromClipboard() } }
             ExtraKeysLayout.Special.KEYBOARD -> { { terminalView?.toggleKeyboard() } }
             ExtraKeysLayout.Special.SPACE -> { { terminalView?.sendChar(' ') } }
