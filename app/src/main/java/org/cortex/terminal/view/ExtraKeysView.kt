@@ -70,11 +70,54 @@ class ExtraKeysView @JvmOverloads constructor(
     private var latchedKey: Pair<Button, Int>? = null
     private val latchStarters = mutableMapOf<Button, Runnable>()
     private val keyRows = mutableListOf<Pair<LinearLayout, List<Button>>>()
-    private var swipeRow: HorizontalScrollView? = null
-    private var swipeDownX = 0f
-    private var swipeDownY = 0f
-    private var swipeLastX = 0f
-    private var horizontalSwipeActive = false
+    private class SwipeRow(context: Context) : HorizontalScrollView(context) {
+        private var downX = 0f
+        private var downY = 0f
+        private var lastX = 0f
+        private var dragging = false
+
+        init {
+            isHorizontalScrollBarEnabled = false
+            overScrollMode = View.OVER_SCROLL_NEVER
+            isFillViewport = true
+        }
+
+        override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    downX = event.x
+                    downY = event.y
+                    lastX = event.x
+                    dragging = false
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val deltaX = kotlin.math.abs(event.x - downX)
+                    val deltaY = kotlin.math.abs(event.y - downY)
+                    if (deltaX > ViewConfiguration.get(context).scaledTouchSlop && deltaX > deltaY) {
+                        dragging = true
+                        return true
+                    }
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> return dragging
+            }
+            return false
+        }
+
+        override fun onTouchEvent(event: MotionEvent): Boolean {
+            when (event.actionMasked) {
+                MotionEvent.ACTION_MOVE -> if (dragging) {
+                    scrollBy((lastX - event.x).toInt(), 0)
+                    lastX = event.x
+                    return true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> if (dragging) {
+                    dragging = false
+                    return true
+                }
+            }
+            return super.onTouchEvent(event)
+        }
+    }
 
     private fun dp(v: Float): Float = v * resources.displayMetrics.density
 
@@ -120,51 +163,6 @@ class ExtraKeysView @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         updateRowWidths(w)
-    }
-
-    override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
-        when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> {
-                swipeRow = (0 until childCount)
-                    .map { getChildAt(it) }
-                    .filterIsInstance<HorizontalScrollView>()
-                    .firstOrNull { event.y >= it.top && event.y < it.bottom }
-                swipeDownX = event.x
-                swipeDownY = event.y
-                swipeLastX = event.x
-                horizontalSwipeActive = false
-            }
-            MotionEvent.ACTION_MOVE -> {
-                val distanceX = kotlin.math.abs(event.x - swipeDownX)
-                val distanceY = kotlin.math.abs(event.y - swipeDownY)
-                if (swipeRow != null && distanceX > ViewConfiguration.get(context).scaledTouchSlop && distanceX > distanceY) {
-                    horizontalSwipeActive = true
-                    return true
-                }
-            }
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                if (horizontalSwipeActive) return true
-                swipeRow = null
-            }
-        }
-        return false
-    }
-
-    override fun onTouchEvent(event: MotionEvent): Boolean {
-        val row = swipeRow ?: return super.onTouchEvent(event)
-        when (event.actionMasked) {
-            MotionEvent.ACTION_MOVE -> {
-                if (horizontalSwipeActive) row.scrollBy((swipeLastX - event.x).toInt(), 0)
-                swipeLastX = event.x
-                return true
-            }
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                swipeRow = null
-                horizontalSwipeActive = false
-                return true
-            }
-            else -> return horizontalSwipeActive
-        }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -446,11 +444,8 @@ class ExtraKeysView @JvmOverloads constructor(
         }
 
         keyRows.add(rowLayout to buttons)
-        return HorizontalScrollView(context).apply {
+        return SwipeRow(context).apply {
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (ROW_HEIGHT_DP * resources.displayMetrics.density).toInt())
-            isHorizontalScrollBarEnabled = false
-            overScrollMode = View.OVER_SCROLL_NEVER
-            isFillViewport = true
             addView(rowLayout, android.widget.FrameLayout.LayoutParams(
                 android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
                 android.widget.FrameLayout.LayoutParams.MATCH_PARENT
