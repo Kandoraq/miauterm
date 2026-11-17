@@ -201,7 +201,7 @@ class SettingsActivity : AppCompatActivity() {
             return
         }
         val selected = ExtraKeysLayout.Special.values().map { special ->
-            parsed.rows.flatten().any { it is ExtraKeysLayout.Key.SpecialKey && it.special == special }
+            parsed.rows.flatten().any { it is ExtraKeysLayout.SpecialKey && it.special == special }
         }.toBooleanArray()
         val density = resources.displayMetrics.density
         val content = android.widget.LinearLayout(this).apply {
@@ -247,9 +247,9 @@ class SettingsActivity : AppCompatActivity() {
                     val child = grid.getChildAt(index) as android.widget.CheckBox
                     (child.tag as Int) to child.isChecked
                 }
-                val textKeys = parsed.rows.flatten().filterIsInstance<ExtraKeysLayout.Key.TextKey>()
+                val textKeys = parsed.rows.flatten().filterIsInstance<ExtraKeysLayout.TextKey>()
                 val selectedKeys = ExtraKeysLayout.Special.values().filterIndexed { index, _ -> enabled[index] == true }
-                    .map { ExtraKeysLayout.Key.SpecialKey(it) }
+                    .map { ExtraKeysLayout.SpecialKey(it) }
                 val keys: List<ExtraKeysLayout.Key> = selectedKeys + textKeys
                 if (keys.isEmpty()) {
                     android.widget.Toast.makeText(this, R.string.extra_keys_select_one, android.widget.Toast.LENGTH_SHORT).show()
@@ -259,8 +259,8 @@ class SettingsActivity : AppCompatActivity() {
                 val rows = keys.chunked(perRow.coerceAtLeast(1))
                 val text = rows.joinToString(",\n") { row -> row.joinToString(", ", "[", "]") { key ->
                     val value = when (key) {
-                        is ExtraKeysLayout.Key.SpecialKey -> key.special.name
-                        is ExtraKeysLayout.Key.TextKey -> key.text
+                        is ExtraKeysLayout.SpecialKey -> key.special.name
+                        is ExtraKeysLayout.TextKey -> key.text
                     }
                     "\"${value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r").replace("\u001b", "\\e")}\""
                 } }.let { "[\n$it\n]\n" }
