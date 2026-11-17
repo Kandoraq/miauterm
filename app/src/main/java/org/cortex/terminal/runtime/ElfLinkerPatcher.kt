@@ -19,6 +19,8 @@ object ElfLinkerPatcher {
     private const val PT_LOAD = 1L
     private const val PF_X = 0x1L
 
+    private fun supportsNioSymlinks(): Boolean = Build.VERSION.SDK_INT == 0 || Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+
     private val LINKER_CANDIDATES = listOf(
         "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
         "usr/lib/aarch64-linux-gnu/ld-2.39.so",
@@ -41,20 +43,20 @@ object ElfLinkerPatcher {
             false
         }
         if (nativeResult) return true
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        return if (supportsNioSymlinks()) {
             runCatching { Files.isSymbolicLink(file.toPath()) }.getOrDefault(false)
         } else false
     }
 
     internal fun readSymlink(file: File): String? {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isSymlink(file)) {
+        if (supportsNioSymlinks() && isSymlink(file)) {
             runCatching { Files.readSymbolicLink(file.toPath()).toString() }.getOrNull()?.let { return it }
         }
         return runCatching { Os.readlink(file.absolutePath) }.getOrNull()
     }
 
     internal fun createSymlink(target: String, linkFile: File): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (supportsNioSymlinks()) {
             val created = runCatching {
                 Files.createSymbolicLink(linkFile.toPath(), Paths.get(target))
                 Files.isSymbolicLink(linkFile.toPath()) && Files.readSymbolicLink(linkFile.toPath()).toString() == target
@@ -68,7 +70,7 @@ object ElfLinkerPatcher {
     internal fun deleteIfExists(file: File): Boolean {
         runCatching { Os.remove(file.absolutePath) }
         if (!file.exists() && !isSymlink(file)) return true
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (supportsNioSymlinks()) {
             return runCatching { Files.deleteIfExists(file.toPath()); !file.exists() && !isSymlink(file) }
                 .getOrDefault(false)
         }
