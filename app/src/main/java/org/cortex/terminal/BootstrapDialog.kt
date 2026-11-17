@@ -2,7 +2,6 @@ package org.cortex.terminal
 
 import android.app.Activity
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.view.View
 import android.widget.ProgressBar
@@ -19,8 +18,7 @@ class BootstrapDialog(activity: Activity) {
 
     init {
         val p = Chrome.palette
-        val density = activity.resources.displayMetrics.density
-        view.background = Chrome.rounded(p.bar, 24 * density, p.outline, density.toInt().coerceAtLeast(1))
+        view.background = ColorDrawable(p.bar)
         view.findViewById<TextView>(R.id.bootstrapTitle).setTextColor(p.text)
         view.findViewById<TextView>(R.id.bootstrapMessage).setTextColor(p.textDim)
         percent.setTextColor(p.textDim)
@@ -33,7 +31,7 @@ class BootstrapDialog(activity: Activity) {
             .setCancelable(false)
             .create()
         dialog.setCanceledOnTouchOutside(false)
-        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.window?.setBackgroundDrawable(ColorDrawable(p.bar))
     }
 
     var isIndeterminate: Boolean

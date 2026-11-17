@@ -48,7 +48,7 @@ class SessionManager(private val context: Context) {
                         target.clear()
                         return@execute
                     }
-                    val saved = snapshot.map { SessionStore.Saved(it.currentDirectory(), it.transcript()) }
+                    val saved = snapshot.map { SessionStore.Saved(it.currentDirectory(), it.transcript(), it.sessionName) }
                     target.save(SessionStore.State(saved, current.coerceAtLeast(0)))
                 } catch (e: Exception) {
                     Log.w(TAG, "Could not keep the sessions: ${e.message}")
@@ -63,7 +63,7 @@ class SessionManager(private val context: Context) {
         if (!restoreEnabled()) return false
         val state = target.load() ?: return false
         for (saved in state.sessions) {
-            newSession(rows, cols, widthPx, heightPx, startDirectory = saved.directory, restoredOutput = saved.output)
+            newSession(rows, cols, widthPx, heightPx, startDirectory = saved.directory, restoredOutput = saved.output, sessionName = saved.name)
         }
         switchTo(state.current)
         return true
@@ -110,9 +110,10 @@ class SessionManager(private val context: Context) {
         startDirectory: String? = null,
         restoredOutput: String? = null,
         failsafeMode: Boolean = false,
-        accountName: String? = null
+        accountName: String? = null,
+        sessionName: String? = null
     ): TerminalSession {
-        val session = TerminalSession(context.applicationContext, rows, cols, widthPx, heightPx, onRedraw, failsafeMode, accountName)
+        val session = TerminalSession(context.applicationContext, rows, cols, widthPx, heightPx, onRedraw, failsafeMode, accountName, sessionName)
         session.startDirectory = startDirectory
         session.restoredOutput = restoredOutput
         session.numberProvider = { synchronized(sessions) { sessions.indexOf(session) + 1 }.coerceAtLeast(1) }

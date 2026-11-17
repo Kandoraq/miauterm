@@ -35,7 +35,7 @@ object DebianRuntime {
         Thread(task, "Miauterm-NetworkSetup").apply { isDaemon = true }
     }
     private val pendingHostRefreshes = ConcurrentHashMap.newKeySet<String>()
-    private const val VERSION = 18
+    private const val VERSION = 19
     private const val ROOTFS_ASSET = "debian-arm64.tar.zst"
     private const val PROOT_ASSET_DIR = "proot/arm64-v8a"
     private val prootFiles = listOf("proot", "loader", "libtalloc.so.2", "libandroid-shmem.so")
@@ -372,7 +372,7 @@ object DebianRuntime {
             "## Shared folders\n\n" +
             "`~/android` is created only after Download and Documents access is enabled and permission is granted in Miauterm Settings. New Linux sessions bind only those two shared folders when enabled. PRoot also exposes Android `/dev`, `/proc`, and `/sys` for Linux device, process, and system information. It does not expose Android `/system`, `/data`, or general shared storage. Changing shared-folder access does not alter running sessions.\n\n" +
             "## Terminal startup\n\n" +
-            "The MOTD is shown when an interactive shell starts. The prompt shows the current directory in blue, using `~` at home and paths such as `~/projects` as you move into folders. The `root@localhost` part is bold green.\n\n" +
+            "The MOTD is shown when an interactive shell starts. The prompt shows the current directory in blue, using `~` at home and paths such as `~/projects` as you move into folders. The account and configured Debian hostname appear in bold green.\n\n" +
             "## Extra keys\n\n" +
             "Customize keys in `~/.config/miauterm/keys` using nested arrays:\n\n" +
             "```text\n[\n  [\"ESC\", \"/\", \"-\", \"HOME\", \"UP\", \"END\", \"PGUP\"],\n  [\"TAB\", \"CTRL\", \"ALT\", \"LEFT\", \"DOWN\", \"RIGHT\", \"PGDN\"]\n]\n```\n\n" +
@@ -381,8 +381,8 @@ object DebianRuntime {
             "Miauterm checks Debian usr-merge links before startup: `/bin -> usr/bin`, `/sbin -> usr/sbin`, and `/lib -> usr/lib`. Matching files are merged; conflicting files stop repair without being overwritten. The bundled and validated rootfs is Debian ARM64. Other distributions are not supported by Debian startup checks.\n\n" +
             "Use Miauterm Settings to view or clear PRoot diagnostics, open a failsafe session, read the rootfs and symlink guide, back up or restore files, or reset the bundled Debian system. Export a backup before replacing files if you need to keep them.\n\n" +
             "## Network settings\n\n" +
-            "Set custom DNS servers and a Debian hostname from Miauterm Settings > Network. DNS accepts up to three IPv4 or IPv6 addresses separated by commas. Leave it blank to use Android-provided DNS with public fallbacks. The hostname sets the shell prompt, `$HOSTNAME`, `$MIAUTERM_HOSTNAME`, and `/etc/hostname`; PRoot cannot change Android's kernel hostname.\n\n" +
-            "For outgoing SSH connections, install Debian's client with `apt install openssh-client`, then use `ssh user@host`. Miauterm does not start an SSH server. The Android terminal PTY is used for interactive shell input; PRoot cannot provide every kernel PTY feature, so remote PTY allocation depends on the SSH server and device support.\n\n" +
+            "Set custom DNS servers and a Debian hostname from Miauterm Settings > Network. DNS accepts up to three IPv4 or IPv6 addresses separated by commas. Leave it blank to use Android-provided DNS with public fallbacks. The hostname sets the shell prompt, `\$HOSTNAME`, `\$MIAUTERM_HOSTNAME`, and `/etc/hostname`; PRoot cannot change Android's kernel hostname.\n\n" +
+            "For outgoing SSH, Miauterm attempts to install Debian's `openssh-client` during rootfs setup when network access is available. If `ssh` is still missing, run `apt install openssh-client`, then connect with `ssh user@host`. Miauterm does not start an SSH server. The Android terminal PTY handles interactive shell input; remote PTY allocation also depends on the SSH server and device support.\n\n" +
             "The `root` shell identity is simulated by PRoot; it is not Android root. Linux account names do not create separate Android security identities.\n"
 
     internal fun prepareRestoredRootfs(context: Context, root: File) {
@@ -738,6 +738,7 @@ object DebianRuntime {
         MiautermCommandInstaller.removeLegacySu(context, rootfs)
         migrateManagedReadme(rootfs, File(rootfs, "root"))
         updateHostnameFile(rootfs, configuredHostname(context))
+        updateResolvConf(rootfs, networkDnsServers(context), customDnsServers(context))
         scheduleResolverUpdate(context, rootfs)
         lastResolverSummary?.let { recordRuntimeEvent(context, it) }
         val root = rootfs.absolutePath
@@ -989,7 +990,9 @@ object DebianRuntime {
                 InetAddress.getByName(entry).takeIf { it is Inet6Address }
             } else {
                 val parts = entry.split('.')
-                if (parts.size == 4 && parts.all { it.toIntOrNull() in 0..255 }) InetAddress.getByName(entry) else null
+                val octets = parts.map { it.toIntOrNull() }
+                val validIpv4 = octets.size == 4 && octets.all { it != null && it in 0..255 }
+                if (validIpv4) InetAddress.getByAddress(octets.map { it!!.toByte() }.toByteArray()) else null
             }
             require(address != null && !address.isAnyLocalAddress && !address.isLoopbackAddress) {
                 "DNS entries must be valid non-local IP addresses"
@@ -1077,8 +1080,11 @@ object DebianRuntime {
     }
 
     private fun ensureNetworkTools(context: Context, root: File) {
-        if (invalidNetworkCommand(root) == null) return
         updateResolvConf(root, networkDnsServers(context), customDnsServers(context))
+        if (invalidNetworkCommand(root) == null) {
+            ensureSshClient(context, root)
+            return
+        }
         val aptOptions = listOf(
             "-o", "Acquire::http::Timeout=30",
             "-o", "Acquire::https::Timeout=30",
@@ -1092,6 +1098,29 @@ object DebianRuntime {
                 listOf("install", "-y", "--no-install-recommends") + networkPackages
         )
         verifyNetworkCommands(root)
+        ensureSshClient(context, root)
+    }
+
+    private fun ensureSshClient(context: Context, root: File) {
+        val ssh = File(root, "usr/bin/ssh")
+        if (ssh.isFile && ssh.canExecute() && isArm64Elf(ssh)) return
+        try {
+            val aptOptions = listOf(
+                "-o", "Acquire::http::Timeout=8",
+                "-o", "Acquire::https::Timeout=8",
+                "-o", "Acquire::Retries=0"
+            )
+            runRootfsCommand(context, root, listOf("/usr/bin/apt-get") + aptOptions + "update")
+            runRootfsCommand(
+                context,
+                root,
+                listOf("/usr/bin/apt-get") + aptOptions + listOf("install", "-y", "--no-install-recommends", "openssh-client")
+            )
+            check(ssh.isFile && ssh.canExecute() && isArm64Elf(ssh)) { "Debian did not install an ARM64 OpenSSH client" }
+        } catch (error: Exception) {
+            Log.w(TAG, "Could not provision Debian openssh-client; install it later with apt", error)
+            recordRuntimeEvent(context, "Optional Debian SSH client install skipped: ${error.message ?: error.javaClass.simpleName}")
+        }
     }
 
     private fun runRootfsCommand(context: Context, root: File, command: List<String>) {

@@ -254,12 +254,17 @@ class SettingsActivity : AppCompatActivity() {
                     android.widget.Toast.makeText(this, R.string.extra_keys_select_one, android.widget.Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
-                val text = keys.joinToString(", ", "[[", "]]\n") { key ->
-                    val value = when (key) {
-                        is ExtraKeysLayout.SpecialKey -> key.special.name
-                        is ExtraKeysLayout.TextKey -> key.text
+                val rowCount = if (keys.size > 1) 2 else 1
+                val split = if (rowCount == 2) (keys.size + 1) / 2 else keys.size
+                val rows = if (rowCount == 2) listOf(keys.take(split), keys.drop(split)) else listOf(keys)
+                val text = rows.joinToString(",\n  ", "[\n  ", "\n]\n") { row ->
+                    row.joinToString(", ", "[", "]") { key ->
+                        val value = when (key) {
+                            is ExtraKeysLayout.SpecialKey -> key.special.name
+                            is ExtraKeysLayout.TextKey -> key.text
+                        }
+                        "\"${value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r").replace("\u001b", "\\e")}\""
                     }
-                    "\"${value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r").replace("\u001b", "\\e")}\""
                 }
                 runCatching { ExtraKeysConfig.writeLayout(file, text) }.onSuccess {
                     MainActivity.instance?.reloadExtraKeys()
@@ -510,6 +515,9 @@ class SettingsActivity : AppCompatActivity() {
                 "allow_osc52_explicit_opt_in" to R.drawable.ic_clipboard,
                 "notify_servers" to R.drawable.ic_server,
                 "shared_folder_access" to R.drawable.ic_folder_shared,
+                "network_settings_toggle" to R.drawable.ic_server,
+                "custom_dns_servers" to R.drawable.ic_server,
+                "custom_hostname" to R.drawable.ic_person,
                 DebianRuntime.PREF_LINUX_USER to R.drawable.ic_person,
                 DebianRuntime.PREF_PROOT_DIAGNOSTICS to R.drawable.ic_tune,
                 "view_proot_log" to R.drawable.ic_receipt,
@@ -524,6 +532,43 @@ class SettingsActivity : AppCompatActivity() {
                 "bug_report" to R.drawable.ic_bug_report
             )
             preferenceIcons.forEach { (key, icon) -> findPreference<Preference>(key)?.setIcon(icon) }
+            val networkSettingsExpanded = androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
+                .getBoolean("network_settings_expanded", false)
+            val networkToggle = findPreference<Preference>("network_settings_toggle")
+            val dnsPreference = findPreference<androidx.preference.EditTextPreference>("custom_dns_servers")
+            val hostnamePreference = findPreference<androidx.preference.EditTextPreference>("custom_hostname")
+            fun updateNetworkSettingsVisibility(expanded: Boolean) {
+                dnsPreference?.isVisible = expanded
+                hostnamePreference?.isVisible = expanded
+                networkToggle?.summary = getString(
+                    if (expanded) R.string.pref_network_settings_open else R.string.pref_network_settings_closed
+                )
+            }
+            updateNetworkSettingsVisibility(networkSettingsExpanded)
+            dnsPreference?.summaryProvider = Preference.SummaryProvider<androidx.preference.EditTextPreference> { pref ->
+                pref.text?.takeIf { it.isNotBlank() } ?: getString(R.string.pref_custom_dns_summary)
+            }
+            hostnamePreference?.summaryProvider = Preference.SummaryProvider<androidx.preference.EditTextPreference> { pref ->
+                pref.text?.takeIf { it.isNotBlank() } ?: "localhost"
+            }
+            networkToggle?.setOnPreferenceClickListener {
+                val expanded = dnsPreference?.isVisible != true
+                androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
+                    .edit().putBoolean("network_settings_expanded", expanded).apply()
+                updateNetworkSettingsVisibility(expanded)
+                true
+            }
+            dnsPreference?.setOnPreferenceChangeListener { _, newValue ->
+                val valid = runCatching { DebianRuntime.parseCustomDnsServers(newValue as? String ?: "") }.isSuccess
+                if (!valid) android.widget.Toast.makeText(requireContext(), R.string.pref_custom_dns_invalid, android.widget.Toast.LENGTH_LONG).show()
+                valid
+            }
+            hostnamePreference?.setOnPreferenceChangeListener { _, newValue ->
+                val valid = DebianRuntime.isValidHostname(newValue as? String ?: "")
+                if (!valid) android.widget.Toast.makeText(requireContext(), R.string.pref_custom_hostname_invalid, android.widget.Toast.LENGTH_LONG).show()
+                valid
+            }
+
             findPreference<SwitchPreferenceCompat>("shared_folder_access")?.apply {
                 isPersistent = false
                 setOnPreferenceChangeListener { _, newValue ->

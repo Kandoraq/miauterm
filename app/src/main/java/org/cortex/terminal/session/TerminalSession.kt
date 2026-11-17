@@ -22,7 +22,8 @@ class TerminalSession(
     var heightPx: Int = 0,
     var onRedraw: (() -> Unit)? = null,
     val failsafeMode: Boolean = false,
-    private val requestedAccountName: String? = null
+    private val requestedAccountName: String? = null,
+    var sessionName: String? = null
 ) {
     private val tag = "TerminalSession"
     val emulator = TerminalEmulator(rows, cols) {
@@ -42,7 +43,7 @@ class TerminalSession(
     var title = "Miauterm"
     @Volatile var accountName: String = "root"
         private set
-    fun promptLabel(): String = sessionPromptLabel(accountName)
+    fun promptLabel(): String = sessionName?.takeIf { it.isNotBlank() } ?: sessionPromptLabel(accountName)
 
     var numberProvider: (() -> Int)? = null
 

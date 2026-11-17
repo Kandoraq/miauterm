@@ -26,7 +26,8 @@ class SessionAdapter(
         val p = Chrome.palette
 
         val session = synchronized(sessionManager.sessions) { sessionManager.sessions.getOrNull(position) }
-        binding.sessionLabelText.text = sessionPromptLabel(session?.accountName ?: "root")
+        binding.sessionLabelText.text = session?.sessionName?.takeIf { it.isNotBlank() }
+            ?: sessionPromptLabel(session?.accountName ?: "root")
 
         binding.sessionItemRoot.background = Chrome.flatPressable(
             if (isActive) p.raised else p.bar,

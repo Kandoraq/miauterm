@@ -29,6 +29,7 @@ import org.cortex.terminal.session.SessionAdapter
 import org.cortex.terminal.session.SessionManager
 import org.cortex.terminal.session.TerminalSession
 import org.cortex.terminal.view.Chrome
+import org.cortex.terminal.view.ChromeDialog
 import org.cortex.terminal.view.ExtraKeysConfig
 import org.cortex.terminal.view.ExtraKeysLayout
 import org.cortex.terminal.view.ExtraKeysView
@@ -237,6 +238,11 @@ class MainActivity : AppCompatActivity() {
         btnDrawerNewSession.setOnClickListener {
             createNewSession()
             drawerLayout.closeDrawer(GravityCompat.START)
+        }
+        btnDrawerNewSession.setOnLongClickListener {
+            drawerLayout.closeDrawer(GravityCompat.START)
+            showNewSessionDialog()
+            true
         }
 
         applyPreferences()
@@ -504,11 +510,11 @@ class MainActivity : AppCompatActivity() {
         btnDrawerSettings.imageTintList = iconTint
         btnDrawerFiles.imageTintList = iconTint
         binding.drawerKeyboardIcon.imageTintList = ColorStateList.valueOf(p.textDim)
-        binding.drawerNewSessionIcon.imageTintList = ColorStateList.valueOf(p.onAccent)
+        binding.drawerNewSessionIcon.imageTintList = ColorStateList.valueOf(p.textDim)
         binding.drawerKeyboardLabel.setTextColor(p.text)
-        binding.drawerNewSessionLabel.setTextColor(p.onAccent)
+        binding.drawerNewSessionLabel.setTextColor(p.text)
         btnDrawerKeyboard.background = Chrome.flatPressable(p.bar, p.raisedHigh)
-        btnDrawerNewSession.background = Chrome.flatPressable(p.accent, Chrome.mix(p.accent, p.fg, 0.16f))
+        btnDrawerNewSession.background = Chrome.flatPressable(p.bar, p.raisedHigh)
         btnDrawerKeyboard.elevation = 0f
         btnDrawerNewSession.elevation = 0f
         if (::sessionAdapter.isInitialized) sessionAdapter.notifyDataSetChanged()
@@ -559,13 +565,55 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun createNewSession(failsafeMode: Boolean = false): TerminalSession {
+    private fun showNewSessionDialog() {
+        val p = Chrome.palette
+        val density = resources.displayMetrics.density
+        val nameInput = android.widget.EditText(this).apply {
+            hint = getString(R.string.new_session_name_hint)
+            setSingleLine(true)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+            setTextColor(p.text)
+            setHintTextColor(p.textFaint)
+            setPadding((12 * density).toInt(), (10 * density).toInt(), (12 * density).toInt(), (10 * density).toInt())
+            background = Chrome.flatPressable(p.raised, p.raisedHigh)
+        }
+        val failsafe = android.widget.CheckBox(this).apply {
+            text = getString(R.string.new_session_failsafe)
+            setTextColor(p.text)
+            buttonTintList = ColorStateList.valueOf(p.accent)
+        }
+        val content = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding((22 * density).toInt(), (8 * density).toInt(), (22 * density).toInt(), 0)
+            addView(nameInput, android.widget.LinearLayout.LayoutParams(-1, -2))
+            addView(failsafe, android.widget.LinearLayout.LayoutParams(-1, -2).apply {
+                topMargin = (8 * density).toInt()
+            })
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.drawer_new_session)
+            .setView(content)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.create, null)
+            .create()
+        ChromeDialog.style(dialog) {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val name = nameInput.text?.toString()?.trim()?.take(48).orEmpty().ifBlank { null }
+                createNewSession(failsafeMode = failsafe.isChecked, sessionName = name)
+                dialog.dismiss()
+            }
+        }.show()
+        nameInput.requestFocus()
+    }
+
+    private fun createNewSession(failsafeMode: Boolean = false, sessionName: String? = null): TerminalSession {
         val session = sessionManager.newSession(
             rows = terminalView.rows,
             cols = terminalView.cols,
             widthPx = terminalView.width,
             heightPx = terminalView.height,
-            failsafeMode = failsafeMode
+            failsafeMode = failsafeMode,
+            sessionName = sessionName
         )
         terminalView.session = session
         sessionAdapter.notifyDataSetChanged()

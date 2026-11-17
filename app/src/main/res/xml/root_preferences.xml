@@ -98,6 +98,24 @@
     </PreferenceCategory>
 
 
+    <PreferenceCategory app:title="@string/pref_cat_network">
+        <Preference app:key="network_settings_toggle" app:title="@string/pref_network_settings_toggle" app:summary="@string/pref_network_settings_closed" />
+        <EditTextPreference
+            app:defaultValue=""
+            app:dialogTitle="@string/pref_custom_dns_dialog"
+            app:key="custom_dns_servers"
+            app:title="@string/pref_custom_dns_title"
+            app:summary="@string/pref_custom_dns_summary"
+            android:inputType="textNoSuggestions" />
+        <EditTextPreference
+            app:defaultValue=""
+            app:dialogTitle="@string/pref_custom_hostname_dialog"
+            app:key="custom_hostname"
+            app:title="@string/pref_custom_hostname_title"
+            app:summary="@string/pref_custom_hostname_summary"
+            android:inputType="textNoSuggestions" />
+    </PreferenceCategory>
+
     <PreferenceCategory app:key="linux_system_category" app:title="@string/pref_cat_debian">
         <EditTextPreference
             app:defaultValue=""
