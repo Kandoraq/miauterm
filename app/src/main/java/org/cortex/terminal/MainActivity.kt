@@ -10,7 +10,6 @@ import android.view.View
 import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
@@ -70,8 +69,8 @@ class MainActivity : AppCompatActivity() {
 
     private val sessionRecyclerView: RecyclerView get() = binding.sessionRecyclerView
     private lateinit var sessionAdapter: SessionAdapter
-    private val btnDrawerKeyboard: TextView get() = binding.btnDrawerKeyboard
-    private val btnDrawerNewSession: TextView get() = binding.btnDrawerNewSession
+    private val btnDrawerKeyboard: View get() = binding.btnDrawerKeyboard
+    private val btnDrawerNewSession: View get() = binding.btnDrawerNewSession
 
     private lateinit var sessionManager: SessionManager
     private lateinit var extraKeysConfig: ExtraKeysConfig
@@ -505,17 +504,22 @@ class MainActivity : AppCompatActivity() {
         binding.drawerTitle.setTextColor(p.text)
         binding.drawerDivider.setBackgroundColor(p.outline)
         binding.drawerSessionsLabel.setTextColor(p.textFaint)
-        fun roundButton() = Chrome.ripple(Chrome.rounded(p.raised, 3 * density), Chrome.withAlpha(p.accent, 55), 10 * density)
-        btnDrawerSettings.background = roundButton()
-        btnDrawerFiles.background = roundButton()
+        val iconRadius = 6 * density
+        fun iconButtonBackground() = Chrome.ripple(
+            Chrome.rounded(p.raised, iconRadius, p.outline, maxOf(1, density.toInt())),
+            Chrome.withAlpha(p.accent, 55),
+            iconRadius
+        )
+        btnDrawerSettings.background = iconButtonBackground()
+        btnDrawerFiles.background = iconButtonBackground()
         btnDrawerSettings.imageTintList = ColorStateList.valueOf(p.textDim)
         btnDrawerFiles.imageTintList = ColorStateList.valueOf(p.textDim)
-        btnDrawerKeyboard.background = Chrome.buttonBackground(p, 3 * density, 0, filled = false)
-        btnDrawerKeyboard.setTextColor(p.text)
-        btnDrawerKeyboard.compoundDrawablesRelative.firstOrNull()?.setTint(p.textDim)
-        btnDrawerNewSession.background = Chrome.buttonBackground(p, 3 * density, 0, filled = true)
-        btnDrawerNewSession.setTextColor(p.onAccent)
-        btnDrawerNewSession.compoundDrawablesRelative.firstOrNull()?.setTint(p.onAccent)
+        binding.drawerKeyboardIcon.imageTintList = ColorStateList.valueOf(p.textDim)
+        binding.drawerNewSessionIcon.imageTintList = ColorStateList.valueOf(p.onAccent)
+        binding.drawerKeyboardLabel.setTextColor(p.text)
+        binding.drawerNewSessionLabel.setTextColor(p.onAccent)
+        btnDrawerKeyboard.background = Chrome.buttonBackground(p, 5 * density, maxOf(1, density.toInt()), filled = false)
+        btnDrawerNewSession.background = Chrome.buttonBackground(p, 5 * density, 0, filled = true)
         if (::sessionAdapter.isInitialized) sessionAdapter.notifyDataSetChanged()
 
         window.statusBarColor = p.bar

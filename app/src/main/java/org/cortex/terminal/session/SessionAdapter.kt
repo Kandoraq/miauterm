@@ -30,7 +30,7 @@ class SessionAdapter(
         val session = synchronized(sessionManager.sessions) { sessionManager.sessions.getOrNull(position) }
         binding.sessionLabelText.text = sessionPromptLabel(session?.accountName ?: "root")
 
-        val radius = 10 * density
+        val radius = 4 * density
         binding.sessionItemRoot.background = Chrome.ripple(
             if (isActive) Chrome.rounded(p.accentSoft, radius)
             else Chrome.rounded(0, radius),
@@ -41,7 +41,7 @@ class SessionAdapter(
 
         binding.btnSessionClose.visibility = View.VISIBLE
         binding.btnSessionClose.setTextColor(p.textDim)
-        binding.btnSessionClose.background = Chrome.ripple(Chrome.rounded(0, 12 * density), Chrome.withAlpha(p.danger, 70), 12 * density)
+        binding.btnSessionClose.background = Chrome.ripple(Chrome.rounded(0, 4 * density), Chrome.withAlpha(p.danger, 70), 4 * density)
         binding.btnSessionClose.setOnClickListener {
             val pos = holder.bindingAdapterPosition
             if (pos != RecyclerView.NO_POSITION) {

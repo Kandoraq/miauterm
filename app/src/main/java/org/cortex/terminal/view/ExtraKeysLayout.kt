@@ -9,7 +9,7 @@ object ExtraKeysLayout {
         UP("↑"), DOWN("↓"), LEFT("←"), RIGHT("→"),
         HOME("HOME"), END("END"), PGUP("PGUP"), PGDN("PGDN"),
         INS("INS"), DEL("DEL"), BKSP("⌫"), ENTER("↵"), SPACE("␣"),
-        MENU("☰"), FIND("FIND"), PASTE("PASTE"), KEYBOARD("⌨"),
+        MENU("MENU"), FIND("FIND"), PASTE("PASTE"), KEYBOARD("KBD"),
         F1("F1"), F2("F2"), F3("F3"), F4("F4"), F5("F5"), F6("F6"),
         F7("F7"), F8("F8"), F9("F9"), F10("F10"), F11("F11"), F12("F12");
 

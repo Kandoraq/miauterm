@@ -42,7 +42,7 @@
         <FrameLayout
             android:id="@+id/bottomBarContainer"
             android:layout_width="match_parent"
-            android:layout_height="86dp"
+            android:layout_height="94dp"
             android:background="@color/cortex_surface_container">
 
             <!-- 2-Row Extra Keys Keyboard Toolbar -->
@@ -94,20 +94,24 @@
 
             <ImageView
                 android:id="@+id/btnDrawerFiles"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:padding="11dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:padding="12dp"
                 android:src="@drawable/ic_folder"
                 android:contentDescription="@string/files_title"
+                android:clickable="true"
+                android:focusable="true"
                 android:background="@drawable/icon_circle_bg" />
 
             <ImageView
                 android:id="@+id/btnDrawerSettings"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:padding="11dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:padding="12dp"
                 android:src="@drawable/ic_settings"
                 android:contentDescription="@string/settings"
+                android:clickable="true"
+                android:focusable="true"
                 android:background="@drawable/icon_circle_bg" />
         </LinearLayout>
 
@@ -153,35 +157,77 @@
             android:paddingTop="8dp"
             android:paddingBottom="6dp">
 
-            <TextView
+            <LinearLayout
                 android:id="@+id/btnDrawerKeyboard"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_weight="1"
                 android:layout_marginEnd="6dp"
                 android:gravity="center"
-                android:drawableStart="@drawable/ic_keyboard"
-                android:drawablePadding="7dp"
-                android:text="@string/drawer_keyboard"
-                android:textColor="@color/cortex_text_primary"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:background="@drawable/icon_circle_bg" />
+                android:orientation="horizontal"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="@string/drawer_keyboard"
+                android:background="@drawable/icon_circle_bg">
 
-            <TextView
+                <ImageView
+                    android:id="@+id/drawerKeyboardIcon"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="6dp"
+                    android:src="@drawable/ic_keyboard"
+                    android:importantForAccessibility="no" />
+
+                <TextView
+                    android:id="@+id/drawerKeyboardLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:text="@string/drawer_keyboard"
+                    android:textColor="@color/cortex_text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:importantForAccessibility="no" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/btnDrawerNewSession"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_weight="1.25"
                 android:layout_marginStart="6dp"
                 android:gravity="center"
-                android:drawableStart="@drawable/ic_add"
-                android:drawablePadding="7dp"
-                android:text="@string/drawer_new_session"
-                android:textColor="@color/cortex_bg"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:background="@drawable/icon_circle_bg" />
+                android:orientation="horizontal"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="@string/drawer_new_session"
+                android:background="@drawable/icon_circle_bg">
+
+                <ImageView
+                    android:id="@+id/drawerNewSessionIcon"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="6dp"
+                    android:src="@drawable/ic_add"
+                    android:importantForAccessibility="no" />
+
+                <TextView
+                    android:id="@+id/drawerNewSessionLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:text="@string/drawer_new_session"
+                    android:textColor="@color/cortex_bg"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:importantForAccessibility="no" />
+            </LinearLayout>
         </LinearLayout>
 
     </LinearLayout>

@@ -25,7 +25,7 @@
     <!-- Sessions drawer -->
     <string name="drawer_sessions">Sessions</string>
     <string name="drawer_keyboard">Keyboard</string>
-    <string name="drawer_new_session">+ New session</string>
+    <string name="drawer_new_session">New session</string>
     <string name="session_label">Session %1$d</string>
     <string name="close_session">Close session</string>
     <string name="exit_confirm_title">Exit Session</string>
