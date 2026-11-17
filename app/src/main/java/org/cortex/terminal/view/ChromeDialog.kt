@@ -18,7 +18,7 @@ object ChromeDialog {
         val density = dialog.context.resources.displayMetrics.density
         val hairline = density.toInt().coerceAtLeast(1)
         dialog.window?.setBackgroundDrawable(
-            InsetDrawable(Chrome.rounded(p.bar, 20 * density, p.outline, hairline), (16 * density).toInt())
+            InsetDrawable(Chrome.rounded(p.bar, 4 * density, p.outline, hairline), (16 * density).toInt())
         )
         val applyColors = {
             dialog.findViewById<TextView>(androidx.appcompat.R.id.alertTitle)?.setTextColor(p.text)

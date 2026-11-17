@@ -209,8 +209,16 @@ class SettingsActivity : AppCompatActivity() {
             setPadding(8, 0, 8, 0)
             addView(editor, android.widget.LinearLayout.LayoutParams(-1, (230 * resources.displayMetrics.density).toInt()))
             addView(android.widget.Button(this@SettingsActivity).apply {
+                val palette = org.cortex.terminal.view.Chrome.palette
+                val density = resources.displayMetrics.density
                 text = getString(R.string.extra_keys_add_key)
-                minHeight = (48 * resources.displayMetrics.density).toInt()
+                isAllCaps = false
+                minHeight = (48 * density).toInt()
+                setTextColor(palette.onAccent)
+                background = org.cortex.terminal.view.Chrome.buttonBackground(palette, 3 * density, 0, filled = true)
+                setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_add, 0, 0, 0)
+                compoundDrawablePadding = (8 * density).toInt()
+                compoundDrawablesRelative.firstOrNull()?.setTint(palette.onAccent)
                 setOnClickListener {
                     val keys = ExtraKeysLayout.Special.values()
                     val textKeys = ('a'..'z').map { it.toString() } +
@@ -516,6 +524,33 @@ class SettingsActivity : AppCompatActivity() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.root_preferences, rootKey)
             updateSharedFolderPreference()
+            val preferenceIcons = mapOf(
+                "terminal_font" to R.drawable.ic_text_fields,
+                "terminal_theme" to R.drawable.ic_palette,
+                "terminal_font_size" to R.drawable.ic_text_fields,
+                "show_session_tabs" to R.drawable.ic_layers,
+                "keep_screen_on" to R.drawable.ic_lightbulb,
+                "secure_screen" to R.drawable.ic_shield,
+                "restore_sessions" to R.drawable.ic_history,
+                LocaleHelper.PREF_KEY to R.drawable.ic_language,
+                "notify_long_commands" to R.drawable.ic_notifications,
+                "long_command_threshold" to R.drawable.ic_schedule,
+                "allow_osc52" to R.drawable.ic_clipboard,
+                "notify_servers" to R.drawable.ic_server,
+                "shared_folder_access" to R.drawable.ic_folder_shared,
+                DebianRuntime.PREF_LINUX_USER to R.drawable.ic_person,
+                DebianRuntime.PREF_PROOT_DIAGNOSTICS to R.drawable.ic_tune,
+                "view_proot_log" to R.drawable.ic_receipt,
+                "clear_proot_log" to R.drawable.ic_delete,
+                "failsafe_session" to R.drawable.ic_build,
+                "backup_debian" to R.drawable.ic_backup,
+                "restore_debian" to R.drawable.ic_restore,
+                "reset_debian" to R.drawable.ic_restart,
+                "edit_extra_keys" to R.drawable.ic_keyboard,
+                "about_miauterm" to R.drawable.ic_info,
+                "bug_report" to R.drawable.ic_bug_report
+            )
+            preferenceIcons.forEach { (key, icon) -> findPreference<Preference>(key)?.setIcon(icon) }
             findPreference<SwitchPreferenceCompat>("shared_folder_access")?.apply {
                 isPersistent = false
                 setOnPreferenceChangeListener { _, newValue ->

@@ -35,13 +35,32 @@ object Chrome {
         val dark: Boolean
     )
 
+    // Terminal color schemes affect terminal text only; app controls keep Miauterm's graphite palette.
     @Volatile
-    var palette: Palette = from(TerminalColor.SCHEMES.getValue("catppuccin"))
+    var palette: Palette = graphitePalette()
         private set
 
-    fun apply(scheme: TerminalColor.ColorScheme) {
-        palette = from(scheme)
+    fun apply(@Suppress("UNUSED_PARAMETER") scheme: TerminalColor.ColorScheme) {
+        palette = graphitePalette()
     }
+
+    private fun graphitePalette() = Palette(
+        bg = rgb(0x14, 0x16, 0x18),
+        fg = rgb(0xF2, 0xF3, 0xF4),
+        bar = rgb(0x10, 0x12, 0x14),
+        raised = rgb(0x20, 0x23, 0x26),
+        raisedHigh = rgb(0x30, 0x34, 0x38),
+        outline = rgb(0x38, 0x3C, 0x40),
+        text = rgb(0xF2, 0xF3, 0xF4),
+        textDim = rgb(0xBE, 0xC2, 0xC6),
+        textFaint = rgb(0x96, 0x9C, 0xA1),
+        accent = rgb(0xFF, 0x98, 0x52),
+        accentSoft = rgb(0x40, 0x27, 0x19),
+        onAccent = rgb(0x21, 0x14, 0x0B),
+        danger = rgb(0xFF, 0x6B, 0x6B),
+        dangerSoft = rgb(0x3B, 0x20, 0x22),
+        dark = true
+    )
 
     fun from(scheme: TerminalColor.ColorScheme): Palette = from(scheme.bg, scheme.fg, scheme.ansi)
 
