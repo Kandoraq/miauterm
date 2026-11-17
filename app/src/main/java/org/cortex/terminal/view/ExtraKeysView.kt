@@ -70,6 +70,11 @@ class ExtraKeysView @JvmOverloads constructor(
     private var latchedKey: Pair<Button, Int>? = null
     private val latchStarters = mutableMapOf<Button, Runnable>()
     private val keyRows = mutableListOf<Pair<LinearLayout, List<Button>>>()
+    private var swipeRow: HorizontalScrollView? = null
+    private var swipeDownX = 0f
+    private var swipeDownY = 0f
+    private var swipeLastX = 0f
+    private var horizontalSwipeActive = false
 
     private fun dp(v: Float): Float = v * resources.displayMetrics.density
 
@@ -78,6 +83,7 @@ class ExtraKeysView @JvmOverloads constructor(
 
     init {
         orientation = VERTICAL
+        isClickable = true
         setBackgroundColor(Chrome.palette.bar)
         setPadding(0, 0, 0, 0)
         setKeys(ExtraKeysLayout.DEFAULT_ROWS)
@@ -115,6 +121,52 @@ class ExtraKeysView @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         updateRowWidths(w)
+    }
+
+    override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                swipeRow = (0 until childCount)
+                    .map { getChildAt(it) }
+                    .filterIsInstance<HorizontalScrollView>()
+                    .firstOrNull { event.y >= it.top && event.y < it.bottom }
+                swipeDownX = event.x
+                swipeDownY = event.y
+                swipeLastX = event.x
+                horizontalSwipeActive = false
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val distanceX = kotlin.math.abs(event.x - swipeDownX)
+                val distanceY = kotlin.math.abs(event.y - swipeDownY)
+                if (swipeRow != null && distanceX > ViewConfiguration.get(context).scaledTouchSlop && distanceX > distanceY) {
+                    horizontalSwipeActive = true
+                    return true
+                }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                if (horizontalSwipeActive) return true
+                swipeRow = null
+            }
+        }
+        return false
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        val row = swipeRow
+        if (row == null || !horizontalSwipeActive) return super.onTouchEvent(event)
+        when (event.actionMasked) {
+            MotionEvent.ACTION_MOVE -> {
+                row.scrollBy((swipeLastX - event.x).toInt(), 0)
+                swipeLastX = event.x
+                return true
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                swipeRow = null
+                horizontalSwipeActive = false
+                return true
+            }
+        }
+        return true
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
