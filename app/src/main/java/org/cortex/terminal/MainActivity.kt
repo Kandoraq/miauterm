@@ -488,28 +488,22 @@ class MainActivity : AppCompatActivity() {
 
     private fun applyChrome() {
         val p = Chrome.palette
-        val density = resources.displayMetrics.density
 
         window.setBackgroundDrawable(ColorDrawable(p.bg))
         drawerLayout.setBackgroundColor(p.bg)
         drawerLayout.setScrimColor(Chrome.withAlpha(Chrome.BLACK, 150))
         binding.sessionTabs.applyPalette()
-        binding.tabsDivider.setBackgroundColor(p.outline)
-        binding.dockDivider.setBackgroundColor(p.outline)
+        binding.tabsDivider.visibility = View.GONE
+        binding.dockDivider.visibility = View.GONE
         binding.bottomBarContainer.setBackgroundColor(p.bar)
         extraKeysView.applyPalette()
         searchBar.applyPalette()
 
         binding.navDrawer.setBackgroundColor(p.bar)
         binding.drawerTitle.setTextColor(p.text)
-        binding.drawerDivider.setBackgroundColor(p.outline)
+        binding.drawerDivider.visibility = View.GONE
         binding.drawerSessionsLabel.setTextColor(p.textFaint)
-        val iconRadius = 6 * density
-        fun iconButtonBackground() = Chrome.ripple(
-            Chrome.rounded(p.raised, iconRadius, p.outline, maxOf(1, density.toInt())),
-            Chrome.withAlpha(p.accent, 55),
-            iconRadius
-        )
+        fun iconButtonBackground() = Chrome.flatPressable(p.bar, p.raisedHigh)
         btnDrawerSettings.background = iconButtonBackground()
         btnDrawerFiles.background = iconButtonBackground()
         btnDrawerSettings.imageTintList = ColorStateList.valueOf(p.textDim)
@@ -518,8 +512,10 @@ class MainActivity : AppCompatActivity() {
         binding.drawerNewSessionIcon.imageTintList = ColorStateList.valueOf(p.onAccent)
         binding.drawerKeyboardLabel.setTextColor(p.text)
         binding.drawerNewSessionLabel.setTextColor(p.onAccent)
-        btnDrawerKeyboard.background = Chrome.buttonBackground(p, 5 * density, maxOf(1, density.toInt()), filled = false)
-        btnDrawerNewSession.background = Chrome.buttonBackground(p, 5 * density, 0, filled = true)
+        btnDrawerKeyboard.background = Chrome.flatPressable(p.bar, p.raisedHigh)
+        btnDrawerNewSession.background = Chrome.flatPressable(p.accent, Chrome.mix(p.accent, p.fg, 0.16f))
+        btnDrawerKeyboard.elevation = 0f
+        btnDrawerNewSession.elevation = 0f
         if (::sessionAdapter.isInitialized) sessionAdapter.notifyDataSetChanged()
 
         window.statusBarColor = p.bar
@@ -580,6 +576,23 @@ class MainActivity : AppCompatActivity() {
         sessionAdapter.notifyDataSetChanged()
         refreshTabs()
         return session
+    }
+
+    internal fun openSessionAs(accountName: String): Boolean {
+        if (!::sessionManager.isInitialized || !::binding.isInitialized) return false
+        val account = DebianRuntime.accountByName(Environment.getCortexRoot(this), accountName) ?: return false
+        val session = sessionManager.newSession(
+            rows = terminalView.rows,
+            cols = terminalView.cols,
+            widthPx = terminalView.width,
+            heightPx = terminalView.height,
+            startDirectory = account.home,
+            accountName = account.name
+        )
+        terminalView.session = session
+        sessionAdapter.notifyDataSetChanged()
+        refreshTabs()
+        return true
     }
 
     private var isSearchAnimating = false

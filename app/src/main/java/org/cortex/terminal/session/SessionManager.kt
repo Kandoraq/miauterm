@@ -109,9 +109,10 @@ class SessionManager(private val context: Context) {
         onRedraw: (() -> Unit)? = null,
         startDirectory: String? = null,
         restoredOutput: String? = null,
-        failsafeMode: Boolean = false
+        failsafeMode: Boolean = false,
+        accountName: String? = null
     ): TerminalSession {
-        val session = TerminalSession(context.applicationContext, rows, cols, widthPx, heightPx, onRedraw, failsafeMode)
+        val session = TerminalSession(context.applicationContext, rows, cols, widthPx, heightPx, onRedraw, failsafeMode, accountName)
         session.startDirectory = startDirectory
         session.restoredOutput = restoredOutput
         session.numberProvider = { synchronized(sessions) { sessions.indexOf(session) + 1 }.coerceAtLeast(1) }

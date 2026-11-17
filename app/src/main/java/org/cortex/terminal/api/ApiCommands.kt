@@ -70,6 +70,7 @@ object ApiCommands {
             "network" -> network(context)
             "keysreload" -> keysReload()
             "reloadfont" -> reloadFont()
+            "su" -> openUserSession(context, req)
             else -> fail("unknown command '${req.command}' (run miauterm-cmd --help for usage)")
         }
     } catch (e: IllegalArgumentException) {
@@ -95,6 +96,22 @@ object ApiCommands {
         val activity = MainActivity.instance
             ?: throw IllegalStateException("the Miauterm terminal screen is not available")
         ok(activity.reloadTerminalFont())
+    }
+
+    private fun openUserSession(context: Context, req: ApiRequest): ApiResult {
+        require(req.args.size <= 1) { "usage: su [USER]" }
+        val username = req.args.firstOrNull()?.takeIf { it.isNotBlank() } ?: "root"
+        require(username.matches(Regex("[a-z_][a-z0-9_-]*\$?"))) { "invalid Linux account name" }
+        val root = Environment.getCortexRoot(context)
+        require(org.cortex.terminal.runtime.DebianRuntime.accountByName(root, username) != null) {
+            "Linux account '$username' does not exist or has no interactive shell"
+        }
+        return onMain {
+            val activity = MainActivity.instance
+                ?: throw IllegalStateException("open Miauterm before running su")
+            check(activity.openSessionAs(username)) { "could not open a session as '$username'" }
+            ok("Opened a new terminal session as $username")
+        }
     }
 
     private fun text(req: ApiRequest, args: ApiArgs): String =
@@ -215,7 +232,7 @@ object ApiCommands {
 
         val nm = notificationManager(context)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && !nm.areNotificationsEnabled()) {
-            return fail("notifications are turned off for Cortex in Android's settings")
+            return fail("notifications are turned off for Miauterm in Android's settings")
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val lc = LocaleHelper.wrap(context)
@@ -262,7 +279,7 @@ object ApiCommands {
             if (clip == null || clip.itemCount == 0) null else clip.getItemAt(0).coerceToText(context)?.toString()
         }
         if (text == null && !CortexApp.isInForeground) {
-            return fail("Android only lets the app on screen read the clipboard: switch to Cortex and try again")
+            return fail("Android only lets the app on screen read the clipboard: switch to Miauterm and try again")
         }
         return ok(text ?: "")
     }
@@ -304,7 +321,7 @@ object ApiCommands {
         val uri = try {
             FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
         } catch (e: IllegalArgumentException) {
-            throw IllegalArgumentException("only files in Cortex and in shared storage can be opened by other apps")
+            throw IllegalArgumentException("only files in Miauterm and in shared storage can be opened by other apps")
         }
         val ext = file.extension.lowercase()
         val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
@@ -314,7 +331,7 @@ object ApiCommands {
 
     private fun startActivity(context: Context, intent: Intent, what: String): ApiResult {
         if (!CortexApp.isInForeground) {
-            return fail("Android only lets the app on screen open other apps: switch to Cortex and try again")
+            return fail("Android only lets the app on screen open other apps: switch to Miauterm and try again")
         }
         return try {
             context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

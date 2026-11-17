@@ -117,13 +117,14 @@
         <Preference app:key="view_proot_log" app:summary="@string/pref_view_proot_log_summary" app:title="@string/pref_view_proot_log_title" />
         <Preference app:key="clear_proot_log" app:title="@string/pref_clear_proot_log_title" />
         <Preference app:key="failsafe_session" app:summary="@string/pref_failsafe_summary" app:title="@string/pref_failsafe_title" />
+        <Preference app:key="rootfs_failsafe_guide" app:summary="@string/rootfs_failsafe_guide_summary" app:title="@string/rootfs_failsafe_guide_title" />
         <Preference app:key="backup_debian" app:summary="@string/pref_backup_debian_summary" app:title="@string/pref_backup_debian_title" />
         <Preference app:key="restore_debian" app:summary="@string/pref_restore_debian_summary" app:title="@string/pref_restore_debian_title" />
         <Preference app:key="reset_debian" app:summary="@string/pref_reset_debian_summary" app:title="@string/pref_reset_debian_title" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/pref_cat_terminal">
-        <Preference app:key="edit_extra_keys" app:title="@string/pref_extra_keys_title" />
+        <Preference app:key="edit_extra_keys" app:summary="@string/pref_extra_keys_summary" app:title="@string/pref_extra_keys_title" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/pref_cat_support">

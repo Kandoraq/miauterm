@@ -21,23 +21,26 @@ internal object FileInstaller {
             return false
         }
         val dir = file.absoluteFile.parentFile ?: throw IOException("${file.path} has no directory")
-        dir.mkdirs()
-        val tmp = File(dir, ".${file.name}.cortex-new")
-        ElfLinkerPatcher.deleteIfExists(tmp)
-        tmp.writeBytes(bytes)
-        chmod(tmp, mode)
-        val renamed = ElfLinkerPatcher.atomicReplace(tmp, file)
-        if (!renamed || !holds(file, bytes)) {
-            if (file.exists()) file.delete()
-            file.writeBytes(bytes)
-            if (!holds(file, bytes)) {
-                tmp.delete()
-                throw IOException("could not replace ${file.path} renamed=$renamed")
-            }
+        if (!dir.isDirectory && !dir.mkdirs()) throw IOException("could not create ${dir.path}")
+        val tmp = File(dir, ".${file.name}.miauterm-new")
+        if (tmp.exists() || ElfLinkerPatcher.isSymlink(tmp)) {
+            if (!ElfLinkerPatcher.deleteIfExists(tmp)) throw IOException("could not clear ${tmp.path}")
         }
-        ElfLinkerPatcher.deleteIfExists(tmp)
-        chmod(file, mode)
-        return true
+        try {
+            java.io.FileOutputStream(tmp).use { stream ->
+                stream.write(bytes)
+                stream.fd.sync()
+            }
+            chmod(tmp, mode)
+            if (!ElfLinkerPatcher.atomicReplace(tmp, file)) {
+                throw IOException("could not atomically replace ${file.path}")
+            }
+            if (!holds(file, bytes)) throw IOException("installed file verification failed: ${file.path}")
+            chmod(file, mode)
+            return true
+        } finally {
+            if (tmp.exists() || ElfLinkerPatcher.isSymlink(tmp)) ElfLinkerPatcher.deleteIfExists(tmp)
+        }
     }
 
     fun holds(file: File, bytes: ByteArray): Boolean {

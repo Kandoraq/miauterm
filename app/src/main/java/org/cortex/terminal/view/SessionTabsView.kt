@@ -73,7 +73,7 @@ class SessionTabsView @JvmOverloads constructor(
         val p = Chrome.palette
         setBackgroundColor(p.bar)
         newButton.setTextColor(p.accent)
-        newButton.background = Chrome.ripple(Chrome.rounded(0, dp(8).toFloat()), Chrome.withAlpha(p.accent, 60), dp(8).toFloat())
+        newButton.background = Chrome.flatPressable(p.bar, p.raisedHigh)
         rebuild()
     }
 
@@ -103,16 +103,11 @@ class SessionTabsView @JvmOverloads constructor(
 
     private fun tabView(index: Int, tab: Tab, isActive: Boolean): View {
         val p = Chrome.palette
-        val radius = dp(9).toFloat()
         val row = LinearLayout(context).apply {
             orientation = HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(10), 0, dp(if (isActive) 3 else 10), 0)
-            background = Chrome.ripple(
-                Chrome.rounded(if (isActive) p.accentSoft else 0, radius),
-                Chrome.withAlpha(p.accent, 50),
-                radius
-            )
+            background = Chrome.flatPressable(if (isActive) p.raised else p.bar, p.raisedHigh)
             isClickable = true
             isFocusable = true
             contentDescription = tab.title
@@ -130,7 +125,7 @@ class SessionTabsView @JvmOverloads constructor(
                     it.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                     onClose?.invoke(index)
                 }
-                background = Chrome.ripple(Chrome.rounded(0, dp(8).toFloat()), Chrome.withAlpha(p.danger, 70), dp(8).toFloat())
+                background = Chrome.flatPressable(p.bar, p.dangerSoft)
             }
             row.addView(close, LayoutParams(dp(30), dp(26)).apply { marginStart = dp(2) })
         }

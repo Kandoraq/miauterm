@@ -14,6 +14,8 @@ import java.net.URI
 import java.net.URL
 import java.net.URLEncoder
 import javax.net.ssl.HttpsURLConnection
+import java.util.concurrent.Executors
+import java.util.concurrent.ConcurrentHashMap
 
 object DebianRuntime {
     private const val TAG = "DebianRuntime"
@@ -25,6 +27,10 @@ object DebianRuntime {
         "https://1.1.1.1/dns-query",
         "https://8.8.8.8/resolve"
     )
+    private val networkMaintenance = Executors.newSingleThreadExecutor { task ->
+        Thread(task, "Miauterm-NetworkSetup").apply { isDaemon = true }
+    }
+    private val pendingHostRefreshes = ConcurrentHashMap.newKeySet<String>()
     private const val VERSION = 18
     private const val ROOTFS_ASSET = "debian-arm64.tar.zst"
     private const val PROOT_ASSET_DIR = "proot/arm64-v8a"
@@ -329,7 +335,10 @@ object DebianRuntime {
             "## Extra keys\n\n" +
             "Customize keys in `~/.config/miauterm/keys` using nested arrays:\n\n" +
             "```text\n[\n  [\"ESC\", \"/\", \"-\", \"HOME\", \"UP\", \"END\", \"PGUP\"],\n  [\"TAB\", \"CTRL\", \"ALT\", \"LEFT\", \"DOWN\", \"RIGHT\", \"PGDN\"]\n]\n```\n\n" +
-            "Use Miauterm Settings to edit the keys, view or clear PRoot diagnostics, open a failsafe session, back up or restore files, or reset the bundled Debian system. Export a backup before resetting if you need to keep your files.\n\n" +
+            "Select extra-key buttons in Miauterm Settings. Edit the Termux-style nested-array layout from Debian at `~/.config/miauterm/keys` with a text editor, then run `miauterm-cmd run keysreload`.\n\n" +
+            "Run `su` or `su USER` to open another Miauterm session as a Debian account. This opens a new session tab; it does not grant Android root access.\n\n" +
+            "Miauterm checks Debian usr-merge links before startup: `/bin -> usr/bin`, `/sbin -> usr/sbin`, and `/lib -> usr/lib`. Matching files are merged; conflicting files stop repair without being overwritten. The bundled and validated rootfs is Debian ARM64. Other distributions are not supported by Debian startup checks.\n\n" +
+            "Use Miauterm Settings to view or clear PRoot diagnostics, open a failsafe session, read the rootfs and symlink guide, back up or restore files, or reset the bundled Debian system. Export a backup before replacing files if you need to keep them.\n\n" +
             "The `root` shell identity is simulated by PRoot; it is not Android root. Linux account names do not create separate Android security identities.\n"
 
     internal fun prepareRestoredRootfs(context: Context, root: File) {
@@ -406,12 +415,7 @@ object DebianRuntime {
     }
 
     internal fun verifyRootfs(root: File) {
-        val osRelease = File(root, "etc/os-release")
-        if (!osRelease.isFile || osRelease.readLines().none { it.trim() == "ID=debian" } ||
-            !File(root, "etc/debian_version").isFile
-        ) {
-            throw IllegalStateException("The bundled Debian root filesystem is incomplete or invalid.")
-        }
+        validateDebianRootfsIdentity(root)
         repairDebianUsrMergeLinks(root)
         val shell = shellPath(root)
             ?: throw IllegalStateException(
@@ -426,6 +430,20 @@ object DebianRuntime {
         }
         check(File(root, "root").isDirectory || File(root, "root").mkdirs()) {
             "Could not prepare /root in Debian"
+        }
+    }
+
+    internal fun repairUsrMergeLinks(root: File) {
+        validateDebianRootfsIdentity(root)
+        repairDebianUsrMergeLinks(root)
+    }
+
+    private fun validateDebianRootfsIdentity(root: File) {
+        val osRelease = File(root, "etc/os-release")
+        if (!osRelease.isFile || osRelease.readLines().none { it.trim() == "ID=debian" } ||
+            !File(root, "etc/debian_version").isFile
+        ) {
+            throw IllegalStateException("The root filesystem is not a supported Debian installation.")
         }
     }
 
@@ -627,7 +645,7 @@ object DebianRuntime {
         return !log.exists() || log.delete()
     }
 
-    fun shellArguments(context: Context, guestDirectory: String?, failsafe: Boolean = false): Array<String> {
+    fun shellArguments(context: Context, guestDirectory: String?, failsafe: Boolean = false, accountOverride: LinuxAccount? = null): Array<String> {
         val rootfs = Environment.getCortexRoot(context)
         val dnsServers = networkDnsServers(context)
         val resolverServers = resolverAddresses(dnsServers)
@@ -640,16 +658,9 @@ object DebianRuntime {
                 Log.w(TAG, "Could not update Debian DNS resolver", error)
                 recordRuntimeEvent(context, "Debian resolver update failed: ${error.message ?: error.javaClass.simpleName}")
             }
-        runCatching { refreshRepositoryHosts(rootfs) }
-            .onSuccess { mappings ->
-                recordRuntimeEvent(context, "Debian apt repository host mappings: ${mappings.joinToString { "${it.second}=${it.first}" }.ifEmpty { "none resolved" }}")
-            }
-            .onFailure { error ->
-                Log.w(TAG, "Could not refresh Debian repository host mappings", error)
-                recordRuntimeEvent(context, "Debian repository host refresh failed: ${error.message ?: error.javaClass.simpleName}")
-            }
+        refreshRepositoryHostsAsync(context, rootfs)
         val root = rootfs.absolutePath
-        val account = selectedAccount(context, rootfs)
+        val account = accountOverride ?: selectedAccount(context, rootfs)
         val args = mutableListOf("--link2symlink", "--kill-on-exit", "--rootfs=$root")
         if (account.uid == 0) args += "--root-id" else args += "--change-id=${account.uid}:${account.gid}"
         args += "--pwd=${guestDirectory ?: account.home}"
@@ -693,6 +704,26 @@ object DebianRuntime {
             ?: "/bin/sh"
         args += listOf(shell, "-l", "-i")
         return args.toTypedArray()
+    }
+
+
+    private fun refreshRepositoryHostsAsync(context: Context, root: File) {
+        val key = root.absolutePath
+        if (!pendingHostRefreshes.add(key)) return
+        networkMaintenance.execute {
+            try {
+                val mappings = refreshRepositoryHosts(root)
+                recordRuntimeEvent(
+                    context,
+                    "Debian apt repository host mappings: ${mappings.joinToString { "${it.second}=${it.first}" }.ifEmpty { "none resolved" }}"
+                )
+            } catch (error: Exception) {
+                Log.w(TAG, "Could not refresh Debian repository host mappings", error)
+                recordRuntimeEvent(context, "Debian repository host refresh failed: ${error.message ?: error.javaClass.simpleName}")
+            } finally {
+                pendingHostRefreshes.remove(key)
+            }
+        }
     }
 
     internal fun refreshRepositoryHosts(root: File): List<Pair<String, String>> {
@@ -919,27 +950,43 @@ object DebianRuntime {
     data class LinuxAccount(val name: String, val uid: Int, val gid: Int, val home: String, val shell: String)
 
     fun accounts(root: File): List<LinuxAccount> {
-        val passwd = File(root, "etc/passwd")
-        val parsed = runCatching { passwd.readLines().mapNotNull { line ->
+        val rootCanonical = runCatching { root.canonicalFile }.getOrNull() ?: return emptyList()
+        fun guestPath(path: String): File? {
+            if (!path.startsWith("/") || path.split('/').any { it == ".." }) return null
+            val candidate = runCatching { File(rootCanonical, path.removePrefix("/")).canonicalFile }.getOrNull() ?: return null
+            return candidate.takeIf { ElfLinkerPatcher.isContainedInRoot(it, rootCanonical.path) }
+        }
+
+        val passwd = File(rootCanonical, "etc/passwd")
+        val safePasswd = guestPath("/etc/passwd")?.takeIf { it.isFile && !ElfLinkerPatcher.isSymlink(passwd) }
+        val parsed = safePasswd?.let { file -> runCatching { file.readLines().mapNotNull { line ->
             val fields = line.split(':')
             val uid = fields.getOrNull(2)?.toIntOrNull() ?: return@mapNotNull null
             val gid = fields.getOrNull(3)?.toIntOrNull() ?: return@mapNotNull null
-            val name = fields.getOrNull(0)?.takeIf { it.matches(Regex("[a-z_][a-z0-9_-]*\$?")) } ?: return@mapNotNull null
-            LinuxAccount(name, uid, gid, fields.getOrNull(5)?.takeIf { it.startsWith("/") } ?: "/", fields.getOrNull(6).orEmpty())
-        } }.getOrDefault(emptyList())
-        return listOf(LinuxAccount("root", 0, 0, "/root", "/bin/bash")) + parsed.filter {
-            it.uid > 0 && it.uid < 60000 && it.name != "root" &&
-                it.shell.startsWith("/") && it.shell !in setOf("/bin/false", "/usr/sbin/nologin", "/sbin/nologin") && File(root, it.shell.removePrefix("/")).canExecute() &&
-                File(root, it.home.removePrefix("/")).isDirectory
+            val name = fields.getOrNull(0)?.takeIf { it.matches(Regex("[a-z_][a-z0-9_-]*[$]?")) } ?: return@mapNotNull null
+            val home = fields.getOrNull(5)?.takeIf { it.startsWith("/") } ?: return@mapNotNull null
+            val shell = fields.getOrNull(6)?.takeIf { it.startsWith("/") } ?: return@mapNotNull null
+            val homeDir = guestPath(home)?.takeIf { it.isDirectory } ?: return@mapNotNull null
+            val shellFile = guestPath(shell)?.takeIf { it.isFile && it.canExecute() } ?: return@mapNotNull null
+            LinuxAccount(name, uid, gid, "/" + homeDir.relativeTo(rootCanonical).invariantSeparatorsPath,
+                "/" + shellFile.relativeTo(rootCanonical).invariantSeparatorsPath)
+        } }.getOrDefault(emptyList()) }.orEmpty()
+        val rootHome = guestPath("/root")?.takeIf { it.isDirectory }?.let {
+            "/" + it.relativeTo(rootCanonical).invariantSeparatorsPath
+        } ?: "/root"
+        return listOf(LinuxAccount("root", 0, 0, rootHome, "/bin/bash")) + parsed.filter {
+            it.uid in 1 until 60000 && it.name != "root" &&
+                it.shell !in setOf("/bin/false", "/usr/sbin/nologin", "/sbin/nologin")
         }.distinctBy { it.name }
     }
 
     fun selectedAccount(context: Context, root: File = Environment.getCortexRoot(context)): LinuxAccount {
         val wanted = PreferenceManager.getDefaultSharedPreferences(context).getString(PREF_LINUX_USER, "")
             ?.trim().orEmpty().ifBlank { "root" }
-        val available = accounts(root)
-        return available.firstOrNull { it.name == wanted } ?: available.first()
+        return accountByName(root, wanted) ?: accounts(root).first()
     }
+
+    fun accountByName(root: File, name: String): LinuxAccount? = accounts(root).firstOrNull { it.name == name }
 
     const val PREF_LINUX_USER = "linux_user"
     const val PREF_SHARED_FOLDER_ACCESS = "shared_folder_access_enabled"
@@ -967,11 +1014,11 @@ object DebianRuntime {
         return directory.takeIf { it.isDirectory && it.canRead() }
     }
 
-    fun environment(context: Context, failsafe: Boolean = false, rootfs: File = Environment.getCortexRoot(context)): Array<String> {
+    fun environment(context: Context, failsafe: Boolean = false, rootfs: File = Environment.getCortexRoot(context), accountOverride: LinuxAccount? = null): Array<String> {
         val proot = File(context.filesDir, "proot")
         val prootTemp = File(context.cacheDir, "proot-tmp").apply { mkdirs() }
         val tz = java.util.TimeZone.getDefault().id
-        val account = selectedAccount(context, rootfs)
+        val account = accountOverride ?: selectedAccount(context, rootfs)
         return arrayOf(
             "HOME=${account.home}",
             "USER=${account.name}",

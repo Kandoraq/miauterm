@@ -21,7 +21,8 @@ class TerminalSession(
     var widthPx: Int = 0,
     var heightPx: Int = 0,
     var onRedraw: (() -> Unit)? = null,
-    val failsafeMode: Boolean = false
+    val failsafeMode: Boolean = false,
+    private val requestedAccountName: String? = null
 ) {
     private val tag = "TerminalSession"
     val emulator = TerminalEmulator(rows, cols) {
@@ -82,6 +83,14 @@ class TerminalSession(
                 DebianRuntime.recordRuntimeEvent(context, "Failsafe session requested; home=${home.absolutePath}")
             } else {
                 val root = Environment.getCortexRoot(context)
+                if (root.isDirectory) {
+                    stage = "checking Debian usr-merge links"
+                    DebianRuntime.repairUsrMergeLinks(root)
+                    DebianRuntime.recordRuntimeEvent(
+                        context,
+                        "Debian usr-merge links checked: /bin -> usr/bin, /sbin -> usr/sbin, /lib -> usr/lib"
+                    )
+                }
                 var shellPath = DebianRuntime.shellPathForSession(root)
                 if (shellPath == null) {
                     DebianRuntime.recordRuntimeEvent(context, "Shell path missing; validating and repairing Debian usr-merge links")
@@ -89,7 +98,9 @@ class TerminalSession(
                     shellPath = DebianRuntime.shellPathForSession(root)
                 }
                 val launcher = File(context.filesDir, "proot/launcher.sh")
-                val account = DebianRuntime.selectedAccount(context, root)
+                val account = requestedAccountName?.let { DebianRuntime.accountByName(root, it) }
+                    ?: if (requestedAccountName == null) DebianRuntime.selectedAccount(context, root)
+                    else throw IllegalArgumentException("Linux account '$requestedAccountName' is not available")
                 accountName = account.name
                 val rootCwd = File(root, account.home.removePrefix("/"))
                 stage = "checking Linux rootfs files"
@@ -149,8 +160,8 @@ class TerminalSession(
                     }
                 ) account.home else requestedDirectory
                 shell = prootShell
-                args = DebianRuntime.shellArguments(context, guestDirectory, failsafeMode)
-                ptyEnv = DebianRuntime.environment(context, failsafeMode)
+                args = DebianRuntime.shellArguments(context, guestDirectory, failsafeMode, account)
+                ptyEnv = DebianRuntime.environment(context, failsafeMode, root, account)
                 cwd = rootCwd
                 restoredOutput?.let { showRestoredOutput(it) }
                 restoredOutput = null

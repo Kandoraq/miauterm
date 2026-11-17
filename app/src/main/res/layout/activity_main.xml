@@ -101,7 +101,7 @@
                 android:contentDescription="@string/files_title"
                 android:clickable="true"
                 android:focusable="true"
-                android:background="@drawable/icon_circle_bg" />
+                android:background="@null" />
 
             <ImageView
                 android:id="@+id/btnDrawerSettings"
@@ -112,13 +112,13 @@
                 android:contentDescription="@string/settings"
                 android:clickable="true"
                 android:focusable="true"
-                android:background="@drawable/icon_circle_bg" />
+                android:background="@null" />
         </LinearLayout>
 
         <View
             android:id="@+id/drawerDivider"
             android:layout_width="match_parent"
-            android:layout_height="1dp"
+            android:layout_height="0dp"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
             android:background="@color/cortex_outline_variant" />
@@ -170,7 +170,7 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:contentDescription="@string/drawer_keyboard"
-                android:background="@drawable/icon_circle_bg">
+                android:background="@null">
 
                 <ImageView
                     android:id="@+id/drawerKeyboardIcon"
@@ -206,7 +206,7 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:contentDescription="@string/drawer_new_session"
-                android:background="@drawable/icon_circle_bg">
+                android:background="@null">
 
                 <ImageView
                     android:id="@+id/drawerNewSessionIcon"

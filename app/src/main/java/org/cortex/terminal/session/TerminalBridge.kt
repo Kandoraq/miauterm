@@ -43,7 +43,7 @@ object TerminalBridge {
         mainHandler.post {
             try {
                 val cm = app.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return@post
-                cm.setPrimaryClip(ClipData.newPlainText("Cortex", text))
+                cm.setPrimaryClip(ClipData.newPlainText("Miauterm", text))
                 Toast.makeText(app, LocaleHelper.wrap(app).getString(R.string.clipboard_set_by_program), Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Log.w(TAG, "Could not set clipboard", e)

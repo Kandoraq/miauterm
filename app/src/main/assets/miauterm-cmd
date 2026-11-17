@@ -20,12 +20,15 @@ Commands:
   tts [text]               Speak text using Android text-to-speech
   wakelock <action>         Manage the app's wake lock
   network                  Show network status
-  keysreload               Reload extra keys from the Miauterm config
+  keysreload               Reload extra keys from the Debian guest config
+  su [USER]                Open a new terminal session as a Debian user (root by default)
   reloadfont               Reload the selected terminal font
 
 Examples:
   miauterm-cmd run info
   miauterm-cmd run reloadfont
+  su -
+  su username
   miauterm-cmd run toast "Hello from Debian"
 HELP
 }

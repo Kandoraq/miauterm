@@ -1346,7 +1346,7 @@ class TerminalView @JvmOverloads constructor(
 
     private fun putOnClipboard(text: String) {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(ClipData.newPlainText("Cortex", text))
+        clipboard.setPrimaryClip(ClipData.newPlainText("Miauterm", text))
         Toast.makeText(context, R.string.copied_to_clipboard, Toast.LENGTH_SHORT).show()
     }
 
@@ -1446,7 +1446,7 @@ class TerminalView @JvmOverloads constructor(
 
             val timeStamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss_SSS", java.util.Locale.US).format(java.util.Date())
             val uniqueSuffix = System.nanoTime() and 0xFFFF
-            val targetFile = File(destDir, "cortex_img_${timeStamp}_${uniqueSuffix}${ext}")
+            val targetFile = File(destDir, "miauterm_img_${timeStamp}_${uniqueSuffix}${ext}")
             if (!targetFile.exists()) {
                 targetFile.createNewFile()
             }

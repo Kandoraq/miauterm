@@ -1,6 +1,7 @@
 package org.cortex.terminal.view
 
 import android.content.res.ColorStateList
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
@@ -157,6 +158,9 @@ object Chrome {
             addState(intArrayOf(android.R.attr.state_pressed), pressed)
             addState(intArrayOf(), normal)
         }
+
+    fun flatPressable(normalColor: Int, pressedColor: Int): StateListDrawable =
+        pressable(ColorDrawable(normalColor), ColorDrawable(pressedColor))
 
     fun ripple(content: Drawable, rippleColor: Int, radiusPx: Float): RippleDrawable =
         RippleDrawable(ColorStateList.valueOf(rippleColor), content, rounded(WHITE, radiusPx))

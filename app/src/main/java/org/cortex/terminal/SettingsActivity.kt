@@ -195,122 +195,84 @@ class SettingsActivity : AppCompatActivity() {
         val file = File(Environment.getHomeDir(this), ".config/miauterm/${ExtraKeysConfig.FILE_NAME}")
         val initial = runCatching { if (file.isFile) file.readText() else ExtraKeysLayout.DEFAULT_TEXT + "\n" }
             .getOrDefault(ExtraKeysLayout.DEFAULT_TEXT + "\n")
-        val editor = android.widget.EditText(this).apply {
-            setText(initial)
-            textSize = 13f
-            typeface = android.graphics.Typeface.MONOSPACE
-            minLines = 8
-            maxLines = 14
-            gravity = android.view.Gravity.TOP or android.view.Gravity.START
-            setPadding(18, 12, 18, 12)
+        val parsed = ExtraKeysLayout.parse(initial)
+        if (parsed.error != null) {
+            android.widget.Toast.makeText(this, getString(R.string.extra_keys_invalid, parsed.error), android.widget.Toast.LENGTH_LONG).show()
+            return
         }
-        val container = android.widget.LinearLayout(this).apply {
+        val selected = ExtraKeysLayout.Special.values().map { special ->
+            parsed.rows.flatten().any { it is ExtraKeysLayout.Key.SpecialKey && it.special == special }
+        }.toBooleanArray()
+        val density = resources.displayMetrics.density
+        val content = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(8, 0, 8, 0)
-            addView(editor, android.widget.LinearLayout.LayoutParams(-1, (230 * resources.displayMetrics.density).toInt()))
-            addView(android.widget.Button(this@SettingsActivity).apply {
-                val palette = org.cortex.terminal.view.Chrome.palette
-                val density = resources.displayMetrics.density
-                text = getString(R.string.extra_keys_add_key)
-                isAllCaps = false
-                minHeight = (48 * density).toInt()
-                setTextColor(palette.onAccent)
-                background = org.cortex.terminal.view.Chrome.buttonBackground(palette, 3 * density, 0, filled = true)
-                setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_add, 0, 0, 0)
-                compoundDrawablePadding = (8 * density).toInt()
-                compoundDrawablesRelative.firstOrNull()?.setTint(palette.onAccent)
-                setOnClickListener {
-                    val keys = ExtraKeysLayout.Special.values()
-                    val textKeys = ('a'..'z').map { it.toString() } +
-                        ('A'..'Z').map { it.toString() } +
-                        ('0'..'9').map { it.toString() } +
-                        listOf(
-                            "-", "_", "=", "+", "[", "]", "{", "}", "(", ")", "<", ">", "/", "?", "\\",
-                            "|", ":", ";", "'", "\"", ",", ".", "~", "!", "@", "#", "\$", "%", "^", "&", "*"
-                        )
-                    val options = keys.map { key ->
-                        if (key.name == key.label) key.name else "${key.name} (${key.label})"
-                    } + textKeys + getString(R.string.extra_keys_custom)
-                    AlertDialog.Builder(this@SettingsActivity)
-                        .setTitle(R.string.extra_keys_add_key)
-                        .setItems(options.toTypedArray()) { _, which ->
-                            when {
-                                which < keys.size -> appendExtraKey(editor, file, keys[which].name, textKey = false)
-                                which < keys.size + textKeys.size -> {
-                                    appendExtraKey(editor, file, textKeys[which - keys.size], textKey = true)
-                                }
-                                which == options.lastIndex -> {
-                                    val input = android.widget.EditText(this@SettingsActivity).apply {
-                                        setSingleLine(true)
-                                        hint = getString(R.string.extra_keys_custom)
-                                    }
-                                    AlertDialog.Builder(this@SettingsActivity)
-                                        .setTitle(R.string.extra_keys_custom)
-                                        .setView(input)
-                                        .setNegativeButton(android.R.string.cancel, null)
-                                        .setPositiveButton(android.R.string.ok) { _, _ ->
-                                            val value = input.text.toString()
-                                            if (value.isNotBlank()) appendExtraKey(editor, file, value, textKey = true)
-                                        }
-                                        .show().also { org.cortex.terminal.view.ChromeDialog.style(it) }
-                                }
-                            }
-                        }
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .show().also { org.cortex.terminal.view.ChromeDialog.style(it) }
-                }
-            }, android.widget.LinearLayout.LayoutParams(-1, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT))
+            setPadding((20 * density).toInt(), 0, (20 * density).toInt(), 0)
         }
+        content.addView(android.widget.TextView(this).apply {
+            text = getString(R.string.extra_keys_guest_config)
+            textSize = 13f
+            setTextColor(org.cortex.terminal.view.Chrome.palette.textDim)
+            setPadding(0, 0, 0, (12 * density).toInt())
+        })
+        val scroll = android.widget.ScrollView(this).apply { isFillViewport = true }
+        val grid = android.widget.GridLayout(this).apply { columnCount = 2; useDefaultMargins = false }
+        ExtraKeysLayout.Special.values().forEachIndexed { index, special ->
+            val check = android.widget.CheckBox(this).apply {
+                text = if (special.name == special.label) special.name else "${special.name}  ${special.label}"
+                isChecked = selected[index]
+                minHeight = (48 * density).toInt()
+                setTextColor(org.cortex.terminal.view.Chrome.palette.text)
+                buttonTintList = android.content.res.ColorStateList.valueOf(org.cortex.terminal.view.Chrome.palette.accent)
+                tag = index
+            }
+            grid.addView(check, android.widget.GridLayout.LayoutParams().apply {
+                rowSpec = android.widget.GridLayout.spec(index / 2)
+                columnSpec = android.widget.GridLayout.spec(index % 2, 1f)
+                width = 0
+                height = android.widget.GridLayout.LayoutParams.WRAP_CONTENT
+                setMargins(0, 0, (4 * density).toInt(), 0)
+            })
+        }
+        scroll.addView(grid)
+        content.addView(scroll, android.widget.LinearLayout.LayoutParams(-1, (360 * density).toInt()))
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.pref_extra_keys_title)
-            .setView(container)
+            .setView(content)
             .setNegativeButton(R.string.cancel, null)
-            .setNeutralButton(R.string.extra_keys_reset) { _, _ ->
-                file.delete()
-                MainActivity.instance?.reloadExtraKeys()
-                android.widget.Toast.makeText(this, R.string.extra_keys_saved, android.widget.Toast.LENGTH_SHORT).show()
-            }
             .setPositiveButton(R.string.save, null)
             .create()
         org.cortex.terminal.view.ChromeDialog.style(dialog) {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val text = editor.text.toString()
-                val parsed = ExtraKeysLayout.parse(text)
-                when {
-                    text.toByteArray(Charsets.UTF_8).size > 64 * 1024 -> editor.error = getString(R.string.extra_keys_invalid, "over 64 KB")
-                    !ExtraKeysLayout.isNestedArrayFormat(text) -> editor.error = getString(R.string.extra_keys_array_format)
-                    parsed.error != null -> editor.error = getString(R.string.extra_keys_invalid, parsed.error)
-                    else -> runCatching { ExtraKeysConfig.writeLayout(file, text) }.onSuccess {
-                        MainActivity.instance?.reloadExtraKeys()
-                        dialog.dismiss()
-                        android.widget.Toast.makeText(this, R.string.extra_keys_saved, android.widget.Toast.LENGTH_SHORT).show()
-                    }.onFailure { editor.error = it.message }
+                val enabled = (0 until grid.childCount).associate { index ->
+                    val child = grid.getChildAt(index) as android.widget.CheckBox
+                    (child.tag as Int) to child.isChecked
+                }
+                val textKeys = parsed.rows.flatten().filterIsInstance<ExtraKeysLayout.Key.TextKey>()
+                val selectedKeys = ExtraKeysLayout.Special.values().filterIndexed { index, _ -> enabled[index] == true }
+                    .map { ExtraKeysLayout.Key.SpecialKey(it) }
+                val keys: List<ExtraKeysLayout.Key> = selectedKeys + textKeys
+                if (keys.isEmpty()) {
+                    android.widget.Toast.makeText(this, R.string.extra_keys_select_one, android.widget.Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                val perRow = (keys.size + ExtraKeysLayout.MAX_ROWS - 1) / ExtraKeysLayout.MAX_ROWS
+                val rows = keys.chunked(perRow.coerceAtLeast(1))
+                val text = rows.joinToString(",\n") { row -> row.joinToString(", ", "[", "]") { key ->
+                    val value = when (key) {
+                        is ExtraKeysLayout.Key.SpecialKey -> key.special.name
+                        is ExtraKeysLayout.Key.TextKey -> key.text
+                    }
+                    "\"${value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r").replace("\u001b", "\\e")}\""
+                } }.let { "[\n$it\n]\n" }
+                runCatching { ExtraKeysConfig.writeLayout(file, text) }.onSuccess {
+                    MainActivity.instance?.reloadExtraKeys()
+                    dialog.dismiss()
+                    android.widget.Toast.makeText(this, R.string.extra_keys_saved, android.widget.Toast.LENGTH_SHORT).show()
+                }.onFailure {
+                    android.widget.Toast.makeText(this, getString(R.string.extra_keys_invalid, it.message ?: "write failed"), android.widget.Toast.LENGTH_LONG).show()
                 }
             }
         }.show()
-    }
-
-    private fun appendExtraKey(
-        editor: android.widget.EditText,
-        file: File,
-        value: String,
-        textKey: Boolean
-    ) {
-        runCatching {
-            ExtraKeysLayout.appendKey(editor.text.toString(), value, textKey).also {
-                ExtraKeysConfig.writeLayout(file, it)
-            }
-        }
-            .onSuccess { updated ->
-                editor.setText(updated)
-                editor.setSelection(editor.text.length)
-                editor.error = null
-                MainActivity.instance?.reloadExtraKeys()
-                android.widget.Toast.makeText(this, R.string.extra_keys_saved, android.widget.Toast.LENGTH_SHORT).show()
-            }
-            .onFailure { error ->
-                editor.error = getString(R.string.extra_keys_invalid, error.message ?: "invalid layout")
-            }
     }
 
     internal fun showAbout() {
@@ -521,6 +483,21 @@ class SettingsActivity : AppCompatActivity() {
             org.cortex.terminal.view.ChromeDialog.style(dialog).show()
         }
 
+        private fun showRootfsFailsafeGuide() {
+            val context = requireContext()
+            val root = Environment.getCortexRoot(context).absolutePath
+            val dialog = AlertDialog.Builder(context)
+                .setTitle(R.string.rootfs_failsafe_guide_title)
+                .setMessage(getString(R.string.rootfs_failsafe_guide_message, root))
+                .setNegativeButton(R.string.close, null)
+                .setPositiveButton(R.string.pref_failsafe_title) { _, _ ->
+                    MainActivity.pendingFailsafeSession = true
+                    activity?.finish()
+                }
+                .create()
+            org.cortex.terminal.view.ChromeDialog.style(dialog).show()
+        }
+
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.root_preferences, rootKey)
             updateSharedFolderPreference()
@@ -543,6 +520,7 @@ class SettingsActivity : AppCompatActivity() {
                 "view_proot_log" to R.drawable.ic_receipt,
                 "clear_proot_log" to R.drawable.ic_delete,
                 "failsafe_session" to R.drawable.ic_build,
+                "rootfs_failsafe_guide" to R.drawable.ic_build,
                 "backup_debian" to R.drawable.ic_backup,
                 "restore_debian" to R.drawable.ic_restore,
                 "reset_debian" to R.drawable.ic_restart,
@@ -607,6 +585,10 @@ class SettingsActivity : AppCompatActivity() {
             findPreference<Preference>("failsafe_session")?.setOnPreferenceClickListener {
                 MainActivity.pendingFailsafeSession = true
                 activity?.finish()
+                true
+            }
+            findPreference<Preference>("rootfs_failsafe_guide")?.setOnPreferenceClickListener {
+                showRootfsFailsafeGuide()
                 true
             }
             findPreference<Preference>("backup_debian")?.setOnPreferenceClickListener {

@@ -1,7 +1,6 @@
 package org.cortex.terminal
 
 import android.content.res.ColorStateList
-import android.graphics.drawable.ColorDrawable
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -14,8 +13,8 @@ internal class SettingsStyle(private val fragment: PreferenceFragmentCompat) {
 
     fun install() {
         val p = Chrome.palette
-        fragment.setDivider(ColorDrawable(p.outline))
-        fragment.setDividerHeight(1)
+        fragment.setDivider(null)
+        fragment.setDividerHeight(0)
         fragment.listView.setBackgroundColor(p.bg)
         fragment.listView.addOnChildAttachStateChangeListener(object : RecyclerView.OnChildAttachStateChangeListener {
             override fun onChildViewAttachedToWindow(view: View) = style(view)
@@ -33,6 +32,7 @@ internal class SettingsStyle(private val fragment: PreferenceFragmentCompat) {
 
     private fun style(view: View) {
         val p = Chrome.palette
+        view.background = Chrome.flatPressable(p.bg, p.raisedHigh)
         val title = view.findViewById<TextView>(android.R.id.title)
         val summary = view.findViewById<TextView>(android.R.id.summary)
         val switch = view.findViewById<View>(androidx.preference.R.id.switchWidget) as? SwitchCompat

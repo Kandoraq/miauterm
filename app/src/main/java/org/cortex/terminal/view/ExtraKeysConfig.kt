@@ -117,7 +117,7 @@ class ExtraKeysConfig(home: File) {
             require(parsed.error == null) { parsed.error ?: "invalid layout" }
             val parent = checkNotNull(file.parentFile)
             check(parent.isDirectory || parent.mkdirs()) { "Could not create ${parent.path}" }
-            file.writeText(text)
+            FileInstaller.install(file, text, 420)
         }
     }
 }

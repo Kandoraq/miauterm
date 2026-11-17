@@ -36,7 +36,7 @@ class ExtraKeysView @JvmOverloads constructor(
         private const val REPEAT_INTERVAL_MS = 60L
         private const val LATCH_HOLD_MS = 500L
 
-        const val ROW_HEIGHT_DP = 44
+        const val ROW_HEIGHT_DP = 36
 
         const val PADDING_DP = 3
 
@@ -468,9 +468,12 @@ class ExtraKeysView @JvmOverloads constructor(
 
     private fun styleKey(btn: Button, on: Boolean) {
         val p = Chrome.palette
-        val radius = dp(4f)
-        val stroke = maxOf(1, dp(1f).toInt())
-        btn.background = if (on) Chrome.activeKeyBackground(p, radius, stroke) else Chrome.keyBackground(p, radius, stroke)
+        btn.background = Chrome.flatPressable(
+            if (on) p.accent else p.raised,
+            if (on) Chrome.mix(p.accent, p.fg, 0.18f) else p.raisedHigh
+        )
+        btn.elevation = 0f
+        btn.translationZ = 0f
         btn.setTextColor(if (on) p.onAccent else p.text)
     }
 

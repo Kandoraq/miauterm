@@ -1,6 +1,5 @@
 package org.cortex.terminal.runtime
 
-import android.annotation.SuppressLint
 import android.system.ErrnoException
 import android.system.Os
 import android.system.OsConstants
@@ -33,122 +32,43 @@ object ElfLinkerPatcher {
         "usr/lib/ld-linux-armhf.so.3"
     )
 
-    @SuppressLint("NewApi")
-    internal fun isSymlink(file: File): Boolean {
-        return try {
-            val st = Os.lstat(file.absolutePath)
-            if (st != null) {
-                OsConstants.S_ISLNK(st.st_mode)
-            } else {
-                java.nio.file.Files.isSymbolicLink(file.toPath())
-            }
-        } catch (_: ErrnoException) {
-            false
-        } catch (_: Throwable) {
-            try {
-                java.nio.file.Files.isSymbolicLink(file.toPath())
-            } catch (_: Throwable) {
-                false
-            }
-        }
+    internal fun isSymlink(file: File): Boolean = try {
+        OsConstants.S_ISLNK(Os.lstat(file.absolutePath).st_mode)
+    } catch (_: ErrnoException) {
+        false
+    } catch (_: Exception) {
+        false
     }
 
-    @SuppressLint("NewApi")
-    internal fun readSymlink(file: File): String? {
-        return try {
-            val target = Os.readlink(file.absolutePath)
-            target ?: java.nio.file.Files.readSymbolicLink(file.toPath()).toString()
-        } catch (_: ErrnoException) {
-            null
-        } catch (_: Throwable) {
-            try {
-                java.nio.file.Files.readSymbolicLink(file.toPath()).toString()
-            } catch (_: Throwable) {
-                null
-            }
-        }
+    internal fun readSymlink(file: File): String? = try {
+        Os.readlink(file.absolutePath)
+    } catch (_: ErrnoException) {
+        null
+    } catch (_: Exception) {
+        null
     }
 
-    @SuppressLint("NewApi")
-    internal fun createSymlink(target: String, linkFile: File): Boolean {
-        return try {
-            java.nio.file.Files.createSymbolicLink(
-                linkFile.toPath(),
-                java.nio.file.Paths.get(target)
-            )
-            true
-        } catch (_: Throwable) {
-            try {
-                Os.symlink(target, linkFile.absolutePath)
-                true
-            } catch (_: ErrnoException) {
-                false
-            } catch (_: Throwable) {
-                false
-            }
-        }
+    internal fun createSymlink(target: String, linkFile: File): Boolean = try {
+        Os.symlink(target, linkFile.absolutePath)
+        true
+    } catch (_: Exception) {
+        false
     }
 
-    @SuppressLint("NewApi")
-    internal fun deleteIfExists(file: File): Boolean {
-        return try {
-            Os.remove(file.absolutePath)
-            true
-        } catch (_: ErrnoException) {
-            false
-        } catch (_: Throwable) {
-            try {
-                java.nio.file.Files.deleteIfExists(file.toPath())
-            } catch (_: Throwable) {
-                file.delete()
-            }
-        }
+    internal fun deleteIfExists(file: File): Boolean = try {
+        Os.remove(file.absolutePath)
+        true
+    } catch (error: ErrnoException) {
+        error.errno == OsConstants.ENOENT
+    } catch (_: Exception) {
+        !file.exists() || file.delete()
     }
 
-    @SuppressLint("NewApi")
-    internal fun atomicReplace(src: File, dst: File): Boolean {
-        return try {
-            Os.rename(src.absolutePath, dst.absolutePath)
-            !src.exists() || moveOnHostFallback(src, dst)
-        } catch (_: ErrnoException) {
-            try {
-                deleteIfExists(dst)
-                if (src.renameTo(dst)) {
-                    true
-                } else {
-                    src.copyTo(dst, overwrite = true)
-                    src.delete()
-                    true
-                }
-            } catch (_: Throwable) {
-                false
-            }
-        } catch (_: Throwable) {
-            moveOnHostFallback(src, dst)
-        }
-    }
-
-    @SuppressLint("NewApi")
-    private fun moveOnHostFallback(src: File, dst: File): Boolean {
-        return try {
-            try {
-                java.nio.file.Files.move(
-                    src.toPath(),
-                    dst.toPath(),
-                    java.nio.file.StandardCopyOption.REPLACE_EXISTING,
-                    java.nio.file.StandardCopyOption.ATOMIC_MOVE
-                )
-            } catch (_: Exception) {
-                java.nio.file.Files.move(
-                    src.toPath(),
-                    dst.toPath(),
-                    java.nio.file.StandardCopyOption.REPLACE_EXISTING
-                )
-            }
-            true
-        } catch (_: Throwable) {
-            false
-        }
+    internal fun atomicReplace(src: File, dst: File): Boolean = try {
+        Os.rename(src.absolutePath, dst.absolutePath)
+        true
+    } catch (_: Exception) {
+        false
     }
 
     fun isContainedInRoot(candidate: File, rootCanonicalPath: String): Boolean {
