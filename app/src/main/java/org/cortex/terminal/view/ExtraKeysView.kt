@@ -388,6 +388,7 @@ class ExtraKeysView @JvmOverloads constructor(
                             cancelRepeat()
                             if (key.repeats) {
                                 armRepeat(v) {
+                                    flushLatchedFunction()
                                     repeatSentKey = true
                                     action()
                                 }
@@ -426,6 +427,8 @@ class ExtraKeysView @JvmOverloads constructor(
                             if (!gestureMoved && !repeatSentKey) {
                                 if (!latchable) flushLatchedFunction()
                                 if (!latchArmed) v.performClick()
+                            } else if (repeatSentKey) {
+                                flushLatchedFunction()
                             }
                             cancelRepeat()
                             v.parent?.requestDisallowInterceptTouchEvent(false)

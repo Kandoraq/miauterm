@@ -3,9 +3,18 @@ package org.cortex.terminal.emulator
 import android.view.KeyEvent
 
 object KeyMapper {
-    fun getEscapeSequence(keyCode: Int, isCtrl: Boolean, isAlt: Boolean, isAppCursor: Boolean = false): ByteArray? {
+    fun getEscapeSequence(
+        keyCode: Int,
+        isCtrl: Boolean,
+        isAlt: Boolean,
+        isAppCursor: Boolean = false,
+        isShift: Boolean = false
+    ): ByteArray? {
 
-        if (isCtrl) modifiedSequence(keyCode, if (isAlt) 7 else 5)?.let { return it.toByteArray(Charsets.UTF_8) }
+        if (isCtrl || isShift) {
+            val modifier = 1 + (if (isShift) 1 else 0) + (if (isAlt) 2 else 0) + (if (isCtrl) 4 else 0)
+            modifiedSequence(keyCode, modifier)?.let { return it.toByteArray(Charsets.UTF_8) }
+        }
         val baseSeq = when (keyCode) {
             KeyEvent.KEYCODE_DPAD_UP -> if (isAppCursor) "\u001bOA" else "\u001b[A"
             KeyEvent.KEYCODE_DPAD_DOWN -> if (isAppCursor) "\u001bOB" else "\u001b[B"

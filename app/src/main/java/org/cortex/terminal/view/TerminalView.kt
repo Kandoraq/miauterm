@@ -1515,20 +1515,24 @@ class TerminalView @JvmOverloads constructor(
     private fun deleteSelection(): Boolean {
         if (!isSelecting) return false
         val emulator = session?.emulator
-        var clear = false
+        var backspaces = 0
         if (emulator != null) {
             emulator.lock.withLock {
                 val buffer = emulator.buffer
-                clear = !buffer.isAlternate &&
-                    selectionHoldsCell(getNormalizedSelection(), buffer.cursorRow, buffer.cursorCol)
+                val norm = getNormalizedSelection()
+                if (!buffer.isAlternate && norm[0] == norm[2] && norm[0] == buffer.cursorRow &&
+                    norm[3] == buffer.cursorCol && selectionHoldsCell(norm, buffer.cursorRow, buffer.cursorCol)
+                ) {
+                    backspaces = norm[3] - norm[1] + 1
+                }
             }
         }
         clearSelection()
-        if (clear) {
+        if (backspaces > 0) {
             scrollOffset = 0
-            session?.write(CLEAR_LINE)
+            session?.write("\u007f".repeat(backspaces))
         }
-        return clear
+        return backspaces > 0
     }
 
     private fun postSearchChanged() {
@@ -1931,7 +1935,7 @@ class TerminalView @JvmOverloads constructor(
         isAltPressed = false
     }
 
-    fun sendKeySequence(keyCode: Int): Boolean {
+    fun sendKeySequence(keyCode: Int, isShiftPressed: Boolean = false): Boolean {
         val sess = session ?: return false
         if (!sess.isRunning) {
             if (keyCode == KeyEvent.KEYCODE_ENTER) {
@@ -1943,7 +1947,7 @@ class TerminalView @JvmOverloads constructor(
         clearSelection()
         scrollOffset = 0
         val isAppCursor = sess.emulator.isApplicationCursorKeys
-        val bytes = KeyMapper.getEscapeSequence(keyCode, isCtrlPressed, isAltPressed, isAppCursor)
+        val bytes = KeyMapper.getEscapeSequence(keyCode, isCtrlPressed, isAltPressed, isAppCursor, isShiftPressed)
         return if (bytes != null) {
             sess.write(bytes)
             restartCursorBlink()
@@ -1986,7 +1990,7 @@ class TerminalView @JvmOverloads constructor(
         }
         clearSelection()
         scrollOffset = 0
-        if (sendKeySequence(keyCode)) {
+        if (sendKeySequence(keyCode, event.isShiftPressed)) {
             return true
         }
 
@@ -2032,7 +2036,6 @@ private const val IME_LINE = " "
 internal fun selectionBackground(dark: Boolean, background: Int, accent: Int): Int =
     if (dark) Chrome.WHITE else Chrome.mix(background, accent, 0.35f)
 
-private const val CLEAR_LINE = "\u0005\u0015"
 
 internal enum class ClipboardShortcut { PASTE, COPY }
 

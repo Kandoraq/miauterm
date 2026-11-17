@@ -41,8 +41,8 @@ class KeyMapperTest {
         assertEquals(26, ctrlZ[0].toInt())
     }
 
-    private fun seq(keyCode: Int, ctrl: Boolean = false, alt: Boolean = false) =
-        KeyMapper.getEscapeSequence(keyCode, isCtrl = ctrl, isAlt = alt)?.let { String(it, Charsets.UTF_8) }
+    private fun seq(keyCode: Int, ctrl: Boolean = false, alt: Boolean = false, shift: Boolean = false) =
+        KeyMapper.getEscapeSequence(keyCode, isCtrl = ctrl, isAlt = alt, isShift = shift)?.let { String(it, Charsets.UTF_8) }
 
     @Test
     fun functionKeysAsXtermSendsThem() {
@@ -53,6 +53,14 @@ class KeyMapperTest {
         assertEquals("\u001b[21~", seq(android.view.KeyEvent.KEYCODE_F10))
         assertEquals("\u001b[24~", seq(android.view.KeyEvent.KEYCODE_F12))
         assertEquals("Alt puts ESC in front", "\u001b\u001b[15~", seq(android.view.KeyEvent.KEYCODE_F5, alt = true))
+    }
+
+    @Test
+    fun shiftAndCombinedModifiersUseCsiParameters() {
+        assertEquals("\u001b[1;2D", seq(android.view.KeyEvent.KEYCODE_DPAD_LEFT, shift = true))
+        assertEquals("\u001b[1;6A", seq(android.view.KeyEvent.KEYCODE_DPAD_UP, ctrl = true, shift = true))
+        assertEquals("\u001b[1;3H", seq(android.view.KeyEvent.KEYCODE_MOVE_HOME, alt = true, shift = true))
+        assertEquals("\u001b[1;8P", seq(android.view.KeyEvent.KEYCODE_F1, ctrl = true, alt = true, shift = true))
     }
 
     @Test
