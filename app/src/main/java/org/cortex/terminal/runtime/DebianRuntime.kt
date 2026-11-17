@@ -20,7 +20,9 @@ import java.util.concurrent.ConcurrentHashMap
 
 object DebianRuntime {
     private const val TAG = "DebianRuntime"
-    private const val RESOLV_CONF_HEADER = "# Managed by Miauterm. Android DNS with public fallback.\n"
+    private const val RESOLV_CONF_HEADER = "# Managed by Miauterm.\n"
+    const val PREF_CUSTOM_DNS_SERVERS = "custom_dns_servers"
+    const val PREF_CUSTOM_HOSTNAME = "custom_hostname"
     private const val HOSTS_START = "# BEGIN Miauterm Debian repository addresses"
     private const val HOSTS_END = "# END Miauterm Debian repository addresses"
     private val FALLBACK_DNS_SERVERS = listOf("1.1.1.1", "8.8.8.8")
@@ -306,7 +308,7 @@ object DebianRuntime {
             "# Managed by Miauterm.\n" +
                 "[ -n \"\${BASH_VERSION:-}\" ] || return\n" +
                 "case \$- in *i*) ;; *) return ;; esac\n" +
-                "PS1='\\[\\e[1;32m\\]\\u@localhost\\[\\e[0m\\] \\[\\e[34m\\]\\w\\[\\e[0m\\]\\$ '\n",
+                "PS1=\"\\[\\e[1;32m\\]\\u@\${MIAUTERM_HOSTNAME:-localhost}\\[\\e[0m\\] \\[\\e[34m\\]\\w\\[\\e[0m\\]\\$ \"\n",
             420
         )
         val colorsProfile = File(profileDirectory, "99-miauterm-colors.sh")
@@ -378,6 +380,9 @@ object DebianRuntime {
             "Use Debian's `su` command to switch accounts inside the current shell. It is provided by Debian's `util-linux` package and follows Debian's normal account and password rules. The `root` identity remains simulated by PRoot and does not grant Android root access.\n\n" +
             "Miauterm checks Debian usr-merge links before startup: `/bin -> usr/bin`, `/sbin -> usr/sbin`, and `/lib -> usr/lib`. Matching files are merged; conflicting files stop repair without being overwritten. The bundled and validated rootfs is Debian ARM64. Other distributions are not supported by Debian startup checks.\n\n" +
             "Use Miauterm Settings to view or clear PRoot diagnostics, open a failsafe session, read the rootfs and symlink guide, back up or restore files, or reset the bundled Debian system. Export a backup before replacing files if you need to keep them.\n\n" +
+            "## Network settings\n\n" +
+            "Set custom DNS servers and a Debian hostname from Miauterm Settings > Network. DNS accepts up to three IPv4 or IPv6 addresses separated by commas. Leave it blank to use Android-provided DNS with public fallbacks. The hostname sets the shell prompt, `$HOSTNAME`, `$MIAUTERM_HOSTNAME`, and `/etc/hostname`; PRoot cannot change Android's kernel hostname.\n\n" +
+            "For outgoing SSH connections, install Debian's client with `apt install openssh-client`, then use `ssh user@host`. Miauterm does not start an SSH server. The Android terminal PTY is used for interactive shell input; PRoot cannot provide every kernel PTY feature, so remote PTY allocation depends on the SSH server and device support.\n\n" +
             "The `root` shell identity is simulated by PRoot; it is not Android root. Linux account names do not create separate Android security identities.\n"
 
     internal fun prepareRestoredRootfs(context: Context, root: File) {
@@ -731,6 +736,8 @@ object DebianRuntime {
     fun shellArguments(context: Context, guestDirectory: String?, failsafe: Boolean = false, accountOverride: LinuxAccount? = null): Array<String> {
         val rootfs = Environment.getCortexRoot(context)
         MiautermCommandInstaller.removeLegacySu(context, rootfs)
+        migrateManagedReadme(rootfs, File(rootfs, "root"))
+        updateHostnameFile(rootfs, configuredHostname(context))
         scheduleResolverUpdate(context, rootfs)
         lastResolverSummary?.let { recordRuntimeEvent(context, it) }
         val root = rootfs.absolutePath
@@ -804,9 +811,14 @@ object DebianRuntime {
         networkMaintenance.execute {
             try {
                 val dnsServers = networkDnsServers(context)
-                updateResolvConf(root, dnsServers)
-                val source = if (dnsServers.isEmpty()) "fallback DNS" else "Android DNS with fallback"
-                lastResolverSummary = "Debian resolver uses $source: ${resolverAddresses(dnsServers).joinToString()}"
+                val customDns = customDnsServers(context)
+                updateResolvConf(root, dnsServers, customDns)
+                val source = when {
+                    customDns.isNotEmpty() -> "custom DNS"
+                    dnsServers.isEmpty() -> "fallback DNS"
+                    else -> "Android DNS with fallback"
+                }
+                lastResolverSummary = "Debian resolver uses $source: ${resolverAddresses(dnsServers, customDns).joinToString()}"
                 recordRuntimeEvent(context, lastResolverSummary.orEmpty())
             } catch (error: Exception) {
                 Log.w(TAG, "Could not update Debian DNS resolver", error)
@@ -856,7 +868,7 @@ object DebianRuntime {
             .toList()
 
         val mappings = hosts.flatMap { host ->
-            resolveRepositoryHost(host).map { it.hostAddress to host }
+            resolveRepositoryHost(host).map { (it.hostAddress ?: it.toString()) to host }
         }.distinct()
         val hostsFile = File(root, "etc/hosts")
         check(!ElfLinkerPatcher.isSymlink(hostsFile)) {
@@ -968,14 +980,60 @@ object DebianRuntime {
         }
     }
 
-    internal fun resolverAddresses(dnsServers: List<InetAddress>): List<String> {
+    internal fun parseCustomDnsServers(value: String): List<String> {
+        val entries = value.split(Regex("[,;\\s]+")).filter(String::isNotBlank)
+        require(entries.size <= 3) { "at most three DNS addresses are supported" }
+        return entries.map { entry ->
+            require('%' !in entry) { "scoped IPv6 DNS addresses are not supported" }
+            val address = if (':' in entry) {
+                InetAddress.getByName(entry).takeIf { it is Inet6Address }
+            } else {
+                val parts = entry.split('.')
+                if (parts.size == 4 && parts.all { it.toIntOrNull() in 0..255 }) InetAddress.getByName(entry) else null
+            }
+            require(address != null && !address.isAnyLocalAddress && !address.isLoopbackAddress) {
+                "DNS entries must be valid non-local IP addresses"
+            }
+            address.hostAddress.substringBefore('%')
+        }.distinct()
+    }
+
+    internal fun isValidHostname(value: String): Boolean = value.isBlank() ||
+        (value.length <= 253 && Regex("(?i)^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$").matches(value))
+
+    private fun customDnsServers(context: Context): List<String> =
+        parseCustomDnsServers(PreferenceManager.getDefaultSharedPreferences(context)
+            .getString(PREF_CUSTOM_DNS_SERVERS, "").orEmpty())
+
+    private fun configuredHostname(context: Context): String {
+        val value = PreferenceManager.getDefaultSharedPreferences(context)
+            .getString(PREF_CUSTOM_HOSTNAME, "").orEmpty().trim()
+        return value.ifBlank { "localhost" }.lowercase(java.util.Locale.ROOT)
+    }
+
+    private fun updateHostnameFile(root: File, hostname: String) {
+        val etc = File(root, "etc")
+        if (ElfLinkerPatcher.isSymlink(etc) || !etc.isDirectory) return
+        val hostnameFile = File(etc, "hostname")
+        if (ElfLinkerPatcher.isSymlink(hostnameFile)) return
+        if (!hostnameFile.isFile || runCatching { hostnameFile.readText().trim() }.getOrNull() != hostname) {
+            runCatching { FileInstaller.install(hostnameFile, "$hostname\n", 420) }
+        }
+    }
+
+    internal fun resolverAddresses(dnsServers: List<InetAddress>, customDnsServers: List<String> = emptyList()): List<String> {
+        if (customDnsServers.isNotEmpty()) return customDnsServers.distinct().take(3)
         val androidServers = dnsServers
             .filterNot { it.isLoopbackAddress || it.isAnyLocalAddress }
             .map { it.hostAddress.substringBefore('%') }
         return (androidServers.take(1) + FALLBACK_DNS_SERVERS).distinct().take(3)
     }
 
-    internal fun updateResolvConf(root: File, dnsServers: List<InetAddress>): Boolean {
+    internal fun updateResolvConf(
+        root: File,
+        dnsServers: List<InetAddress>,
+        customDnsServers: List<String> = emptyList()
+    ): Boolean {
         val etc = File(root, "etc")
         check(!ElfLinkerPatcher.isSymlink(etc) && (etc.isDirectory || etc.mkdirs())) {
             "Could not access Debian /etc for network configuration"
@@ -988,7 +1046,7 @@ object DebianRuntime {
         }
 
         val current = if (resolvConf.isFile) resolvConf.readText() else ""
-        val servers = resolverAddresses(dnsServers)
+        val servers = resolverAddresses(dnsServers, customDnsServers)
         val updated = buildString {
             append(RESOLV_CONF_HEADER)
             servers.forEach { append("nameserver ").append(it).append('\n') }
@@ -1020,7 +1078,7 @@ object DebianRuntime {
 
     private fun ensureNetworkTools(context: Context, root: File) {
         if (invalidNetworkCommand(root) == null) return
-        updateResolvConf(root, networkDnsServers(context))
+        updateResolvConf(root, networkDnsServers(context), customDnsServers(context))
         val aptOptions = listOf(
             "-o", "Acquire::http::Timeout=30",
             "-o", "Acquire::https::Timeout=30",
@@ -1145,6 +1203,8 @@ object DebianRuntime {
             "HOME=${account.home}",
             "USER=${account.name}",
             "LOGNAME=${account.name}",
+            "HOSTNAME=${configuredHostname(context)}",
+            "MIAUTERM_HOSTNAME=${configuredHostname(context)}",
             "SHELL=${account.shell.ifBlank { shellPath(rootfs)?.let { "/" + it.relativeTo(rootfs).invariantSeparatorsPath } ?: "/bin/sh" }}",
             "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
             "TERM=xterm-256color",

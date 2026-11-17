@@ -512,6 +512,7 @@ class TerminalBuffer(var rows: Int, var cols: Int, private val maxHistory: Int =
     }
 
     fun eraseInDisplay(mode: Int) {
+        isWrapPending = false
         val r = cursorRow.coerceIn(0, rows - 1)
         val c = cursorCol.coerceIn(0, cols - 1)
         when (mode) {
@@ -546,6 +547,7 @@ class TerminalBuffer(var rows: Int, var cols: Int, private val maxHistory: Int =
                 }
             }
         }
+        screen[r].isWrapped = false
     }
 
     fun eraseInLine(mode: Int) {
@@ -568,6 +570,7 @@ class TerminalBuffer(var rows: Int, var cols: Int, private val maxHistory: Int =
                 row.clear(currentFg, currentBg)
             }
         }
+        row.isWrapped = false
     }
 
     fun getVisibleRow(screenRowIndex: Int, scrollOffset: Int): TerminalRow {

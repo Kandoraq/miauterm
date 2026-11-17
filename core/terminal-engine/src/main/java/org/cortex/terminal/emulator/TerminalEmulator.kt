@@ -28,6 +28,8 @@ class TerminalEmulator(
 
     private var state = State.NORMAL
     private val csiParams = ArrayList<Int>()
+    private val csiParamColon = ArrayList<Boolean>()
+    private var csiLastSeparatorColon = false
     private var csiCurrentParam = 0
     private var csiHasParam = false
     private var csiPrefix: Char? = null
@@ -139,9 +141,17 @@ class TerminalEmulator(
         } else if (isMouseUrxvt) {
             "\u001b[${button + 32};${col};${row}M"
         } else {
-            "\u001b[M" + (32 + button).toChar() + (32 + col).toChar() + (32 + row).toChar()
+            "\u001b[M" + mouseField(button) + mouseField(col) + mouseField(row)
         }
     }
+
+    private fun mouseField(value: Int): String {
+        val max = if (isMouseUtf8) 2047 else 223
+        return (32 + value.coerceIn(0, max)).toChar().toString()
+    }
+
+    private fun isPrintable(c: Char): Boolean =
+        c.code >= 0x20 && c.code != 0x7f && c.code !in 0x80..0x9f
 
     fun getMouseClickSequence(button: Int, col: Int, row: Int): String {
         return if (isMouseSgr) {
@@ -149,8 +159,8 @@ class TerminalEmulator(
         } else if (isMouseUrxvt) {
             "\u001b[${button + 32};${col};${row}M\u001b[${3 + 32};${col};${row}M"
         } else {
-            val press = "\u001b[M" + (32 + button).toChar() + (32 + col).toChar() + (32 + row).toChar()
-            val release = "\u001b[M" + (32 + 3).toChar() + (32 + col).toChar() + (32 + row).toChar()
+            val press = "\u001b[M" + mouseField(button) + mouseField(col) + mouseField(row)
+            val release = "\u001b[M" + mouseField(3) + mouseField(col) + mouseField(row)
             press + release
         }
     }
@@ -200,9 +210,9 @@ class TerminalEmulator(
                 var i = charBuffer.arrayOffset() + charBuffer.position()
                 while (i < limit) {
                     val c = chars[i]
-                    if (state == State.NORMAL && c >= ' ') {
+                    if (state == State.NORMAL && isPrintable(c)) {
                         var j = i + 1
-                        while (j < limit && chars[j] >= ' ') j++
+                        while (j < limit && isPrintable(chars[j])) j++
                         buffer.writeRun(chars, i, j)
                         i = j
                     } else {
@@ -266,7 +276,7 @@ class TerminalEmulator(
             }
             '\u0007' -> onBell?.invoke()
             else -> {
-                if (c >= ' ') {
+                if (isPrintable(c)) {
                     buffer.writeChar(c)
                 }
             }
@@ -281,6 +291,8 @@ class TerminalEmulator(
             '[' -> {
                 state = State.CSI
                 csiParams.clear()
+                csiParamColon.clear()
+                csiLastSeparatorColon = false
                 csiCurrentParam = 0
                 csiHasParam = false
                 csiPrefix = null
@@ -380,7 +392,9 @@ class TerminalEmulator(
         if (c == ';' || c == ':') {
             if (csiParams.size < MAX_CSI_PARAMS) {
                 csiParams.add(if (csiHasParam) csiCurrentParam else 0)
+                csiParamColon.add(c == ':')
             }
+            csiLastSeparatorColon = c == ':'
             csiCurrentParam = 0
             csiHasParam = false
             return
@@ -394,6 +408,7 @@ class TerminalEmulator(
         if (c in '@'..'~') {
             if (csiHasParam && csiParams.size < MAX_CSI_PARAMS) {
                 csiParams.add(csiCurrentParam)
+                csiParamColon.add(csiLastSeparatorColon)
             }
             executeCsi(c)
             state = State.NORMAL
@@ -703,7 +718,24 @@ class TerminalEmulator(
                 27 -> buffer.currentStyle = (buffer.currentStyle.toInt() and 4.inv()).toByte()
                 in 30..37 -> buffer.currentFg = TerminalColor.ANSI_COLORS[code - 30]
                 38 -> {
-                    if (i + 2 < csiParams.size && csiParams[i + 1] == 5) {
+                    val colon = i + 1 < csiParams.size && csiParamColon.getOrElse(i + 1) { false }
+                    if (colon && csiParams[i + 1] == 2) {
+                        var j = i + 2
+                        val values = ArrayList<Int>()
+                        while (j < csiParams.size && csiParamColon.getOrElse(j) { false }) {
+                            values += csiParams[j]
+                            j++
+                        }
+                        val rgb = if (values.size >= 4 && values[0] == 0) values.takeLast(3) else values.take(3)
+                        if (rgb.size == 3) {
+                            buffer.currentFg = Color.rgb(
+                                rgb[0].coerceIn(0, 255),
+                                rgb[1].coerceIn(0, 255),
+                                rgb[2].coerceIn(0, 255)
+                            )
+                            i = j - 1
+                        }
+                    } else if (i + 2 < csiParams.size && csiParams[i + 1] == 5) {
                         val colorIdx = csiParams[i + 2].coerceIn(0, 255)
                         buffer.currentFg = TerminalColor.COLOR_PALETTE[colorIdx]
                         i += 2
@@ -718,7 +750,24 @@ class TerminalEmulator(
                 39 -> buffer.currentFg = TerminalColor.DEFAULT_FG
                 in 40..47 -> buffer.currentBg = TerminalColor.ANSI_COLORS[code - 40]
                 48 -> {
-                    if (i + 2 < csiParams.size && csiParams[i + 1] == 5) {
+                    val colon = i + 1 < csiParams.size && csiParamColon.getOrElse(i + 1) { false }
+                    if (colon && csiParams[i + 1] == 2) {
+                        var j = i + 2
+                        val values = ArrayList<Int>()
+                        while (j < csiParams.size && csiParamColon.getOrElse(j) { false }) {
+                            values += csiParams[j]
+                            j++
+                        }
+                        val rgb = if (values.size >= 4 && values[0] == 0) values.takeLast(3) else values.take(3)
+                        if (rgb.size == 3) {
+                            buffer.currentBg = Color.rgb(
+                                rgb[0].coerceIn(0, 255),
+                                rgb[1].coerceIn(0, 255),
+                                rgb[2].coerceIn(0, 255)
+                            )
+                            i = j - 1
+                        }
+                    } else if (i + 2 < csiParams.size && csiParams[i + 1] == 5) {
                         val colorIdx = csiParams[i + 2].coerceIn(0, 255)
                         buffer.currentBg = TerminalColor.COLOR_PALETTE[colorIdx]
                         i += 2

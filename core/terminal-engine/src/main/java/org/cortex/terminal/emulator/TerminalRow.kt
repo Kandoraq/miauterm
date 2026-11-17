@@ -48,8 +48,15 @@ class TerminalRow(val cols: Int) {
 
     private fun blankCell(i: Int) {
         chars[i] = ' '
+        fgColors[i] = TerminalColor.DEFAULT_FG
+        bgColors[i] = TerminalColor.DEFAULT_BG
         styles[i] = 0
+        isSearchMatch[i] = false
+        isSearchCurrent[i] = false
+        isUrlLink[i] = false
         setLink(i, null)
+        astral?.let { if (i in it.indices) it[i] = 0 }
+        if (!links.isNullOrEmpty()) hasWide = chars.any { it == WIDE_TAIL || Character.isSurrogate(it) }
     }
 
     private fun removeBrokenWide() {
