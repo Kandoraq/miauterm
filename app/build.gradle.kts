@@ -67,8 +67,7 @@ android {
 
     if (!hasReleaseSigning) {
         project.tasks.matching {
-            (it.name.startsWith("assemble") || it.name.startsWith("bundle")) &&
-                it.name.contains("Release", ignoreCase = true)
+            it.name in setOf("assembleRelease", "bundleRelease", "packageRelease")
         }.configureEach {
             doFirst {
                 throw GradleException(
