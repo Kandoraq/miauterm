@@ -36,8 +36,10 @@ jobs:
           gradle-version: '8.7'
       - name: Verify Debian commands and default home creation
         run: bash scripts/verify-rootfs.sh --net
-      - name: Test terminal and Debian runtime
-        run: ./gradlew --no-daemon :app:testDebugUnitTest --tests org.cortex.terminal.view.ExtraKeysLayoutTest --tests org.cortex.terminal.view.ExtraKeysConfigTest --tests org.cortex.terminal.view.ExtraKeysViewTest --tests org.cortex.terminal.view.TerminalInterfaceTest --tests org.cortex.terminal.session.SessionPromptTest --tests org.cortex.terminal.session.TerminalBridgeClipboardTest --tests org.cortex.terminal.runtime.SharedFolderAccessTest --tests org.cortex.terminal.runtime.DebianRuntimeRootfsTest --tests org.cortex.terminal.runtime.DebianBackupSecurityTest --tests org.cortex.terminal.runtime.DebianRuntimeDnsTest --tests org.cortex.terminal.runtime.MiautermCommandInstallerTest --tests org.cortex.terminal.api.ApiProtocolTest --tests org.cortex.terminal.api.ApiServerStartupTest
+      - name: Run all unit tests
+        run: ./gradlew --no-daemon test
+      - name: Run Android lint
+        run: ./gradlew --no-daemon :app:lintDebug
       - name: Build installable arm64 APK
         run: ./gradlew --no-daemon :app:assembleDebug
       - name: Name the APK artifact
@@ -124,6 +126,10 @@ jobs:
           cp "$APK" "$OUT"
           BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner -print | sort -V | tail -n 1 | xargs dirname)"
           "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$OUT"
+          EXPECTED_SIGNER_SHA256="${{ secrets.RELEASE_SIGNER_SHA256 }}"
+          test -n "$EXPECTED_SIGNER_SHA256"
+          ACTUAL_SIGNER_SHA256="$("$BUILD_TOOLS/apksigner" verify --print-certs "$OUT" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr '[:lower:]' '[:upper:]')"
+          test "$ACTUAL_SIGNER_SHA256" = "$EXPECTED_SIGNER_SHA256"
           "$BUILD_TOOLS/zipalign" -c -v 4 "$OUT"
           "$BUILD_TOOLS/aapt" dump badging "$OUT" | grep -F "package: name='com.miauterm.terminal'"
           "$BUILD_TOOLS/aapt" dump badging "$OUT" | grep -F "application-label:'Miauterm'"

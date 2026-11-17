@@ -199,17 +199,37 @@ class TerminalSession(
 
             readerThread = thread(start = true, name = "Miauterm-PtyReader") {
                 val buffer = ByteArray(4096)
+                var emulatorFailures = 0
                 try {
                     val stream = process.inputStream
                     while (isRunning) {
-                        val read = stream.read(buffer)
+                        val read = try {
+                            stream.read(buffer)
+                        } catch (e: Exception) {
+                            if (isRunning) Log.e(tag, "Error reading from PTY: ${e.message}", e)
+                            break
+                        }
                         if (read <= 0) break
-                        emulator.processInput(buffer, 0, read)
+                        try {
+                            emulator.processInput(buffer, 0, read)
+                            emulatorFailures = 0
+                        } catch (e: Exception) {
+                            emulatorFailures++
+                            Log.e(tag, "Emulator could not process PTY output", e)
+                            if (emulatorFailures >= 3) {
+                                val msg = "\r\n[Miauterm could not render Linux output - see diagnostic log]\r\n"
+                                runCatching { emulator.processInput(msg.toByteArray(), 0, msg.size) }
+                                break
+                            }
+                        }
                     }
                 } catch (e: Exception) {
-                    if (isRunning) Log.e(tag, "Error reading from PTY: ${e.message}", e)
+                    if (isRunning) Log.e(tag, "Error in PTY reader: ${e.message}", e)
                 } finally {
-                    val code = process.waitFor()
+                    val code = try { process.waitFor() } catch (e: Exception) {
+                        Log.w(tag, "Could not wait for the terminal process: ${e.message}")
+                        -1
+                    }
                     exitCode = code
                     val duration = System.currentTimeMillis() - startTime
                     DebianRuntime.recordRuntimeEvent(context, "Terminal process exited; code=$code durationMs=$duration")
@@ -217,10 +237,10 @@ class TerminalSession(
                     isRunning = false
                     if (code != 0) {
                         val msg = "\r\n[Linux session exited with code $code - see Settings > Debian system > diagnostic log]\r\n"
-                        emulator.processInput(msg.toByteArray(), 0, msg.length)
+                        runCatching { emulator.processInput(msg.toByteArray(), 0, msg.size) }
                     } else if (duration <= 1500) {
                         val msg = "\r\n[Debian shell exited immediately - see Settings > Debian system > diagnostic log]\r\n"
-                        emulator.processInput(msg.toByteArray(), 0, msg.length)
+                        runCatching { emulator.processInput(msg.toByteArray(), 0, msg.size) }
                     }
                     onSessionFinished?.invoke(code)
                 }

@@ -724,21 +724,15 @@ object DebianRuntime {
         return !log.exists() || log.delete()
     }
 
+    private val pendingResolverUpdates = ConcurrentHashMap.newKeySet<String>()
+    @Volatile
+    private var lastResolverSummary: String? = null
+
     fun shellArguments(context: Context, guestDirectory: String?, failsafe: Boolean = false, accountOverride: LinuxAccount? = null): Array<String> {
         val rootfs = Environment.getCortexRoot(context)
         MiautermCommandInstaller.install(context, rootfs)
-        val dnsServers = networkDnsServers(context)
-        val resolverServers = resolverAddresses(dnsServers)
-        runCatching { updateResolvConf(rootfs, dnsServers) }
-            .onSuccess {
-                val source = if (dnsServers.isEmpty()) "fallback DNS" else "Android DNS with fallback"
-                recordRuntimeEvent(context, "Debian resolver uses $source: ${resolverServers.joinToString()}")
-            }
-            .onFailure { error ->
-                Log.w(TAG, "Could not update Debian DNS resolver", error)
-                recordRuntimeEvent(context, "Debian resolver update failed: ${error.message ?: error.javaClass.simpleName}")
-            }
-        refreshRepositoryHostsAsync(context, rootfs)
+        scheduleResolverUpdate(context, rootfs)
+        lastResolverSummary?.let { recordRuntimeEvent(context, it) }
         val root = rootfs.absolutePath
         val account = accountOverride ?: selectedAccount(context, rootfs)
         val args = mutableListOf("--link2symlink", "--kill-on-exit", "--rootfs=$root")
@@ -802,6 +796,26 @@ object DebianRuntime {
             }
             args += "--bind=${host.absolutePath}:$mountPath"
         }
+    }
+
+    private fun scheduleResolverUpdate(context: Context, root: File) {
+        val key = root.absolutePath
+        if (!pendingResolverUpdates.add(key)) return
+        networkMaintenance.execute {
+            try {
+                val dnsServers = networkDnsServers(context)
+                updateResolvConf(root, dnsServers)
+                val source = if (dnsServers.isEmpty()) "fallback DNS" else "Android DNS with fallback"
+                lastResolverSummary = "Debian resolver uses $source: ${resolverAddresses(dnsServers).joinToString()}"
+                recordRuntimeEvent(context, lastResolverSummary.orEmpty())
+            } catch (error: Exception) {
+                Log.w(TAG, "Could not update Debian DNS resolver", error)
+                recordRuntimeEvent(context, "Debian resolver update failed: ${error.message ?: error.javaClass.simpleName}")
+            } finally {
+                pendingResolverUpdates.remove(key)
+            }
+        }
+        refreshRepositoryHostsAsync(context, root)
     }
 
     private fun refreshRepositoryHostsAsync(context: Context, root: File) {

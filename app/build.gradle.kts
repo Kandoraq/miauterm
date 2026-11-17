@@ -65,16 +65,17 @@ android {
     }
     val hasReleaseSigning = activeKeystore != null
 
-    val isReleaseTaskRequested = gradle.startParameter.taskNames.any { taskName ->
-        taskName.contains("Release", ignoreCase = true) &&
-            (taskName.contains("assemble", ignoreCase = true) ||
-                taskName.contains("bundle", ignoreCase = true) ||
-                taskName.contains("package", ignoreCase = true))
-    }
-    if (isReleaseTaskRequested && !hasReleaseSigning) {
-        throw GradleException(
-            "Release build requires the release signing environment variables (RELEASE_STORE_FILE, RELEASE_STORE_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD)."
-        )
+    if (!hasReleaseSigning) {
+        project.tasks.matching {
+            (it.name.startsWith("assemble") || it.name.startsWith("bundle") || it.name.startsWith("package")) &&
+                it.name.contains("Release", ignoreCase = true)
+        }.configureEach {
+            doFirst {
+                throw GradleException(
+                    "Release build requires the release signing environment variables (RELEASE_STORE_FILE, RELEASE_STORE_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD)."
+                )
+            }
+        }
     }
 
     signingConfigs {
@@ -86,7 +87,10 @@ android {
                 keyAlias = activeAlias as String
                 keyPassword = activeKeyPass as String
             } else {
-                initWith(getByName("debug"))
+                storeFile = rootProject.file("release-keystore-not-configured.p12")
+                storePassword = "not-configured"
+                keyAlias = "not-configured"
+                keyPassword = "not-configured"
             }
         }
     }

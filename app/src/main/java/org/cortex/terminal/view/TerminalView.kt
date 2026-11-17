@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.net.Uri
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -67,6 +68,7 @@ class TerminalView @JvmOverloads constructor(
             value?.emulator?.onScreenUpdate = onEmulatorScreenUpdate
             if (previous !== value) {
 
+                scrollOffset = 0
                 clearSelection()
                 previous?.setFocused(false)
                 value?.setFocused(hasWindowFocus())
@@ -84,15 +86,22 @@ class TerminalView @JvmOverloads constructor(
             postInvalidate()
         }
 
+    private val screenUpdatePosted = AtomicBoolean(false)
     private val onEmulatorScreenUpdate: () -> Unit = {
-        urlRefreshCounter++
-        if (urlRefreshCounter % 90 == 0) {
-            try { refreshUrlLinks() } catch (_: Exception) {}
-            if (searchQuery.isNotEmpty()) {
-                try { startSearch(searchQuery) } catch (_: Exception) {}
+        if (screenUpdatePosted.compareAndSet(false, true)) {
+            val posted = post {
+                screenUpdatePosted.set(false)
+                urlRefreshCounter++
+                if (urlRefreshCounter % 90 == 0) {
+                    try { refreshUrlLinks() } catch (_: Exception) {}
+                    if (searchQuery.isNotEmpty()) {
+                        try { startSearch(searchQuery) } catch (_: Exception) {}
+                    }
+                }
+                postScreenUpdate()
             }
+            if (!posted) screenUpdatePosted.set(false)
         }
-        postScreenUpdate()
     }
 
     override fun onAttachedToWindow() {
