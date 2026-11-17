@@ -47,23 +47,22 @@ object ElfLinkerPatcher {
     }
 
     internal fun readSymlink(file: File): String? {
-        val nativeTarget = runCatching { Os.readlink(file.absolutePath) }.getOrNull()
-        if (nativeTarget != null) return nativeTarget
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            runCatching { Files.readSymbolicLink(file.toPath()).toString() }.getOrNull()
-        } else null
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isSymlink(file)) {
+            runCatching { Files.readSymbolicLink(file.toPath()).toString() }.getOrNull()?.let { return it }
+        }
+        return runCatching { Os.readlink(file.absolutePath) }.getOrNull()
     }
 
     internal fun createSymlink(target: String, linkFile: File): Boolean {
-        runCatching { Os.symlink(target, linkFile.absolutePath) }
-        if (readSymlink(linkFile) == target) return true
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            return runCatching {
+            val created = runCatching {
                 Files.createSymbolicLink(linkFile.toPath(), Paths.get(target))
-                readSymlink(linkFile) == target
+                Files.isSymbolicLink(linkFile.toPath()) && Files.readSymbolicLink(linkFile.toPath()).toString() == target
             }.getOrDefault(false)
+            if (created) return true
         }
-        return false
+        runCatching { Os.symlink(target, linkFile.absolutePath) }
+        return isSymlink(linkFile) && readSymlink(linkFile) == target
     }
 
     internal fun deleteIfExists(file: File): Boolean {
