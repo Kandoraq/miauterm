@@ -7,7 +7,7 @@ internal object MiautermCommandInstaller {
     private const val MODE_EXECUTABLE = 493
     private const val COMMAND_PATH = "usr/local/bin/miauterm-cmd"
     private const val NOTIFY_SEND_PATH = "usr/local/bin/notify-send"
-    private const val SU_PATH = "usr/local/bin/su"
+    private const val LEGACY_SU_PATH = "usr/local/bin/su"
 
     fun install(context: Context, root: File) {
         val command = File(root, COMMAND_PATH)
@@ -15,9 +15,11 @@ internal object MiautermCommandInstaller {
         FileInstaller.install(command, script, MODE_EXECUTABLE)
         check(command.canExecute()) { "Could not make miauterm-cmd executable" }
         FileInstaller.symlink("miauterm-cmd", File(root, NOTIFY_SEND_PATH))
-        val su = File(root, SU_PATH)
-        FileInstaller.install(su, context.assets.open("miauterm-su").use { it.readBytes() }, MODE_EXECUTABLE)
-        check(su.canExecute()) { "Could not make Miauterm su executable" }
+        val legacySu = File(root, LEGACY_SU_PATH)
+        val legacyScript = context.assets.open("miauterm-su").use { it.readBytes() }
+        if (FileInstaller.holds(legacySu, legacyScript)) {
+            check(legacySu.delete()) { "Could not remove the legacy Miauterm su wrapper" }
+        }
     }
 
     fun isInstalled(root: File): Boolean {
@@ -29,7 +31,6 @@ internal object MiautermCommandInstaller {
             resolved.canonicalFile == command.canonicalFile
         }.getOrDefault(false)
         return command.let { it.isFile && it.canExecute() } &&
-            linkInstalled &&
-            File(root, SU_PATH).let { it.isFile && it.canExecute() }
+            linkInstalled
     }
 }

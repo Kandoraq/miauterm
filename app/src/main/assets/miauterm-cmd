@@ -22,7 +22,6 @@ Commands:
   wakelock <action>         Manage the app's wake lock
   network                  Show network status
   keysreload               Reload extra keys from the Debian guest config
-  su [USER]                Open a new terminal session as a Debian user (root by default)
   reloadfont               Reload the selected terminal font
 
 Examples:
@@ -30,8 +29,6 @@ Examples:
   miauterm-cmd run reloadfont
   miauterm-cmd run notification "hello from Miauterm"
   miauterm-cmd run notification --title "Build" "Build finished"
-  su -
-  su username
   miauterm-cmd run toast "Hello from Debian"
 HELP
 }

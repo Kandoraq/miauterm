@@ -573,23 +573,6 @@ class MainActivity : AppCompatActivity() {
         return session
     }
 
-    internal fun openSessionAs(accountName: String): Boolean {
-        if (!::sessionManager.isInitialized || !::binding.isInitialized) return false
-        val account = DebianRuntime.accountByName(Environment.getCortexRoot(this), accountName) ?: return false
-        val session = sessionManager.newSession(
-            rows = terminalView.rows,
-            cols = terminalView.cols,
-            widthPx = terminalView.width,
-            heightPx = terminalView.height,
-            startDirectory = account.home,
-            accountName = account.name
-        )
-        terminalView.session = session
-        sessionAdapter.notifyDataSetChanged()
-        refreshTabs()
-        return true
-    }
-
     private fun setupBackPressedDispatcher() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {

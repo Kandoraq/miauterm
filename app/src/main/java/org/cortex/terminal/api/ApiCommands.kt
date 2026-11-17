@@ -70,7 +70,6 @@ object ApiCommands {
             "network" -> network(context)
             "keysreload" -> keysReload()
             "reloadfont" -> reloadFont()
-            "su" -> openUserSession(context, req)
             else -> fail("unknown command '${req.command}' (run miauterm-cmd --help for usage)")
         }
     } catch (e: IllegalArgumentException) {
@@ -96,22 +95,6 @@ object ApiCommands {
         val activity = MainActivity.instance
             ?: throw IllegalStateException("the Miauterm terminal screen is not available")
         ok(activity.reloadTerminalFont())
-    }
-
-    private fun openUserSession(context: Context, req: ApiRequest): ApiResult {
-        require(req.args.size <= 1) { "usage: su [USER]" }
-        val username = req.args.firstOrNull()?.takeIf { it.isNotBlank() } ?: "root"
-        require(username.matches(Regex("[a-z_][a-z0-9_-]*\$?"))) { "invalid Linux account name" }
-        val root = Environment.getCortexRoot(context)
-        require(org.cortex.terminal.runtime.DebianRuntime.accountByName(root, username) != null) {
-            "Linux account '$username' does not exist or has no interactive shell"
-        }
-        return onMain {
-            val activity = MainActivity.instance
-                ?: throw IllegalStateException("open Miauterm before running su")
-            check(activity.openSessionAs(username)) { "could not open a session as '$username'" }
-            ok("Opened a new terminal session as $username")
-        }
     }
 
     private fun text(req: ApiRequest, args: ApiArgs): String =

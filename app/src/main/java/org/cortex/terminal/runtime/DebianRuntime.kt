@@ -375,7 +375,7 @@ object DebianRuntime {
             "Customize keys in `~/.config/miauterm/keys` using nested arrays:\n\n" +
             "```text\n[\n  [\"ESC\", \"/\", \"-\", \"HOME\", \"UP\", \"END\", \"PGUP\"],\n  [\"TAB\", \"CTRL\", \"ALT\", \"LEFT\", \"DOWN\", \"RIGHT\", \"PGDN\"]\n]\n```\n\n" +
             "Select extra-key buttons in Miauterm Settings. Edit the Termux-style nested-array layout from Debian at `~/.config/miauterm/keys` with a text editor, then run `miauterm-cmd run keysreload`.\n\n" +
-            "Run `su` or `su USER` to open another Miauterm session as a Debian account. This opens a new session tab; it does not grant Android root access.\n\n" +
+            "Use Debian's `su` command to switch accounts inside the current shell. It is provided by Debian's `util-linux` package and follows Debian's normal account and password rules. The `root` identity remains simulated by PRoot and does not grant Android root access.\n\n" +
             "Miauterm checks Debian usr-merge links before startup: `/bin -> usr/bin`, `/sbin -> usr/sbin`, and `/lib -> usr/lib`. Matching files are merged; conflicting files stop repair without being overwritten. The bundled and validated rootfs is Debian ARM64. Other distributions are not supported by Debian startup checks.\n\n" +
             "Use Miauterm Settings to view or clear PRoot diagnostics, open a failsafe session, read the rootfs and symlink guide, back up or restore files, or reset the bundled Debian system. Export a backup before replacing files if you need to keep them.\n\n" +
             "The `root` shell identity is simulated by PRoot; it is not Android root. Linux account names do not create separate Android security identities.\n"
@@ -726,6 +726,7 @@ object DebianRuntime {
 
     fun shellArguments(context: Context, guestDirectory: String?, failsafe: Boolean = false, accountOverride: LinuxAccount? = null): Array<String> {
         val rootfs = Environment.getCortexRoot(context)
+        MiautermCommandInstaller.install(context, rootfs)
         val dnsServers = networkDnsServers(context)
         val resolverServers = resolverAddresses(dnsServers)
         runCatching { updateResolvConf(rootfs, dnsServers) }
