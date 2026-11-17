@@ -73,7 +73,11 @@ class SessionTabsView @JvmOverloads constructor(
         val p = Chrome.palette
         setBackgroundColor(p.bar)
         newButton.setTextColor(p.accent)
-        newButton.background = Chrome.flatPressable(p.bar, p.raisedHigh)
+        newButton.background = null
+        newButton.setTextColor(android.content.res.ColorStateList(
+            arrayOf(intArrayOf(android.R.attr.state_pressed), intArrayOf()),
+            intArrayOf(p.accent, p.textDim)
+        ))
         rebuild()
     }
 
@@ -125,7 +129,11 @@ class SessionTabsView @JvmOverloads constructor(
                     it.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                     onClose?.invoke(index)
                 }
-                background = Chrome.flatPressable(p.bar, p.dangerSoft)
+                background = null
+                setTextColor(android.content.res.ColorStateList(
+                    arrayOf(intArrayOf(android.R.attr.state_pressed), intArrayOf()),
+                    intArrayOf(p.danger, p.textDim)
+                ))
             }
             row.addView(close, LayoutParams(dp(30), dp(26)).apply { marginStart = dp(2) })
         }

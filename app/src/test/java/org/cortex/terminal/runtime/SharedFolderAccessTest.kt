@@ -120,7 +120,10 @@ class SharedFolderAccessTest {
         try {
             val withoutService = DebianRuntime.shellArguments(context, null)
                 .filter { it.startsWith("--bind=") }
-            assertTrue(withoutService.isEmpty())
+            assertEquals(
+                setOf("--bind=/dev:/dev", "--bind=/proc:/proc", "--bind=/sys:/sys"),
+                withoutService.toSet()
+            )
 
             connectionDirectory.mkdirs()
             connectionFile.writeText("12345 ${"a".repeat(64)}\n")

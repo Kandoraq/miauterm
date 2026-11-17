@@ -35,8 +35,11 @@ class SessionAdapter(
         binding.sessionLabelText.setTextColor(p.text)
 
         binding.btnSessionClose.visibility = View.VISIBLE
-        binding.btnSessionClose.setTextColor(p.textDim)
-        binding.btnSessionClose.background = Chrome.flatPressable(p.bar, p.dangerSoft)
+        binding.btnSessionClose.setTextColor(android.content.res.ColorStateList(
+            arrayOf(intArrayOf(android.R.attr.state_pressed), intArrayOf()),
+            intArrayOf(p.danger, p.textDim)
+        ))
+        binding.btnSessionClose.background = null
         binding.btnSessionClose.setOnClickListener {
             val pos = holder.bindingAdapterPosition
             if (pos != RecyclerView.NO_POSITION) {

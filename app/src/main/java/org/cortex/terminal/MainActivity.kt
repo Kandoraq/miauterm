@@ -503,11 +503,16 @@ class MainActivity : AppCompatActivity() {
         binding.drawerTitle.setTextColor(p.text)
         binding.drawerDivider.visibility = View.GONE
         binding.drawerSessionsLabel.setTextColor(p.textFaint)
-        fun iconButtonBackground() = Chrome.flatPressable(p.bar, p.raisedHigh)
-        btnDrawerSettings.background = iconButtonBackground()
-        btnDrawerFiles.background = iconButtonBackground()
-        btnDrawerSettings.imageTintList = ColorStateList.valueOf(p.textDim)
-        btnDrawerFiles.imageTintList = ColorStateList.valueOf(p.textDim)
+        val iconTint = ColorStateList(
+            arrayOf(intArrayOf(android.R.attr.state_pressed), intArrayOf()),
+            intArrayOf(p.accent, p.textDim)
+        )
+        btnDrawerSettings.background = null
+        btnDrawerFiles.background = null
+        btnDrawerSettings.stateListAnimator = null
+        btnDrawerFiles.stateListAnimator = null
+        btnDrawerSettings.imageTintList = iconTint
+        btnDrawerFiles.imageTintList = iconTint
         binding.drawerKeyboardIcon.imageTintList = ColorStateList.valueOf(p.textDim)
         binding.drawerNewSessionIcon.imageTintList = ColorStateList.valueOf(p.onAccent)
         binding.drawerKeyboardLabel.setTextColor(p.text)

@@ -36,9 +36,9 @@ class ExtraKeysView @JvmOverloads constructor(
         private const val REPEAT_INTERVAL_MS = 60L
         private const val LATCH_HOLD_MS = 500L
 
-        const val ROW_HEIGHT_DP = 30
+        const val ROW_HEIGHT_DP = 32
 
-        const val PADDING_DP = 2
+        const val PADDING_DP = 0
 
         fun barHeightDp(rows: Int): Int = rows * ROW_HEIGHT_DP + 2 * PADDING_DP
     }
@@ -81,8 +81,7 @@ class ExtraKeysView @JvmOverloads constructor(
     init {
         orientation = VERTICAL
         setBackgroundColor(Chrome.palette.bar)
-        val pad = (PADDING_DP * resources.displayMetrics.density).toInt()
-        setPadding(pad, pad, pad, pad)
+        setPadding(0, 0, 0, 0)
         setKeys(ExtraKeysLayout.DEFAULT_ROWS)
     }
 
@@ -126,7 +125,7 @@ class ExtraKeysView @JvmOverloads constructor(
         val availableWidth = viewWidth - paddingLeft - paddingRight
         if (availableWidth <= 0) return
 
-        val marginPx = dp(1f).toInt()
+        val marginPx = 0
         val minKeyWidth = dp(40f).toInt()
         keyRows.forEach { (row, buttons) ->
             if (buttons.isEmpty()) return@forEach
@@ -248,7 +247,7 @@ class ExtraKeysView @JvmOverloads constructor(
             )
         }
 
-        val marginPx = (1f * resources.displayMetrics.density).toInt()
+        val marginPx = 0
         val buttons = mutableListOf<Button>()
 
         for (key in keys) {
@@ -403,7 +402,7 @@ class ExtraKeysView @JvmOverloads constructor(
         return HorizontalScrollView(context).apply {
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (ROW_HEIGHT_DP * resources.displayMetrics.density).toInt())
             isHorizontalScrollBarEnabled = false
-            overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
+            overScrollMode = View.OVER_SCROLL_NEVER
             isFillViewport = true
             addView(rowLayout, android.widget.FrameLayout.LayoutParams(
                 android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
