@@ -7,7 +7,6 @@ import androidx.preference.PreferenceManager
 import android.util.Log
 import org.cortex.terminal.api.ApiServer
 import org.cortex.terminal.pty.PtyNative
-import org.json.JSONObject
 import java.io.File
 import java.net.Inet4Address
 import java.net.Inet6Address
@@ -902,20 +901,24 @@ object DebianRuntime {
         parseDnsJsonRecords(payload).filterIsInstance<Inet4Address>()
 
     internal fun parseDnsJsonRecords(payload: String): List<InetAddress> {
-        val root = runCatching { JSONObject(payload) }.getOrNull() ?: return emptyList()
-        if (root.optInt("Status", -1) != 0) return emptyList()
-        val answers = root.optJSONArray("Answer") ?: return emptyList()
-        val addresses = ArrayList<InetAddress>()
-        for (index in 0 until answers.length()) {
-            val answer = answers.optJSONObject(index) ?: continue
-            val address = when (answer.optInt("type", -1)) {
-                1 -> parseIpv4Address(answer.optString("data"))
-                28 -> parseIpv6Address(answer.optString("data"))
+        val status = Regex("\"Status\"\\s*:\\s*(\\d+)")
+            .find(payload)?.groupValues?.getOrNull(1)?.toIntOrNull()
+        if (status != 0) return emptyList()
+        val answers = Regex("\"Answer\"\\s*:\\s*\\[(.*?)\\]", RegexOption.DOT_MATCHES_ALL)
+            .find(payload)?.groupValues?.getOrNull(1) ?: return emptyList()
+        val recordPattern = Regex("\\{([^{}]*)\\}")
+        val typePattern = Regex("\"type\"\\s*:\\s*(\\d+)")
+        val dataPattern = Regex("\"data\"\\s*:\\s*\"([^\"]*)\"")
+        return recordPattern.findAll(answers).mapNotNull { record ->
+            val fields = record.groupValues[1]
+            val type = typePattern.find(fields)?.groupValues?.getOrNull(1)?.toIntOrNull()
+            val data = dataPattern.find(fields)?.groupValues?.getOrNull(1) ?: return@mapNotNull null
+            when (type) {
+                1 -> parseIpv4Address(data)
+                28 -> parseIpv6Address(data)
                 else -> null
-            } ?: continue
-            if (addresses.none { it.hostAddress == address.hostAddress }) addresses += address
-        }
-        return addresses
+            }
+        }.distinctBy { it.hostAddress }.toList()
     }
 
     private fun parseIpv6Address(value: String): Inet6Address? {
