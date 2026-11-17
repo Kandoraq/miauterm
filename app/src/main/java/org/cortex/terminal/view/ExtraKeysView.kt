@@ -311,6 +311,7 @@ class ExtraKeysView @JvmOverloads constructor(
                 val touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
                 var downX = 0f
                 var downY = 0f
+                var lastRawX = 0f
                 var gestureMoved = false
                 var repeatSentKey = false
                 var latchArmed = false
@@ -320,6 +321,7 @@ class ExtraKeysView @JvmOverloads constructor(
                         MotionEvent.ACTION_DOWN -> {
                             downX = event.x
                             downY = event.y
+                            lastRawX = event.rawX
                             gestureMoved = false
                             repeatSentKey = false
                             latchArmed = false
@@ -353,9 +355,13 @@ class ExtraKeysView @JvmOverloads constructor(
                                 cancelRepeat()
                                 cancelPendingLatch(keyButton)
                                 v.isPressed = false
-                                if (distanceX > touchSlop && distanceX > distanceY && flashesAccent) {
-                                    styleKey(keyButton, false)
+                                if (distanceX > touchSlop && distanceX > distanceY) {
+                                    v.parent?.requestDisallowInterceptTouchEvent(true)
+                                    val horizontalScroll = v.parent?.parent as? HorizontalScrollView
+                                    horizontalScroll?.scrollBy((lastRawX - event.rawX).toInt(), 0)
+                                    if (flashesAccent) styleKey(keyButton, false)
                                 }
+                                lastRawX = event.rawX
                             }
                             true
                         }
