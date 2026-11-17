@@ -452,8 +452,8 @@ class MainActivity : AppCompatActivity() {
         val fontSize = fontSizeStr.toFloatOrNull() ?: 11f
         terminalView.setTerminalTextSize(fontSize)
 
-        val themeKey = prefs.getString("terminal_theme", "catppuccin") ?: "catppuccin"
-        org.cortex.terminal.emulator.TerminalColor.applyTheme(themeKey)
+        prefs.edit().remove("terminal_theme").apply()
+        org.cortex.terminal.emulator.TerminalColor.applyTheme("miauterm")
 
         org.cortex.terminal.emulator.TerminalColor.takeRemap()?.let { remap ->
             if (::sessionManager.isInitialized) {

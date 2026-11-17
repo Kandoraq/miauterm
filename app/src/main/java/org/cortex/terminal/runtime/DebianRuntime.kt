@@ -23,6 +23,7 @@ object DebianRuntime {
     private const val HOSTS_START = "# BEGIN Miauterm Debian repository addresses"
     private const val HOSTS_END = "# END Miauterm Debian repository addresses"
     private val FALLBACK_DNS_SERVERS = listOf("1.1.1.1", "8.8.8.8")
+    private val PSEUDO_FILESYSTEMS = listOf("/dev", "/proc", "/sys")
     private val DNS_OVER_HTTPS_ENDPOINTS = listOf(
         "https://1.1.1.1/dns-query",
         "https://8.8.8.8/resolve"
@@ -329,7 +330,7 @@ object DebianRuntime {
         "# Miauterm Linux system\n\n" +
             "This Debian system is launched by Miauterm through PRoot. No separate terminal app is required.\n\n" +
             "## Shared folders\n\n" +
-            "`~/android` is created only after Download and Documents access is enabled and permission is granted in Miauterm Settings. New Linux sessions mount only those two folders. Changing the setting does not alter running sessions. No Android system directories are mounted.\n\n" +
+            "`~/android` is created only after Download and Documents access is enabled and permission is granted in Miauterm Settings. New Linux sessions bind only those two shared folders when enabled. PRoot also exposes Android `/dev`, `/proc`, and `/sys` for Linux device, process, and system information. It does not expose Android `/system`, `/data`, or general shared storage. Changing shared-folder access does not alter running sessions.\n\n" +
             "## Terminal startup\n\n" +
             "The MOTD is shown when an interactive shell starts. The prompt shows the current directory in blue, using `~` at home and paths such as `~/projects` as you move into folders. The `root@localhost` part is bold green.\n\n" +
             "## Extra keys\n\n" +
@@ -664,6 +665,7 @@ object DebianRuntime {
         val args = mutableListOf("--link2symlink", "--kill-on-exit", "--rootfs=$root")
         if (account.uid == 0) args += "--root-id" else args += "--change-id=${account.uid}:${account.gid}"
         args += "--pwd=${guestDirectory ?: account.home}"
+        appendPseudoFilesystemBinds(args, rootfs)
         if (ApiServer.connectionFile(context).isFile) {
             val connection = ApiServer.connectionDirectory(context)
             val target = File(rootfs, "run/miauterm-cmd")
@@ -706,6 +708,22 @@ object DebianRuntime {
         return args.toTypedArray()
     }
 
+
+    private fun appendPseudoFilesystemBinds(args: MutableList<String>, rootfs: File) {
+        PSEUDO_FILESYSTEMS.forEach { mountPath ->
+            val host = File(mountPath)
+            check(host.isDirectory) { "Android $mountPath is unavailable for the Linux session" }
+
+            val guest = File(rootfs, mountPath.removePrefix("/"))
+            check(!ElfLinkerPatcher.isSymlink(guest)) {
+                "Debian $mountPath must be a directory, not a symlink"
+            }
+            check(guest.isDirectory || guest.mkdirs()) {
+                "Could not prepare Debian $mountPath mount point"
+            }
+            args += "--bind=${host.absolutePath}:$mountPath"
+        }
+    }
 
     private fun refreshRepositoryHostsAsync(context: Context, root: File) {
         val key = root.absolutePath
@@ -919,6 +937,7 @@ object DebianRuntime {
             "--root-id",
             "--cwd=/root"
         )
+        appendPseudoFilesystemBinds(args, root)
         args += command
 
         val processBuilder = ProcessBuilder(listOf(shellCommand(context)) + args)

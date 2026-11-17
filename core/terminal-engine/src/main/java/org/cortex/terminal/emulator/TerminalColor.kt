@@ -14,6 +14,31 @@ object TerminalColor {
     )
 
     val SCHEMES = mapOf(
+        "miauterm" to ColorScheme(
+            id = "miauterm",
+            displayName = "Miauterm Dark",
+            fg = Color.rgb(0xf2, 0xf3, 0xf4),
+            bg = Color.rgb(0x14, 0x16, 0x18),
+            cursor = Color.rgb(0xff, 0x98, 0x52),
+            ansi = intArrayOf(
+                Color.rgb(0x10, 0x12, 0x14),
+                Color.rgb(0xf0, 0x70, 0x70),
+                Color.rgb(0xa4, 0xc9, 0x8e),
+                Color.rgb(0xff, 0x98, 0x52),
+                Color.rgb(0x89, 0xb4, 0xfa),
+                Color.rgb(0xc0, 0x9a, 0xe8),
+                Color.rgb(0x7f, 0xc8, 0xc8),
+                Color.rgb(0xd0, 0xd3, 0xd6),
+                Color.rgb(0x70, 0x75, 0x79),
+                Color.rgb(0xff, 0x82, 0x82),
+                Color.rgb(0xb3, 0xd9, 0x9d),
+                Color.rgb(0xff, 0xb0, 0x70),
+                Color.rgb(0xa0, 0xc4, 0xff),
+                Color.rgb(0xd0, 0xac, 0xf2),
+                Color.rgb(0x93, 0xd9, 0xd9),
+                Color.rgb(0xf2, 0xf3, 0xf4)
+            )
+        ),
         "catppuccin" to ColorScheme(
             id = "catppuccin",
             displayName = "Catppuccin Mocha",
@@ -367,12 +392,12 @@ object TerminalColor {
         )
     )
 
-    var currentThemeId: String = "catppuccin"
+    var currentThemeId: String = "miauterm"
         private set
 
-    var DEFAULT_FG: Int = Color.rgb(0xcd, 0xd6, 0xf4)
-    var DEFAULT_BG: Int = Color.rgb(0x18, 0x18, 0x25)
-    var CURSOR_COLOR: Int = Color.rgb(0x89, 0xb4, 0xfa)
+    var DEFAULT_FG: Int = Color.rgb(0xf2, 0xf3, 0xf4)
+    var DEFAULT_BG: Int = Color.rgb(0x14, 0x16, 0x18)
+    var CURSOR_COLOR: Int = Color.rgb(0xff, 0x98, 0x52)
 
     val ANSI_COLORS = IntArray(16)
     val COLOR_PALETTE = IntArray(256)
@@ -380,7 +405,7 @@ object TerminalColor {
     private var held = IntArray(18)
 
     init {
-        applyTheme("catppuccin")
+        applyTheme("miauterm")
         held = inUse()
     }
 

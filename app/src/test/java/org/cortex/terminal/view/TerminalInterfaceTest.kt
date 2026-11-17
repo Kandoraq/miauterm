@@ -1,6 +1,5 @@
 package org.cortex.terminal.view
 
-import android.app.Activity
 import android.content.DialogInterface
 import android.os.Looper
 import android.view.KeyEvent
@@ -11,10 +10,8 @@ import android.view.inputmethod.EditorInfo
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.preference.ListPreference
 import org.cortex.terminal.BootstrapDialog
 import org.cortex.terminal.R
-import org.cortex.terminal.ThemePicker
 import org.cortex.terminal.databinding.ActivityMainBinding
 import org.cortex.terminal.databinding.ItemDebianFileBinding
 import org.cortex.terminal.databinding.ItemSessionBinding
@@ -30,7 +27,6 @@ import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
-import org.robolectric.shadows.ShadowDialog
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -195,20 +191,6 @@ class TerminalInterfaceTest {
         dialog.progress = 42
         assertEquals(42, dialog.progress)
         dialog.dismiss()
-    }
-
-    @Test
-    fun theSchemePickerListsEverySchemeAndChoosesOne() {
-        val pref = ListPreference(activity).apply {
-            title = "Color scheme"
-            entries = TerminalColor.SCHEMES.values.map { it.displayName }.toTypedArray()
-            entryValues = TerminalColor.SCHEMES.keys.toTypedArray()
-            value = "catppuccin"
-        }
-        ThemePicker.show(activity as Activity, pref)
-        val dialog = ShadowDialog.getLatestDialog() as AlertDialog
-        assertEquals(TerminalColor.SCHEMES.size, dialog.listView.adapter.count)
-        assertNotNull(dialog.listView.adapter.getView(3, null, dialog.listView))
     }
 
     @Test

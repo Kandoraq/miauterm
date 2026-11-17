@@ -54,9 +54,7 @@ class SettingsActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = getString(R.string.settings_title)
 
-        val themeKey = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
-            .getString("terminal_theme", "catppuccin") ?: "catppuccin"
-        org.cortex.terminal.emulator.TerminalColor.applyTheme(themeKey)
+        org.cortex.terminal.emulator.TerminalColor.applyTheme("miauterm")
         org.cortex.terminal.view.Chrome.apply(
             org.cortex.terminal.emulator.TerminalColor.SCHEMES.getValue(org.cortex.terminal.emulator.TerminalColor.currentThemeId)
         )
@@ -448,8 +446,7 @@ class SettingsActivity : AppCompatActivity() {
         override fun onDisplayPreferenceDialog(preference: Preference) {
             if (preference is ListPreference) {
 
-                if (preference.key == "terminal_theme") ThemePicker.show(requireContext(), preference)
-                else showChoice(preference)
+                showChoice(preference)
                 return
             }
             super.onDisplayPreferenceDialog(preference)
@@ -503,7 +500,6 @@ class SettingsActivity : AppCompatActivity() {
             updateSharedFolderPreference()
             val preferenceIcons = mapOf(
                 "terminal_font" to R.drawable.ic_text_fields,
-                "terminal_theme" to R.drawable.ic_palette,
                 "terminal_font_size" to R.drawable.ic_text_fields,
                 "show_session_tabs" to R.drawable.ic_layers,
                 "keep_screen_on" to R.drawable.ic_lightbulb,

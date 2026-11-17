@@ -81,7 +81,7 @@ class SharedFolderAccessTest {
     }
 
     @Test
-    fun shellDoesNotBindAndroidSystemDirectoriesWhenSharedFolderAccessIsOff() {
+    fun shellBindsOnlyLinuxRuntimePseudoFilesystemsWhenSharedFolderAccessIsOff() {
         val files = java.io.File(application.cacheDir, "runtime-${System.nanoTime()}")
         val context = object : ContextWrapper(application) {
             override fun getFilesDir(): java.io.File = files
@@ -92,10 +92,16 @@ class SharedFolderAccessTest {
             val binds = DebianRuntime.shellArguments(context, null)
                 .filter { it.startsWith("--bind=") }
 
-            assertTrue(binds.isEmpty())
+            assertEquals(
+                setOf("--bind=/dev:/dev", "--bind=/proc:/proc", "--bind=/sys:/sys"),
+                binds.toSet()
+            )
+            assertTrue(java.io.File(root, "dev").isDirectory)
+            assertTrue(java.io.File(root, "proc").isDirectory)
+            assertTrue(java.io.File(root, "sys").isDirectory)
             assertFalse(java.io.File(root, "dev/pts").exists())
             assertFalse(java.io.File(root, "root/android").exists())
-            assertFalse(binds.any { it.contains("/system") })
+            assertFalse(binds.any { it.contains("/system") || it.contains("/data") })
         } finally {
             files.deleteRecursively()
         }

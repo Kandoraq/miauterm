@@ -2,6 +2,7 @@ package org.cortex.terminal.view
 
 import org.cortex.terminal.emulator.TerminalColor
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -106,16 +107,17 @@ class ChromeTest {
     }
 
     @Test
-    fun everySchemeIsListedInTheSettings() {
+    fun terminalUsesMiautermPaletteWithoutAThemePreference() {
+        TerminalColor.applyTheme("miauterm")
+        assertEquals("miauterm", TerminalColor.currentThemeId)
+        assertEquals(Chrome.rgb(0x14, 0x16, 0x18), TerminalColor.DEFAULT_BG)
+        assertEquals(Chrome.rgb(0xf2, 0xf3, 0xf4), TerminalColor.DEFAULT_FG)
 
         val candidates = listOf(
-            java.io.File("src/main/res/values/arrays.xml"),
-            java.io.File("app/src/main/res/values/arrays.xml")
+            java.io.File("src/main/res/xml/root_preferences.xml"),
+            java.io.File("app/src/main/res/xml/root_preferences.xml")
         )
-        val text = candidates.first { it.exists() }.readText()
-        val values = Regex("""<string-array name="terminal_theme_values"[^>]*>(.*?)</string-array>""", RegexOption.DOT_MATCHES_ALL)
-            .find(text)!!.groupValues[1]
-        val listed = Regex("<item>([^<]+)</item>").findAll(values).map { it.groupValues[1] }.toList()
-        assertEquals(TerminalColor.SCHEMES.keys.toList(), listed)
+        val preferences = candidates.first { it.exists() }.readText()
+        assertFalse(preferences.contains("terminal_theme"))
     }
 }

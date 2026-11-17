@@ -10,14 +10,6 @@
             app:useSimpleSummaryProvider="true" />
 
         <ListPreference
-            app:defaultValue="catppuccin"
-            app:entries="@array/terminal_theme_entries"
-            app:entryValues="@array/terminal_theme_values"
-            app:key="terminal_theme"
-            app:title="@string/pref_theme_title"
-            app:useSimpleSummaryProvider="true" />
-
-        <ListPreference
             app:defaultValue="11"
             app:entries="@array/font_size_entries"
             app:entryValues="@array/font_size_values"
