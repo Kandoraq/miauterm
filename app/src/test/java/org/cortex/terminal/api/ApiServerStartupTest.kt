@@ -19,6 +19,8 @@ class ApiServerStartupTest {
     @Test
     fun applicationStartupCreatesConnectionFileAndStartsLocalServer() {
         val application = ApplicationProvider.getApplicationContext<Application>()
+        ApiServer.stop(application)
+        ApiServer.start(application)
         val connection = ApiServer.connectionFile(application)
         try {
             assertTrue("command connection file was not created", connection.isFile)

@@ -20,7 +20,8 @@ import java.util.concurrent.ConcurrentHashMap
 
 object DebianRuntime {
     private const val TAG = "DebianRuntime"
-    private const val RESOLV_CONF_HEADER = "# Managed by Miauterm.\n"
+    private const val RESOLV_CONF_HEADER = "# Managed by Miauterm. Android DNS with public fallback.\n"
+    private const val CUSTOM_RESOLV_CONF_HEADER = "# Managed by Miauterm. Custom DNS.\n"
     const val PREF_CUSTOM_DNS_SERVERS = "custom_dns_servers"
     const val PREF_CUSTOM_HOSTNAME = "custom_hostname"
     private const val HOSTS_START = "# BEGIN Miauterm Debian repository addresses"
@@ -1051,7 +1052,7 @@ object DebianRuntime {
         val current = if (resolvConf.isFile) resolvConf.readText() else ""
         val servers = resolverAddresses(dnsServers, customDnsServers)
         val updated = buildString {
-            append(RESOLV_CONF_HEADER)
+            append(if (customDnsServers.isEmpty()) RESOLV_CONF_HEADER else CUSTOM_RESOLV_CONF_HEADER)
             servers.forEach { append("nameserver ").append(it).append('\n') }
             append("options timeout:2 attempts:2\n")
         }

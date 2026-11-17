@@ -34,8 +34,11 @@ object ApiServer {
 
     @Synchronized
     fun start(context: Context) {
-        if (server != null) return
         val app = context.applicationContext
+        if (server != null) {
+            if (connectionFile(app).isFile) return
+            stop(app)
+        }
         var socket: ServerSocket? = null
         var pool: ExecutorService? = null
         try {

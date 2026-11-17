@@ -59,7 +59,7 @@ class KeyMapperTest {
     fun shiftAndCombinedModifiersUseCsiParameters() {
         assertEquals("\u001b[1;2D", seq(android.view.KeyEvent.KEYCODE_DPAD_LEFT, shift = true))
         assertEquals("\u001b[1;6A", seq(android.view.KeyEvent.KEYCODE_DPAD_UP, ctrl = true, shift = true))
-        assertEquals("\u001b[1;3H", seq(android.view.KeyEvent.KEYCODE_MOVE_HOME, alt = true, shift = true))
+        assertEquals("\u001b[1;4H", seq(android.view.KeyEvent.KEYCODE_MOVE_HOME, alt = true, shift = true))
         assertEquals("\u001b[1;8P", seq(android.view.KeyEvent.KEYCODE_F1, ctrl = true, alt = true, shift = true))
     }
 
