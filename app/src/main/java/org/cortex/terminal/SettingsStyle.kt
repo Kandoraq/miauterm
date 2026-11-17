@@ -36,7 +36,7 @@ internal class SettingsStyle(private val fragment: PreferenceFragmentCompat) {
         val title = view.findViewById<TextView>(android.R.id.title)
         val summary = view.findViewById<TextView>(android.R.id.summary)
         val switch = view.findViewById<View>(androidx.preference.R.id.switchWidget) as? SwitchCompat
-        val icon = view.findViewById<ImageView>(androidx.preference.R.id.icon)
+        val icon = view.findViewById<ImageView>(android.R.id.icon)
         val isCategory = summary == null && (icon == null || icon.visibility != View.VISIBLE)
 
         if (isCategory) {
