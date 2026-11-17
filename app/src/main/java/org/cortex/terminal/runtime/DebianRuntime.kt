@@ -730,7 +730,7 @@ object DebianRuntime {
 
     fun shellArguments(context: Context, guestDirectory: String?, failsafe: Boolean = false, accountOverride: LinuxAccount? = null): Array<String> {
         val rootfs = Environment.getCortexRoot(context)
-        MiautermCommandInstaller.install(context, rootfs)
+        MiautermCommandInstaller.removeLegacySu(context, rootfs)
         scheduleResolverUpdate(context, rootfs)
         lastResolverSummary?.let { recordRuntimeEvent(context, it) }
         val root = rootfs.absolutePath

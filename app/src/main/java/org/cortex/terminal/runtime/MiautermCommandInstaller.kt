@@ -15,6 +15,10 @@ internal object MiautermCommandInstaller {
         FileInstaller.install(command, script, MODE_EXECUTABLE)
         check(command.canExecute()) { "Could not make miauterm-cmd executable" }
         FileInstaller.symlink("miauterm-cmd", File(root, NOTIFY_SEND_PATH))
+        removeLegacySu(context, root)
+    }
+
+    fun removeLegacySu(context: Context, root: File) {
         val legacySu = File(root, LEGACY_SU_PATH)
         val legacyScript = context.assets.open("miauterm-su").use { it.readBytes() }
         if (FileInstaller.holds(legacySu, legacyScript)) {
