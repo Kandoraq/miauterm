@@ -54,7 +54,7 @@
 
     <!-- First start -->
     <string name="bootstrap_progress">Preparing Debian…\nExtracting the root filesystem…</string>
-    <string name="debian_install_failed">Could not install Debian. Free up storage and restart Miauterm.</string>
+    <string name="debian_install_failed" translatable="false">Could not install Debian. Free up storage and restart Miauterm.</string>
     <string name="debian_install_failed_details">Debian could not start: %1$s</string>
 
     <!-- Storage permission -->
