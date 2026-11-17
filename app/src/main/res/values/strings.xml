@@ -26,21 +26,21 @@
     <string name="drawer_sessions">Sessions</string>
     <string name="drawer_keyboard">Keyboard</string>
     <string name="drawer_new_session">New session</string>
-    <string name="new_session_name_hint">Session name (optional)</string>
-    <string name="new_session_failsafe">Start in failsafe mode</string>
-    <string name="create">Create</string>
-    <string name="pref_cat_network">Network</string>
-    <string name="pref_network_settings_toggle">Custom DNS and hostname</string>
-    <string name="pref_network_settings_closed">Tap to configure Debian network identity.</string>
-    <string name="pref_network_settings_open">DNS and hostname options are shown below.</string>
-    <string name="pref_custom_dns_title">DNS servers</string>
-    <string name="pref_custom_dns_summary">Comma-separated IP addresses. Leave empty to use Android DNS with fallback servers.</string>
-    <string name="pref_custom_dns_dialog">DNS server IP addresses</string>
-    <string name="pref_custom_dns_invalid">Enter up to three valid IPv4 or IPv6 addresses, separated by commas.</string>
-    <string name="pref_custom_hostname_title">Debian hostname</string>
-    <string name="pref_custom_hostname_summary">Used for the shell prompt and $HOSTNAME. Empty uses localhost.</string>
-    <string name="pref_custom_hostname_dialog">Hostname</string>
-    <string name="pref_custom_hostname_invalid">Use a valid hostname with letters, numbers, dots, or hyphens.</string>
+    <string name="new_session_name_hint" translatable="false">Session name (optional)</string>
+    <string name="new_session_failsafe" translatable="false">Start in failsafe mode</string>
+    <string name="create" translatable="false">Create</string>
+    <string name="pref_cat_network" translatable="false">Network</string>
+    <string name="pref_network_settings_toggle" translatable="false">Custom DNS and hostname</string>
+    <string name="pref_network_settings_closed" translatable="false">Tap to configure Debian network identity.</string>
+    <string name="pref_network_settings_open" translatable="false">DNS and hostname options are shown below.</string>
+    <string name="pref_custom_dns_title" translatable="false">DNS servers</string>
+    <string name="pref_custom_dns_summary" translatable="false">Comma-separated IP addresses. Leave empty to use Android DNS with fallback servers.</string>
+    <string name="pref_custom_dns_dialog" translatable="false">DNS server IP addresses</string>
+    <string name="pref_custom_dns_invalid" translatable="false">Enter up to three valid IPv4 or IPv6 addresses, separated by commas.</string>
+    <string name="pref_custom_hostname_title" translatable="false">Debian hostname</string>
+    <string name="pref_custom_hostname_summary" translatable="false">Used for the shell prompt and $HOSTNAME. Empty uses localhost.</string>
+    <string name="pref_custom_hostname_dialog" translatable="false">Hostname</string>
+    <string name="pref_custom_hostname_invalid" translatable="false">Use a valid hostname with letters, numbers, dots, or hyphens.</string>
     <string name="session_label">Session %1$d</string>
     <string name="close_session">Close session</string>
     <string name="exit_confirm_title">Exit Session</string>
