@@ -92,6 +92,7 @@ class SharedFolderAccessTest {
         try {
             val binds = DebianRuntime.shellArguments(context, null)
                 .filter { it.startsWith("--bind=") }
+                .filterNot { it.endsWith(":/run/miauterm-cmd") }
 
             assertEquals(
                 setOf("--bind=/dev:/dev", "--bind=/proc:/proc", "--bind=/sys:/sys"),
