@@ -6,20 +6,21 @@ import android.system.OsConstants
 import java.io.File
 
 internal object SafeDelete {
-    @Volatile
-    var lastFailure: String? = null
-        private set
+    private val failure = ThreadLocal<String?>()
+
+    val lastFailure: String?
+        get() = failure.get()
 
     fun deleteRecursively(root: File): Boolean {
-        lastFailure = null
+        failure.set(null)
         return try {
             val deleted = remove(root)
-            if (!deleted && lastFailure == null) {
-                lastFailure = "Could not remove ${root.absolutePath}"
+            if (!deleted && failure.get() == null) {
+                failure.set("Could not remove ${root.absolutePath}")
             }
             deleted
         } catch (e: Throwable) {
-            lastFailure = "${root.absolutePath}: ${e.message ?: e.javaClass.simpleName}"
+            failure.set("${root.absolutePath}: ${e.message ?: e.javaClass.simpleName}")
             false
         }
     }
@@ -32,12 +33,12 @@ internal object SafeDelete {
             val writable = file.setWritable(true, true)
             val executable = file.setExecutable(true, true)
             if (!readable || !writable || !executable) {
-                lastFailure = "Could not access directory ${file.absolutePath}"
+                failure.set("Could not access directory ${file.absolutePath}")
                 return false
             }
             val children = file.listFiles()
             if (children == null) {
-                lastFailure = "Could not list directory ${file.absolutePath}"
+                failure.set("Could not list directory ${file.absolutePath}")
                 return false
             }
             children.forEach { child ->
@@ -52,7 +53,7 @@ internal object SafeDelete {
     private fun unlink(entry: File): Boolean {
         if (entry.isDirectory && !isLink(entry)) {
             val deleted = entry.delete()
-            if (!deleted) lastFailure = "Could not remove directory ${entry.absolutePath}"
+            if (!deleted) failure.set("Could not remove directory ${entry.absolutePath}")
             return deleted
         }
         return try {
@@ -63,13 +64,13 @@ internal object SafeDelete {
                 true
             } else {
                 val deleted = entry.delete()
-                if (!deleted) lastFailure = "Could not remove ${entry.absolutePath} (errno ${e.errno})"
+                if (!deleted) failure.set("Could not remove ${entry.absolutePath} (errno ${e.errno})")
                 deleted
             }
         } catch (e: Throwable) {
             val deleted = entry.delete()
             if (!deleted) {
-                lastFailure = "Could not remove ${entry.absolutePath}: ${e.message ?: e.javaClass.simpleName}"
+                failure.set("Could not remove ${entry.absolutePath}: ${e.message ?: e.javaClass.simpleName}")
             }
             deleted
         }

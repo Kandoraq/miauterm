@@ -22,12 +22,21 @@ class ExtraKeysConfig(home: File) {
         val legacy = File(home, ".cortex")
         if (legacy.isDirectory) {
             dir.mkdirs()
-            listOf(FILE_NAME, "$FILE_NAME.example", "font.ttf").forEach { name ->
+            val migrated = listOf(FILE_NAME, "$FILE_NAME.example", "font.ttf").all { name ->
                 val old = File(legacy, name)
                 val target = File(dir, name)
-                if (old.isFile && !target.exists()) runCatching { old.copyTo(target) }
+                if (!old.isFile) {
+                    true
+                } else if (target.isFile) {
+                    true
+                } else {
+                    runCatching {
+                        old.copyTo(target)
+                        target.isFile && target.length() == old.length()
+                    }.getOrDefault(false)
+                }
             }
-            SafeDelete.deleteRecursively(legacy)
+            if (migrated) SafeDelete.deleteRecursively(legacy)
         }
     }
 

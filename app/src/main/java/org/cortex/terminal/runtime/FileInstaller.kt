@@ -1,6 +1,5 @@
 package org.cortex.terminal.runtime
 
-import android.os.Build
 import android.system.Os
 import android.util.Log
 import java.io.File
@@ -17,7 +16,7 @@ internal object FileInstaller {
     @Synchronized
     fun install(file: File, bytes: ByteArray, mode: Int): Boolean {
         if (holds(file, bytes)) {
-            chmod(file, mode)
+            if (!chmod(file, mode)) throw IOException("could not set permissions on ${file.path}")
             return false
         }
         val dir = file.absoluteFile.parentFile ?: throw IOException("${file.path} has no directory")
@@ -31,26 +30,22 @@ internal object FileInstaller {
                 stream.write(bytes)
                 stream.fd.sync()
             }
-            chmod(tmp, mode)
+            if (!chmod(tmp, mode)) throw IOException("could not set permissions on ${tmp.path}")
             if (!ElfLinkerPatcher.atomicReplace(tmp, file)) {
                 throw IOException("could not atomically replace ${file.path}")
             }
             if (!holds(file, bytes)) throw IOException("installed file verification failed: ${file.path}")
-            chmod(file, mode)
+            if (!chmod(file, mode)) throw IOException("could not set permissions on ${file.path}")
             return true
         } finally {
             if (tmp.exists() || ElfLinkerPatcher.isSymlink(tmp)) ElfLinkerPatcher.deleteIfExists(tmp)
         }
     }
 
-    fun holds(file: File, bytes: ByteArray): Boolean {
-        if (!file.isFile || file.length() != bytes.size.toLong() || ElfLinkerPatcher.isSymlink(file)) return false
-        return try {
+    fun holds(file: File, bytes: ByteArray): Boolean = runCatching {
+        file.isFile && file.length() == bytes.size.toLong() && !ElfLinkerPatcher.isSymlink(file) &&
             file.readBytes().contentEquals(bytes)
-        } catch (e: IOException) {
-            false
-        }
-    }
+    }.getOrDefault(false)
 
     @Synchronized
     fun symlink(target: String, link: File): Boolean {
@@ -66,19 +61,12 @@ internal object FileInstaller {
         return true
     }
 
-    fun chmod(file: File, mode: Int) {
-        if (Build.VERSION.SDK_INT > 0) {
-            try {
-                Os.chmod(file.absolutePath, mode)
-            } catch (e: Exception) {
-                Log.w(TAG, "chmod ${Integer.toOctalString(mode)} ${file.path} failed: ${e.message}")
-            }
-        } else {
-
-            file.setReadable((mode and 256) != 0, (mode and 4) == 0)
-            file.setWritable((mode and 128) != 0, true)
-            file.setExecutable((mode and 64) != 0, (mode and 1) == 0)
-        }
+    fun chmod(file: File, mode: Int): Boolean = try {
+        Os.chmod(file.absolutePath, mode)
+        true
+    } catch (e: Exception) {
+        Log.w(TAG, "chmod ${Integer.toOctalString(mode)} ${file.path} failed: ${e.message}")
+        false
     }
 }
 

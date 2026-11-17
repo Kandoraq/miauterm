@@ -73,13 +73,15 @@ object DebianRuntime {
         if (isRemoved(context)) return false
         val root = Environment.getCortexRoot(context)
         val marker = File(root, ".miauterm-version")
-        return marker.isFile && marker.readText().trim() == VERSION.toString() &&
-            File(root, "root").isDirectory && systemName(root) != null && shellPath(root) != null &&
-            hasDebianUsrMergeLinks(root) &&
-            invalidEssentialCommand(root) == null && invalidNetworkCommand(root) == null &&
-            MiautermCommandInstaller.isInstalled(root) &&
-            prootFiles.all { File(context.filesDir, "proot/$it").isFile } &&
-            File(context.filesDir, "proot/proot").canExecute()
+        return runCatching {
+            marker.isFile && marker.readText().trim() == VERSION.toString() &&
+                File(root, "root").isDirectory && systemName(root) != null && shellPath(root) != null &&
+                hasDebianUsrMergeLinks(root) &&
+                invalidEssentialCommand(root) == null &&
+                MiautermCommandInstaller.isInstalled(root) &&
+                prootFiles.all { File(context.filesDir, "proot/$it").isFile } &&
+                File(context.filesDir, "proot/proot").canExecute()
+        }.getOrDefault(false)
     }
 
     @Synchronized
@@ -89,9 +91,29 @@ object DebianRuntime {
         val archive = File(context.cacheDir, ROOTFS_ASSET)
         val staging = File(context.filesDir, "debian-install-staging")
         val previous = File(context.filesDir, "debian-install-previous")
+        val failed = File(context.filesDir, "debian-install-failed")
         return try {
             onProgress?.invoke(2)
             installProot(context, runtime)
+            if (!root.exists() && previous.isDirectory) {
+                if (!previous.renameTo(root)) {
+                    Log.w(TAG, "Could not restore the previous Linux rootfs")
+                }
+            }
+            if (!force && root.exists() && previous.isDirectory) {
+                val currentWorks = runCatching {
+                    verifyRootfs(root)
+                    verifyProotStartsBash(context, root)
+                }.isSuccess
+                if (!currentWorks) {
+                    SafeDelete.deleteRecursively(failed)
+                    if (root.renameTo(failed) && previous.renameTo(root)) {
+                        Log.w(TAG, "Restored the previous rootfs after verification failed")
+                    } else if (!root.exists() && failed.isDirectory) {
+                        failed.renameTo(root)
+                    }
+                }
+            }
 
             if (!force && root.exists()) {
                 val existingRootWorks = runCatching {
@@ -103,9 +125,11 @@ object DebianRuntime {
                 if (existingRootWorks) {
                     onProgress?.invoke(92)
                     ensureNetworkTools(context, root)
-                    File(root, ".miauterm-version").writeText("$VERSION\n")
+                    FileInstaller.install(File(root, ".miauterm-version"), "$VERSION\n", 420)
                     File(context.filesDir, "rootfs-original.tar.zst").delete()
                     File(context.filesDir, "rootfs-original.installing").delete()
+                    SafeDelete.deleteRecursively(previous)
+                    SafeDelete.deleteRecursively(failed)
                     PreferenceManager.getDefaultSharedPreferences(context).edit()
                         .remove(PREF_ROOTFS_REMOVED).commit()
                     lastInstallError = null
@@ -133,19 +157,26 @@ object DebianRuntime {
             MiautermCommandInstaller.install(context, staging)
             ensureNetworkTools(context, staging)
             verifyProotStartsBash(context, staging)
-            File(staging, ".miauterm-version").writeText("$VERSION\n")
+            FileInstaller.install(File(staging, ".miauterm-version"), "$VERSION\n", 420)
 
             if (!SafeDelete.deleteRecursively(previous)) {
-                throw IllegalStateException("Could not clear the previous rootfs")
+                throw IllegalStateException("Could not clear the previous rootfs backup")
             }
             if (root.exists() && !root.renameTo(previous)) {
                 throw IllegalStateException("Could not move the current Linux rootfs")
             }
             if (!staging.renameTo(root)) {
-                previous.renameTo(root)
+                if (!previous.renameTo(root)) {
+                    Log.e(TAG, "Old rootfs remains at ${previous.absolutePath}")
+                }
                 throw IllegalStateException("Could not install the verified rootfs")
             }
-            SafeDelete.deleteRecursively(previous)
+            verifyRootfs(root)
+            verifyProotStartsBash(context, root)
+            if (!SafeDelete.deleteRecursively(previous)) {
+                Log.w(TAG, "Could not remove the previous rootfs backup")
+            }
+            SafeDelete.deleteRecursively(failed)
             File(context.filesDir, "rootfs-original.tar.zst").delete()
             PreferenceManager.getDefaultSharedPreferences(context).edit()
                 .remove(PREF_ROOTFS_REMOVED).commit()
@@ -250,37 +281,37 @@ object DebianRuntime {
             }
         }
         val motdProfile = File(profileDirectory, "99-miauterm-motd.sh")
-        if (!motdProfile.exists()) {
-            motdProfile.writeText(
-                "case \$- in\n" +
-                    "  *i*)\n" +
-                    "    if [ -z \"\${MIAUTERM_MOTD_SHOWN:-}\" ]; then\n" +
-                    "      export MIAUTERM_MOTD_SHOWN=1\n" +
-                    "      [ ! -r /etc/motd ] || cat /etc/motd\n" +
-                    "    fi\n" +
-                    "    ;;\n" +
-                    "esac\n"
-            )
-        }
+        FileInstaller.install(
+            motdProfile,
+            "case \$- in\n" +
+                "  *i*)\n" +
+                "    if [ -z \"\${MIAUTERM_MOTD_SHOWN:-}\" ]; then\n" +
+                "      export MIAUTERM_MOTD_SHOWN=1\n" +
+                "      [ ! -r /etc/motd ] || cat /etc/motd\n" +
+                "    fi\n" +
+                "    ;;\n" +
+                "esac\n",
+            420
+        )
         val promptProfile = File(profileDirectory, "99-miauterm-prompt.sh")
-        if (!promptProfile.exists()) {
-            promptProfile.writeText(
-                "# Managed by Miauterm.\n" +
-                    "[ -n \"\${BASH_VERSION:-}\" ] || return\n" +
-                    "case \$- in *i*) ;; *) return ;; esac\n" +
-                    "PS1='\\[\\e[1;32m\\]\\u@localhost\\[\\e[0m\\] \\[\\e[34m\\]\\w\\[\\e[0m\\]\\$ '\n"
-            )
-        }
+        FileInstaller.install(
+            promptProfile,
+            "# Managed by Miauterm.\n" +
+                "[ -n \"\${BASH_VERSION:-}\" ] || return\n" +
+                "case \$- in *i*) ;; *) return ;; esac\n" +
+                "PS1='\\[\\e[1;32m\\]\\u@localhost\\[\\e[0m\\] \\[\\e[34m\\]\\w\\[\\e[0m\\]\\$ '\n",
+            420
+        )
         val colorsProfile = File(profileDirectory, "99-miauterm-colors.sh")
-        if (!colorsProfile.exists()) {
-            colorsProfile.writeText(
-                    "case \$- in *i*) ;; *) return ;; esac\n" +
-                        "if command -v dircolors >/dev/null 2>&1; then\n" +
-                        "  eval \"\$(dircolors -b)\"\n" +
-                        "  alias ls='ls --color=auto'\n" +
-                        "fi\n"
-            )
-        }
+        FileInstaller.install(
+            colorsProfile,
+            "case \$- in *i*) ;; *) return ;; esac\n" +
+                "if command -v dircolors >/dev/null 2>&1; then\n" +
+                "  eval \"\$(dircolors -b)\"\n" +
+                "  alias ls='ls --color=auto'\n" +
+                "fi\n",
+            420
+        )
     }
 
     private fun removeUnusedAndroidPlaceholders(rootHome: File) {
@@ -383,13 +414,40 @@ object DebianRuntime {
                 }
             }
             .start()
-        val output = process.inputStream.bufferedReader().use { it.readText().takeLast(2048).trim() }
-        val exitCode = process.waitFor()
+        val (output, exitCode) = runProcess(process, 120_000)
         check(exitCode == 0) {
             output.ifEmpty {
                 "PRoot launcher could not start ${shellPath(root)} from ${root.absolutePath} (exit $exitCode)"
             }
         }
+    }
+
+    private fun runProcess(process: Process, timeoutMs: Long): Pair<String, Int> {
+        val timedOut = java.util.concurrent.atomic.AtomicBoolean(false)
+        val watchdog = Thread {
+            try {
+                Thread.sleep(timeoutMs)
+            } catch (_: InterruptedException) {
+                return@Thread
+            }
+            if (runCatching { process.exitValue() }.isFailure) {
+                timedOut.set(true)
+                runCatching { process.destroy() }
+            }
+        }
+        watchdog.isDaemon = true
+        watchdog.start()
+        val output = try {
+            process.inputStream.bufferedReader().use { it.readText().takeLast(2048).trim() }
+        } finally {
+            watchdog.interrupt()
+        }
+        if (timedOut.get()) {
+            runCatching { process.destroy() }
+            process.waitFor()
+            throw IllegalStateException("Linux command timed out after ${timeoutMs / 1000} seconds")
+        }
+        return output to process.waitFor()
     }
 
     private fun installProot(context: Context, target: File) {
@@ -401,11 +459,22 @@ object DebianRuntime {
                 (name != "proot" && name != "loader" && !file.canRead())
             if (needsCopy) {
                 val temporary = File(target, "$name.installing")
-                context.assets.open("$PROOT_ASSET_DIR/$name").use { input ->
-                    temporary.outputStream().buffered().use { output -> input.copyTo(output) }
+                try {
+                    if (temporary.exists() && !temporary.delete()) {
+                        throw IllegalStateException("Could not clear PRoot runtime file: $name")
+                    }
+                    context.assets.open("$PROOT_ASSET_DIR/$name").use { input ->
+                        java.io.FileOutputStream(temporary).use { output ->
+                            input.copyTo(output)
+                            output.fd.sync()
+                        }
+                    }
+                    if (!ElfLinkerPatcher.atomicReplace(temporary, file)) {
+                        throw IllegalStateException("Could not install PRoot runtime file: $name")
+                    }
+                } finally {
+                    temporary.delete()
                 }
-                if (file.exists() && !file.delete()) error("Could not replace PRoot runtime file: $name")
-                if (!temporary.renameTo(file)) error("Could not install PRoot runtime file: $name")
             }
             if (name == "proot" || name == "loader") {
                 check(file.setExecutable(true, true) || file.canExecute()) { "Cannot execute PRoot runtime file: $name" }
@@ -591,34 +660,34 @@ object DebianRuntime {
             ?.takeIf { it.isNotBlank() }
     }
 
+    @Synchronized
     fun shellCommand(context: Context): String {
         val prootDir = File(context.filesDir, "proot")
         val launcher = File(prootDir, "launcher.sh")
         val log = prootLog(context)
-        run {
-            val proot = File(prootDir, "proot").absolutePath
-            val loader = File(prootDir, "loader").absolutePath
-            val cache = File(context.cacheDir, "proot-tmp").absolutePath
-            launcher.writeText(
-                "#!/system/bin/sh\n" +
-                    "LOG_FILE='${shellQuote(log.absolutePath)}'\n" +
-                    "if [ -f \"\$LOG_FILE\" ] && [ \"$(wc -c < \"\$LOG_FILE\")\" -gt ${LOG_LIMIT} ]; then : > \"\$LOG_FILE\"; fi\n" +
-                    "export PROOT_LOADER='${shellQuote(loader)}'\n" +
-                    "export PROOT_TMP_DIR='${shellQuote(cache)}'\n" +
-                    "export LD_LIBRARY_PATH='${shellQuote(prootDir.absolutePath)}'\n" +
-                    "if [ \"\$MIAUTERM_PROOT_DIAGNOSTICS\" = 1 ]; then\n" +
-                    "  FIFO=\"\$PROOT_TMP_DIR/proot-log-\$\$\"\n" +
-                    "  if /system/bin/toybox mkfifo \"\$FIFO\" 2>/dev/null; then\n" +
-                    "    /system/bin/toybox tee -a \"\$LOG_FILE\" < \"\$FIFO\" >&2 & LOGGER=$!\n" +
-                    "    '${shellQuote(proot)}' -v 2 \"\$@\" 2>\"\$FIFO\"; STATUS=$?\n" +
-                    "    wait \$LOGGER; /system/bin/toybox rm -f \"\$FIFO\"; exit \$STATUS\n" +
-                    "  fi\n" +
-                    "  exec '${shellQuote(proot)}' -v 2 \"\$@\"\n" +
-                    "fi\n" +
-                    "exec '${shellQuote(proot)}' \"\$@\"\n"
-            )
-            launcher.setExecutable(true, true)
-        }
+        val proot = File(prootDir, "proot").absolutePath
+        val loader = File(prootDir, "loader").absolutePath
+        val cache = File(context.cacheDir, "proot-tmp").absolutePath
+        FileInstaller.install(
+            launcher,
+            "#!/system/bin/sh\n" +
+                "LOG_FILE='${shellQuote(log.absolutePath)}'\n" +
+                "if [ -f \"\$LOG_FILE\" ] && [ \"$(/system/bin/toybox wc -c < \"\$LOG_FILE\")\" -gt ${LOG_LIMIT} ]; then : > \"\$LOG_FILE\"; fi\n" +
+                "export PROOT_LOADER='${shellQuote(loader)}'\n" +
+                "export PROOT_TMP_DIR='${shellQuote(cache)}'\n" +
+                "export LD_LIBRARY_PATH='${shellQuote(prootDir.absolutePath)}'\n" +
+                "if [ \"\$MIAUTERM_PROOT_DIAGNOSTICS\" = 1 ]; then\n" +
+                "  FIFO=\"\$PROOT_TMP_DIR/proot-log-\$\$\"\n" +
+                "  if /system/bin/toybox mkfifo \"\$FIFO\" 2>/dev/null; then\n" +
+                "    /system/bin/toybox tee -a \"\$LOG_FILE\" < \"\$FIFO\" >&2 & LOGGER=$!\n" +
+                "    '${shellQuote(proot)}' -v 2 \"\$@\" 2>\"\$FIFO\"; STATUS=$?\n" +
+                "    wait \$LOGGER; /system/bin/toybox rm -f \"\$FIFO\"; exit \$STATUS\n" +
+                "  fi\n" +
+                "  exec '${shellQuote(proot)}' -v 2 \"\$@\"\n" +
+                "fi\n" +
+                "exec '${shellQuote(proot)}' \"\$@\"\n",
+            493
+        )
         return launcher.absolutePath
     }
 
@@ -633,7 +702,9 @@ object DebianRuntime {
             log.parentFile?.mkdirs()
             synchronized(DebianRuntime::class.java) {
                 if (log.length() > LOG_LIMIT) log.writeText("")
-                log.appendText("[${java.time.Instant.now()}] $message\n")
+                val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US)
+                    .format(java.util.Date())
+                log.appendText("[$timestamp] $message\n")
             }
         }.onFailure { Log.w(TAG, "Could not write startup diagnostic", it) }
     }
@@ -773,10 +844,11 @@ object DebianRuntime {
         val lines = current.lines()
         val start = lines.indexOf(HOSTS_START)
         val end = lines.indexOf(HOSTS_END)
-        val preserved = if (start >= 0 && end >= start) {
-            (lines.take(start) + lines.drop(end + 1)).joinToString("\n").trimEnd()
-        } else {
-            current.trimEnd()
+        val preserved = when {
+            start >= 0 && end >= start -> (lines.take(start) + lines.drop(end + 1)).joinToString("\n").trimEnd()
+            start >= 0 -> lines.take(start).joinToString("\n").trimEnd()
+            end >= 0 -> lines.filterIndexed { index, _ -> index != end }.joinToString("\n").trimEnd()
+            else -> current.trimEnd()
         }
         val managed = buildString {
             append(HOSTS_START).append('\n')
@@ -853,7 +925,7 @@ object DebianRuntime {
                 ?.filter { it.isFile && (it.extension == "list" || it.extension == "sources") }
                 ?.forEach(::add)
         }.filterNotNull()
-        val insecureDebianUrl = Regex("(?i)http://(deb\\.debian\\.org)(?=[:/\\s])")
+        val insecureDebianUrl = Regex("(?i)http://((?:[a-z0-9-]+\\.)*debian\\.org)(?=[:/\\s])")
         sourceFiles.filterNot(ElfLinkerPatcher::isSymlink).forEach { source ->
             val current = runCatching { source.readText() }.getOrNull() ?: return@forEach
             val updated = insecureDebianUrl.replace(current, "https://$1")
@@ -959,8 +1031,7 @@ object DebianRuntime {
             put("DEBIAN_FRONTEND", "noninteractive")
         }
         val process = processBuilder.start()
-        val output = process.inputStream.bufferedReader().use { it.readText().takeLast(2048).trim() }
-        val exitCode = process.waitFor()
+        val (output, exitCode) = runProcess(process, 600_000)
         check(exitCode == 0) {
             output.ifEmpty { "${command.joinToString(" ")} failed (exit $exitCode)" }
         }
@@ -1018,12 +1089,9 @@ object DebianRuntime {
     }
 
     fun isSharedFolderAccessEnabled(context: Context): Boolean {
-        val preferences = PreferenceManager.getDefaultSharedPreferences(context)
-        val permissionGranted = hasSharedFolderPermission(context)
-        if (!preferences.contains(PREF_SHARED_FOLDER_ACCESS)) {
-            preferences.edit().putBoolean(PREF_SHARED_FOLDER_ACCESS, permissionGranted).apply()
-        }
-        return permissionGranted && preferences.getBoolean(PREF_SHARED_FOLDER_ACCESS, false)
+        if (!hasSharedFolderPermission(context)) return false
+        return PreferenceManager.getDefaultSharedPreferences(context)
+            .getBoolean(PREF_SHARED_FOLDER_ACCESS, true)
     }
 
     private fun publicDirectory(context: Context, name: String): File? {
