@@ -36,9 +36,9 @@ class ExtraKeysView @JvmOverloads constructor(
         private const val REPEAT_INTERVAL_MS = 60L
         private const val LATCH_HOLD_MS = 500L
 
-        const val ROW_HEIGHT_DP = 36
+        const val ROW_HEIGHT_DP = 30
 
-        const val PADDING_DP = 3
+        const val PADDING_DP = 2
 
         fun barHeightDp(rows: Int): Int = rows * ROW_HEIGHT_DP + 2 * PADDING_DP
     }
@@ -126,8 +126,8 @@ class ExtraKeysView @JvmOverloads constructor(
         val availableWidth = viewWidth - paddingLeft - paddingRight
         if (availableWidth <= 0) return
 
-        val marginPx = dp(2f).toInt()
-        val minKeyWidth = dp(44f).toInt()
+        val marginPx = dp(1f).toInt()
+        val minKeyWidth = dp(40f).toInt()
         keyRows.forEach { (row, buttons) ->
             if (buttons.isEmpty()) return@forEach
             val marginsWidth = buttons.size * marginPx * 2
@@ -248,7 +248,7 @@ class ExtraKeysView @JvmOverloads constructor(
             )
         }
 
-        val marginPx = (2f * resources.displayMetrics.density).toInt()
+        val marginPx = (1f * resources.displayMetrics.density).toInt()
         val buttons = mutableListOf<Button>()
 
         for (key in keys) {
@@ -269,7 +269,7 @@ class ExtraKeysView @JvmOverloads constructor(
                 minHeight = 0
                 stateListAnimator = null
 
-                val params = LayoutParams(dp(44f).toInt(), LayoutParams.MATCH_PARENT).apply {
+                val params = LayoutParams(dp(40f).toInt(), LayoutParams.MATCH_PARENT).apply {
                     setMargins(marginPx, 0, marginPx, 0)
                 }
                 layoutParams = params
