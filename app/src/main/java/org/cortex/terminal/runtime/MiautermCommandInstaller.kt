@@ -4,7 +4,7 @@ import android.content.Context
 import java.io.File
 
 internal object MiautermCommandInstaller {
-    private const val MODE_EXECUTABLE = 0x1ed
+    private const val MODE_EXECUTABLE = 493
     private const val COMMAND_PATH = "usr/local/bin/miauterm-cmd"
     private const val NOTIFY_SEND_PATH = "usr/local/bin/notify-send"
     private const val SU_PATH = "usr/local/bin/su"
@@ -20,8 +20,16 @@ internal object MiautermCommandInstaller {
         check(su.canExecute()) { "Could not make Miauterm su executable" }
     }
 
-    fun isInstalled(root: File): Boolean =
-        File(root, COMMAND_PATH).let { it.isFile && it.canExecute() } &&
-            ElfLinkerPatcher.readSymlink(File(root, NOTIFY_SEND_PATH)) == "miauterm-cmd" &&
+    fun isInstalled(root: File): Boolean {
+        val command = File(root, COMMAND_PATH)
+        val link = File(root, NOTIFY_SEND_PATH)
+        val target = ElfLinkerPatcher.readSymlink(link)
+        val linkInstalled = target != null && runCatching {
+            val resolved = if (target.startsWith('/')) File(root, target.trimStart('/')) else File(link.parentFile, target)
+            resolved.canonicalFile == command.canonicalFile
+        }.getOrDefault(false)
+        return command.let { it.isFile && it.canExecute() } &&
+            linkInstalled &&
             File(root, SU_PATH).let { it.isFile && it.canExecute() }
+    }
 }

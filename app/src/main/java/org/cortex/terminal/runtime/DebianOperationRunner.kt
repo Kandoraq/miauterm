@@ -58,7 +58,9 @@ internal object DebianOperationRunner {
                 )
                 synchronized(lock) { state = finished }
                 deliver(finished)
-                synchronized(lock) { state = State.Idle }
+                synchronized(lock) {
+                    if (state === finished) state = State.Idle
+                }
             }
         } catch (_: RejectedExecutionException) {
             synchronized(lock) { state = State.Idle }

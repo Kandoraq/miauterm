@@ -123,9 +123,7 @@ object ElfLinkerPatcher {
                 ld64Real.setWritable(true, true)
                 try { Os.chmod(ld64Real.absolutePath, 448) } catch (_: Exception) {}
                 if (!ld64Link.exists() && !isSymlink(ld64Link)) {
-                    if (!createSymlink("ld-2.39.so", ld64Link)) {
-                        try { ld64Real.copyTo(ld64Link, overwrite = true) } catch (_: Exception) {}
-                    }
+                    createSymlink("ld-2.39.so", ld64Link)
                 }
                 ld64Link.setExecutable(true, true)
                 ld64Link.setReadable(true, true)
@@ -141,9 +139,7 @@ object ElfLinkerPatcher {
                 ld32Real.setWritable(true, true)
                 try { Os.chmod(ld32Real.absolutePath, 448) } catch (_: Exception) {}
                 if (!ld32Link.exists() && !isSymlink(ld32Link)) {
-                    if (!createSymlink("ld-2.39.so", ld32Link)) {
-                        try { ld32Real.copyTo(ld32Link, overwrite = true) } catch (_: Exception) {}
-                    }
+                    createSymlink("ld-2.39.so", ld32Link)
                 }
                 ld32Link.setExecutable(true, true)
                 ld32Link.setReadable(true, true)
@@ -157,9 +153,8 @@ object ElfLinkerPatcher {
                 if (!direct64.exists() && !isSymlink(direct64)) {
                     val src = if (ld64Link.exists()) ld64Link else if (ld64Real.exists()) ld64Real else null
                     if (src != null) {
-                        if (!createSymlink(src.absolutePath, direct64)) {
-                            try { src.copyTo(direct64, overwrite = true) } catch (_: Exception) {}
-                        }
+                        val linkTarget = src.relativeTo(libDir).invariantSeparatorsPath
+                        createSymlink(linkTarget, direct64)
                         direct64.setExecutable(true, true)
                         direct64.setReadable(true, true)
                         direct64.setWritable(true, true)
@@ -170,9 +165,8 @@ object ElfLinkerPatcher {
                 if (!direct32.exists() && !isSymlink(direct32)) {
                     val src = if (ld32Link.exists()) ld32Link else if (ld32Real.exists()) ld32Real else null
                     if (src != null) {
-                        if (!createSymlink(src.absolutePath, direct32)) {
-                            try { src.copyTo(direct32, overwrite = true) } catch (_: Exception) {}
-                        }
+                        val linkTarget = src.relativeTo(libDir).invariantSeparatorsPath
+                        createSymlink(linkTarget, direct32)
                         direct32.setExecutable(true, true)
                         direct32.setReadable(true, true)
                         direct32.setWritable(true, true)

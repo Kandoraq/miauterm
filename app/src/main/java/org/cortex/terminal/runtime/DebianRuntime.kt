@@ -7,8 +7,10 @@ import androidx.preference.PreferenceManager
 import android.util.Log
 import org.cortex.terminal.api.ApiServer
 import org.cortex.terminal.pty.PtyNative
+import org.json.JSONObject
 import java.io.File
 import java.net.Inet4Address
+import java.net.Inet6Address
 import java.net.InetAddress
 import java.net.URI
 import java.net.URL
@@ -92,22 +94,26 @@ object DebianRuntime {
         val staging = File(context.filesDir, "debian-install-staging")
         val previous = File(context.filesDir, "debian-install-previous")
         val failed = File(context.filesDir, "debian-install-failed")
+        val restorePrevious = File(context.filesDir, "debian-restore-previous")
         return try {
             onProgress?.invoke(2)
             installProot(context, runtime)
-            if (!root.exists() && previous.isDirectory) {
-                if (!previous.renameTo(root)) {
-                    Log.w(TAG, "Could not restore the previous Linux rootfs")
+            if (!root.exists()) {
+                listOf(restorePrevious, previous).firstOrNull { it.isDirectory }?.let { backup ->
+                    if (!backup.renameTo(root)) {
+                        Log.w(TAG, "Could not restore the previous Linux rootfs")
+                    }
                 }
             }
-            if (!force && root.exists() && previous.isDirectory) {
+            if (!force && root.exists() && (restorePrevious.isDirectory || previous.isDirectory)) {
                 val currentWorks = runCatching {
                     verifyRootfs(root)
                     verifyProotStartsBash(context, root)
                 }.isSuccess
                 if (!currentWorks) {
+                    val backup = listOf(restorePrevious, previous).firstOrNull { it.isDirectory }
                     SafeDelete.deleteRecursively(failed)
-                    if (root.renameTo(failed) && previous.renameTo(root)) {
+                    if (backup != null && root.renameTo(failed) && backup.renameTo(root)) {
                         Log.w(TAG, "Restored the previous rootfs after verification failed")
                     } else if (!root.exists() && failed.isDirectory) {
                         failed.renameTo(root)
@@ -130,6 +136,7 @@ object DebianRuntime {
                     File(context.filesDir, "rootfs-original.installing").delete()
                     SafeDelete.deleteRecursively(previous)
                     SafeDelete.deleteRecursively(failed)
+                    SafeDelete.deleteRecursively(restorePrevious)
                     PreferenceManager.getDefaultSharedPreferences(context).edit()
                         .remove(PREF_ROOTFS_REMOVED).commit()
                     lastInstallError = null
@@ -177,6 +184,7 @@ object DebianRuntime {
                 Log.w(TAG, "Could not remove the previous rootfs backup")
             }
             SafeDelete.deleteRecursively(failed)
+            SafeDelete.deleteRecursively(restorePrevious)
             File(context.filesDir, "rootfs-original.tar.zst").delete()
             PreferenceManager.getDefaultSharedPreferences(context).edit()
                 .remove(PREF_ROOTFS_REMOVED).commit()
@@ -379,7 +387,7 @@ object DebianRuntime {
         MiautermCommandInstaller.install(context, root)
         installProot(context, File(context.filesDir, "proot"))
         verifyProotStartsBash(context, root)
-        File(root, ".miauterm-version").writeText("$VERSION\n")
+        FileInstaller.install(File(root, ".miauterm-version"), "$VERSION\n", 420)
     }
 
     private fun verifyProotStartsBash(context: Context, root: File) {
@@ -860,21 +868,23 @@ object DebianRuntime {
         return mappings
     }
 
-    private fun resolveRepositoryHost(host: String): List<Inet4Address> {
+    private fun resolveRepositoryHost(host: String): List<InetAddress> {
         val androidAddresses = runCatching {
-            InetAddress.getAllByName(host).filterIsInstance<Inet4Address>()
+            InetAddress.getAllByName(host).toList()
         }.getOrDefault(emptyList())
         if (androidAddresses.isNotEmpty()) return androidAddresses
 
         return DNS_OVER_HTTPS_ENDPOINTS.flatMap { endpoint ->
-            runCatching { queryDnsOverHttps(endpoint, host) }.getOrDefault(emptyList())
+            listOf("A", "AAAA").flatMap { type ->
+                runCatching { queryDnsOverHttps(endpoint, host, type) }.getOrDefault(emptyList())
+            }
         }.distinctBy { it.hostAddress }
     }
 
-    private fun queryDnsOverHttps(endpoint: String, host: String): List<Inet4Address> {
+    private fun queryDnsOverHttps(endpoint: String, host: String, type: String): List<InetAddress> {
         val encodedHost = URLEncoder.encode(host, Charsets.UTF_8.name())
         val separator = if ('?' in endpoint) '&' else '?'
-        val connection = (URL("$endpoint${separator}name=$encodedHost&type=A").openConnection() as HttpsURLConnection).apply {
+        val connection = (URL("$endpoint${separator}name=$encodedHost&type=$type").openConnection() as HttpsURLConnection).apply {
             connectTimeout = 5000
             readTimeout = 5000
             requestMethod = "GET"
@@ -882,28 +892,35 @@ object DebianRuntime {
         }
         return try {
             if (connection.responseCode != HttpsURLConnection.HTTP_OK) return emptyList()
-            parseDnsJsonAddresses(connection.inputStream.bufferedReader().use { it.readText() })
+            parseDnsJsonRecords(connection.inputStream.bufferedReader().use { it.readText() })
         } finally {
             connection.disconnect()
         }
     }
 
-    internal fun parseDnsJsonAddresses(payload: String): List<Inet4Address> {
-        val status = Regex("\"Status\"\\s*:\\s*(\\d+)")
-            .find(payload)?.groupValues?.getOrNull(1)?.toIntOrNull()
-        if (status != 0) return emptyList()
-        val answers = Regex("\"Answer\"\\s*:\\s*\\[(.*?)\\]", RegexOption.DOT_MATCHES_ALL)
-            .find(payload)?.groupValues?.getOrNull(1) ?: return emptyList()
-        val typeA = Regex("\"type\"\\s*:\\s*1\\s*[,}]")
-        val address = Regex("\"data\"\\s*:\\s*\"([0-9.]+)\"")
-        return Regex("\\{([^{}]*)\\}").findAll(answers)
-            .mapNotNull { record ->
-                val fields = record.groupValues[1]
-                if (!typeA.containsMatchIn(fields)) return@mapNotNull null
-                address.find(fields)?.groupValues?.getOrNull(1)?.let(::parseIpv4Address)
-            }
-            .distinctBy { it.hostAddress }
-            .toList()
+    internal fun parseDnsJsonAddresses(payload: String): List<Inet4Address> =
+        parseDnsJsonRecords(payload).filterIsInstance<Inet4Address>()
+
+    internal fun parseDnsJsonRecords(payload: String): List<InetAddress> {
+        val root = runCatching { JSONObject(payload) }.getOrNull() ?: return emptyList()
+        if (root.optInt("Status", -1) != 0) return emptyList()
+        val answers = root.optJSONArray("Answer") ?: return emptyList()
+        val addresses = ArrayList<InetAddress>()
+        for (index in 0 until answers.length()) {
+            val answer = answers.optJSONObject(index) ?: continue
+            val address = when (answer.optInt("type", -1)) {
+                1 -> parseIpv4Address(answer.optString("data"))
+                28 -> parseIpv6Address(answer.optString("data"))
+                else -> null
+            } ?: continue
+            if (addresses.none { it.hostAddress == address.hostAddress }) addresses += address
+        }
+        return addresses
+    }
+
+    private fun parseIpv6Address(value: String): Inet6Address? {
+        if (':' !in value) return null
+        return runCatching { InetAddress.getByName(value) as? Inet6Address }.getOrNull()
     }
 
     private fun parseIpv4Address(value: String): Inet4Address? {
