@@ -8,7 +8,6 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.View
 import android.view.WindowManager
-import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -34,7 +33,6 @@ import org.cortex.terminal.view.ExtraKeysConfig
 import org.cortex.terminal.view.ExtraKeysLayout
 import org.cortex.terminal.view.ExtraKeysView
 import org.cortex.terminal.view.SessionTabsView
-import org.cortex.terminal.view.TerminalSearchBar
 import org.cortex.terminal.view.TerminalView
 import org.cortex.terminal.view.showInChrome
 
@@ -63,7 +61,6 @@ class MainActivity : AppCompatActivity() {
     private val drawerLayout: DrawerLayout get() = binding.drawerLayout
     private val terminalView: TerminalView get() = binding.terminalView
     private val extraKeysView: ExtraKeysView get() = binding.extraKeysView
-    private val searchBar: TerminalSearchBar get() = binding.searchBar
     private val btnDrawerSettings: ImageView get() = binding.btnDrawerSettings
     private val btnDrawerFiles: ImageView get() = binding.btnDrawerFiles
 
@@ -125,15 +122,6 @@ class MainActivity : AppCompatActivity() {
                 drawerLayout.openDrawer(GravityCompat.START)
             }
         }
-
-        extraKeysView.onSearchToggle = { showTerminalSearch(animated = true) }
-        searchBar.onSwipeRight = { hideTerminalSearch(animated = true) }
-        searchBar.onRequestClose = { hideTerminalSearch(animated = true) }
-        searchBar.onQueryChanged = { query -> terminalView.startSearch(query) }
-        searchBar.onNext = { terminalView.nextSearchHit() }
-        searchBar.onPrev = { terminalView.prevSearchHit() }
-        searchBar.onClose = { terminalView.clearSearch() }
-        terminalView.onSearchChanged = { _, index, total -> searchBar.updateCount(index, total) }
 
         terminalView.onUrlTapped = { url ->
             try {
@@ -427,7 +415,10 @@ class MainActivity : AppCompatActivity() {
                 .onFailure { android.util.Log.e("MainActivity", "Could not create the default extra-keys file", it) }
         }
         val result = if (force) extraKeysConfig.reload() else extraKeysConfig.loadIfChanged() ?: return
-        val rows = result.rows.ifEmpty { ExtraKeysLayout.DEFAULT_ROWS }
+        val rows = result.rows
+            .map { row -> row.filterNot { it is ExtraKeysLayout.SpecialKey && it.special == ExtraKeysLayout.Special.FIND } }
+            .filter { it.isNotEmpty() }
+            .ifEmpty { ExtraKeysLayout.DEFAULT_ROWS }
         extraKeysView.setKeys(rows)
         val bar = binding.bottomBarContainer
         val height = (ExtraKeysView.barHeightDp(rows.size) * resources.displayMetrics.density).toInt()
@@ -497,7 +488,6 @@ class MainActivity : AppCompatActivity() {
         binding.dockDivider.visibility = View.GONE
         binding.bottomBarContainer.setBackgroundColor(p.bar)
         extraKeysView.applyPalette()
-        searchBar.applyPalette()
 
         binding.navDrawer.setBackgroundColor(p.bar)
         binding.drawerTitle.setTextColor(p.text)
@@ -600,119 +590,9 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
-    private var isSearchAnimating = false
-
-    private fun showTerminalSearch(animated: Boolean = true) {
-        if (searchBar.visibility == View.VISIBLE && !isSearchAnimating) return
-        if (isSearchAnimating) return
-
-        val width = extraKeysView.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
-        val widthF = width.toFloat()
-
-        if (!animated) {
-            extraKeysView.visibility = View.GONE
-            extraKeysView.translationX = 0f
-            searchBar.visibility = View.VISIBLE
-            searchBar.translationX = 0f
-            searchBar.alpha = 1f
-            searchBar.focusInput()
-            return
-        }
-
-        isSearchAnimating = true
-
-        searchBar.visibility = View.VISIBLE
-        searchBar.translationX = widthF
-        searchBar.alpha = 0f
-
-        extraKeysView.animate()
-            .translationX(-widthF)
-            .alpha(0f)
-            .setDuration(220L)
-            .setInterpolator(DecelerateInterpolator())
-            .withEndAction {
-                extraKeysView.visibility = View.GONE
-                extraKeysView.translationX = 0f
-                extraKeysView.alpha = 1f
-            }
-            .start()
-
-        searchBar.animate()
-            .translationX(0f)
-            .alpha(1f)
-            .setDuration(220L)
-            .setInterpolator(DecelerateInterpolator())
-            .withEndAction {
-                isSearchAnimating = false
-                searchBar.focusInput()
-            }
-            .start()
-    }
-
-    private fun hideTerminalSearch(animated: Boolean = true) {
-        if (searchBar.visibility != View.VISIBLE && !isSearchAnimating) return
-        if (isSearchAnimating) return
-
-        val width = searchBar.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
-        val widthF = width.toFloat()
-
-        searchBar.clearInputAndKeyboard()
-
-        if (!animated) {
-            searchBar.visibility = View.GONE
-            searchBar.translationX = 0f
-            terminalView.clearSearch()
-            extraKeysView.visibility = View.VISIBLE
-            extraKeysView.translationX = 0f
-            extraKeysView.alpha = 1f
-            return
-        }
-
-        isSearchAnimating = true
-
-        extraKeysView.visibility = View.VISIBLE
-        extraKeysView.translationX = -widthF
-        extraKeysView.alpha = 0f
-
-        searchBar.animate()
-            .translationX(widthF)
-            .alpha(0f)
-            .setDuration(220L)
-            .setInterpolator(DecelerateInterpolator())
-            .withEndAction {
-                searchBar.visibility = View.GONE
-                searchBar.translationX = 0f
-                searchBar.alpha = 1f
-                terminalView.clearSearch()
-            }
-            .start()
-
-        extraKeysView.animate()
-            .translationX(0f)
-            .alpha(1f)
-            .setDuration(220L)
-            .setInterpolator(DecelerateInterpolator())
-            .withEndAction {
-                isSearchAnimating = false
-            }
-            .start()
-    }
-
-    private fun toggleTerminalSearch() {
-        if (searchBar.visibility == View.VISIBLE) {
-            hideTerminalSearch(animated = true)
-        } else {
-            showTerminalSearch(animated = true)
-        }
-    }
-
     private fun setupBackPressedDispatcher() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (searchBar.visibility == View.VISIBLE) {
-                    hideTerminalSearch(animated = true)
-                    return
-                }
                 if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
                     drawerLayout.closeDrawer(GravityCompat.START)
                     return
@@ -763,10 +643,8 @@ class MainActivity : AppCompatActivity() {
         if (::sessionManager.isInitialized) {
             sessionManager.onSessionChanged = null
         }
-        try { if (searchBar.isShowing()) searchBar.hide() } catch (_: Exception) {}
         terminalView.onUrlTapped = null
         terminalView.onTextSizeChangedByPinch = null
-        terminalView.onSearchChanged = null
         terminalView.session = null
         if (instance == this) instance = null
         if (runtimeInitializationStarted && ::sessionManager.isInitialized && sessionManager.sessionCount() == 0) {

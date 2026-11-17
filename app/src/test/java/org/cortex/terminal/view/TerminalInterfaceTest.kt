@@ -145,12 +145,6 @@ class TerminalInterfaceTest {
         assertTrue(customScroll.canScrollHorizontally(1))
     }
 
-    @Test
-    fun theSearchBarFollowsTheScheme() {
-        val bar = TerminalSearchBar(activity)
-        bar.applyPalette()
-        assertNotNull(bar.background)
-    }
 
     @Test
     fun aSessionCardInflates() {

@@ -38,7 +38,7 @@
             android:layout_height="1dp"
             android:background="@color/cortex_outline_variant" />
 
-        <!-- Bottom Bar: Virtual Keys Toolbar & Terminal Search Bar with Slide Animation -->
+        <!-- Bottom Bar: horizontally scrollable terminal keys -->
         <FrameLayout
             android:id="@+id/bottomBarContainer"
             android:layout_width="match_parent"
@@ -51,12 +51,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />
 
-            <!-- Terminal Search Bar (slides in from right over/replacing extra keys) -->
-            <org.cortex.terminal.view.TerminalSearchBar
-                android:id="@+id/searchBar"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:visibility="gone" />
 
         </FrameLayout>
 

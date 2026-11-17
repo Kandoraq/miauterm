@@ -198,7 +198,8 @@ class SettingsActivity : AppCompatActivity() {
             android.widget.Toast.makeText(this, getString(R.string.extra_keys_invalid, parsed.error), android.widget.Toast.LENGTH_LONG).show()
             return
         }
-        val selected = ExtraKeysLayout.Special.values().map { special ->
+        val specials = ExtraKeysLayout.Special.values().filter { it != ExtraKeysLayout.Special.FIND }
+        val selected = specials.map { special ->
             parsed.rows.flatten().any { it is ExtraKeysLayout.SpecialKey && it.special == special }
         }.toBooleanArray()
         val density = resources.displayMetrics.density
@@ -214,7 +215,7 @@ class SettingsActivity : AppCompatActivity() {
         })
         val scroll = android.widget.ScrollView(this).apply { isFillViewport = true }
         val grid = android.widget.GridLayout(this).apply { columnCount = 2; useDefaultMargins = false }
-        ExtraKeysLayout.Special.values().forEachIndexed { index, special ->
+        specials.forEachIndexed { index, special ->
             val check = android.widget.CheckBox(this).apply {
                 text = if (special.name == special.label) special.name else "${special.name}  ${special.label}"
                 isChecked = selected[index]
@@ -246,22 +247,20 @@ class SettingsActivity : AppCompatActivity() {
                     (child.tag as Int) to child.isChecked
                 }
                 val textKeys = parsed.rows.flatten().filterIsInstance<ExtraKeysLayout.TextKey>()
-                val selectedKeys = ExtraKeysLayout.Special.values().filterIndexed { index, _ -> enabled[index] == true }
+                val selectedKeys = specials.filterIndexed { index, _ -> enabled[index] == true }
                     .map { ExtraKeysLayout.SpecialKey(it) }
                 val keys: List<ExtraKeysLayout.Key> = selectedKeys + textKeys
                 if (keys.isEmpty()) {
                     android.widget.Toast.makeText(this, R.string.extra_keys_select_one, android.widget.Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
-                val perRow = (keys.size + ExtraKeysLayout.MAX_ROWS - 1) / ExtraKeysLayout.MAX_ROWS
-                val rows = keys.chunked(perRow.coerceAtLeast(1))
-                val text = rows.joinToString(",\n") { row -> row.joinToString(", ", "[", "]") { key ->
+                val text = keys.joinToString(", ", "[[", "]]\n") { key ->
                     val value = when (key) {
                         is ExtraKeysLayout.SpecialKey -> key.special.name
                         is ExtraKeysLayout.TextKey -> key.text
                     }
                     "\"${value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r").replace("\u001b", "\\e")}\""
-                } }.let { "[\n$it\n]\n" }
+                }
                 runCatching { ExtraKeysConfig.writeLayout(file, text) }.onSuccess {
                     MainActivity.instance?.reloadExtraKeys()
                     dialog.dismiss()

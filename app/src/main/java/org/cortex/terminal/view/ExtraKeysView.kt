@@ -23,8 +23,6 @@ class ExtraKeysView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
-    var onSearchToggle: (() -> Unit)? = null
-
     private val repeatHandler = Handler(Looper.getMainLooper())
     private var repeatStarter: Runnable? = null
     private var repeatTicker: Runnable? = null
@@ -36,7 +34,7 @@ class ExtraKeysView @JvmOverloads constructor(
         private const val REPEAT_INTERVAL_MS = 60L
         private const val LATCH_HOLD_MS = 500L
 
-        const val ROW_HEIGHT_DP = 32
+        const val ROW_HEIGHT_DP = 36
 
         const val PADDING_DP = 0
 
@@ -95,11 +93,16 @@ class ExtraKeysView @JvmOverloads constructor(
         altButton = null
         latchedKey = null
         for (row in rows) {
-            addView(createRow(row.map { key ->
-                KeyButton(key.label, keyRepeats(key), actionFor(key), modifierOf(key), specialOf(key))
-            }))
+            val visibleKeys = row.filterNot {
+                it is ExtraKeysLayout.SpecialKey && it.special == ExtraKeysLayout.Special.FIND
+            }
+            if (visibleKeys.isNotEmpty()) {
+                addView(createRow(visibleKeys.map { key ->
+                    KeyButton(key.label, keyRepeats(key), actionFor(key), modifierOf(key), specialOf(key))
+                }))
+            }
         }
-        rowCount = rows.size
+        rowCount = keyRows.size
         updateRowWidths(width)
         updateModifierStyles()
     }
@@ -169,7 +172,7 @@ class ExtraKeysView @JvmOverloads constructor(
             ExtraKeysLayout.Special.CTRL -> { { toggleCtrl() } }
             ExtraKeysLayout.Special.ALT -> { { toggleAlt() } }
             ExtraKeysLayout.Special.MENU -> { { onMenuClick?.invoke() } }
-            ExtraKeysLayout.Special.FIND -> { { onSearchToggle?.invoke() } }
+            ExtraKeysLayout.Special.FIND -> { null }
             ExtraKeysLayout.Special.PASTE -> { { terminalView?.pasteFromClipboard() } }
             ExtraKeysLayout.Special.KEYBOARD -> { { terminalView?.toggleKeyboard() } }
             ExtraKeysLayout.Special.SPACE -> { { terminalView?.sendChar(' ') } }
@@ -308,7 +311,6 @@ class ExtraKeysView @JvmOverloads constructor(
                 val touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
                 var downX = 0f
                 var downY = 0f
-                var lastX = 0f
                 var gestureMoved = false
                 var repeatSentKey = false
                 var latchArmed = false
@@ -318,11 +320,9 @@ class ExtraKeysView @JvmOverloads constructor(
                         MotionEvent.ACTION_DOWN -> {
                             downX = event.x
                             downY = event.y
-                            lastX = event.x
                             gestureMoved = false
                             repeatSentKey = false
                             latchArmed = false
-                            v.parent?.requestDisallowInterceptTouchEvent(true)
                             v.isPressed = true
                             if (flashesAccent) styleKey(keyButton, true)
                             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
@@ -346,7 +346,6 @@ class ExtraKeysView @JvmOverloads constructor(
                             true
                         }
                         MotionEvent.ACTION_MOVE -> {
-                            val deltaX = lastX - event.x
                             val distanceX = kotlin.math.abs(event.x - downX)
                             val distanceY = kotlin.math.abs(event.y - downY)
                             if (distanceX > touchSlop || distanceY > touchSlop) {
@@ -354,12 +353,10 @@ class ExtraKeysView @JvmOverloads constructor(
                                 cancelRepeat()
                                 cancelPendingLatch(keyButton)
                                 v.isPressed = false
-                                if (distanceX > touchSlop && distanceX > distanceY) {
-                                    if (flashesAccent) styleKey(keyButton, false)
-                                    horizontalScrollParent(v)?.scrollBy(deltaX.toInt(), 0)
+                                if (distanceX > touchSlop && distanceX > distanceY && flashesAccent) {
+                                    styleKey(keyButton, false)
                                 }
                             }
-                            lastX = event.x
                             true
                         }
                         MotionEvent.ACTION_UP -> {
@@ -409,15 +406,6 @@ class ExtraKeysView @JvmOverloads constructor(
                 android.widget.FrameLayout.LayoutParams.MATCH_PARENT
             ))
         }
-    }
-
-    private fun horizontalScrollParent(view: View): HorizontalScrollView? {
-        var parent = view.parent
-        while (parent != null) {
-            if (parent is HorizontalScrollView) return parent
-            parent = parent.parent
-        }
-        return null
     }
 
     private fun armRepeat(v: View, action: () -> Any?) {
