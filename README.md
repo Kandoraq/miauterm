@@ -60,6 +60,7 @@ Package compatibility depends on the program's kernel requirements, architecture
 - File browser for the app's Linux files, with file type and write-permission indicators.
 - Optional access to Android's Download and Documents folders. Access is off until enabled by the user.
 - Terminal themes, font selection, custom font reload, and configurable extra keys.
+- OSC 52 clipboard writes from Debian programs are disabled until enabled in Settings.
 - User selection for Debian sessions. An empty selection starts a root PRoot session; configured users are selected by their exact Debian username.
 - PRoot diagnostics and optional logging controls in Settings.
 - `miauterm-cmd` for commands that connect a Debian shell to selected Miauterm app functions.
@@ -79,6 +80,47 @@ These features are implemented across Miauterm changes and retained Cortex compo
 Miauterm stores Debian inside its app-private files directory and extracts the bundled root filesystem on first start. Leave enough device storage for the extracted system and any packages you install. `apt update` and package installation require network access.
 
 If enabled in Settings, only the selected Download and Documents locations are shared with new Linux sessions under `~/android/`. Miauterm does not give Debian general access to Android storage.
+
+## Replacing the Debian rootfs from Failsafe
+
+Miauterm currently accepts Debian ARM64 rootfs files only. It checks `etc/os-release` for `ID=debian`, validates an ARM64 shell and required Debian commands, and may reinstall the bundled Debian system if those checks fail. Alpine, Arch, Ubuntu, and other non-Debian root filesystems are not supported by the normal session launcher.
+
+Failsafe opens Android's shell in Miauterm's private files directory. It is a recovery shell, not a Linux session, and it does not include a general rootfs archive picker. The archive must already be available in that private directory before extraction. An archive kept only in Android Downloads is not automatically visible to Failsafe, and the current app has no user-facing importer for arbitrary rootfs archives.
+
+To try a different Debian ARM64 rootfs:
+
+1. Export a Debian backup from **Settings > Linux system** and close active Debian sessions.
+2. Obtain a Debian ARM64 rootfs from a source you trust. Place an uncompressed `.tar` archive named `rootfs.tar` in the private files directory shown by the Failsafe prompt. The archive must contain top-level paths such as `etc/`, `usr/`, and `var/`, rather than an extra wrapper directory.
+3. Open **Settings > Linux system > Rootfs and symlink guide**, then start Failsafe. Check that the archive is present and inspect its layout:
+
+   ```sh
+   pwd
+   ls -l rootfs.tar
+   tar -tf rootfs.tar | head
+   ```
+
+4. Extract to a staging directory outside the active `debian/` directory:
+
+   ```sh
+   mkdir -p "$PWD/debian-staging"
+   tar -xf "$PWD/rootfs.tar" -C "$PWD/debian-staging"
+   test -f "$PWD/debian-staging/etc/os-release"
+   grep -E '^(ID|PRETTY_NAME)=' "$PWD/debian-staging/etc/os-release"
+   ```
+
+   Confirm that `ID=debian` appears and that the extracted tree has `usr/` and the expected top-level directories. Miauterm also needs an executable ARM64 `bash` or `sh`, plus `apt`, `apt-get`, `dpkg`, `passwd`, `useradd`, `groupadd`, `userdel`, `usermod`, and `chown`. The app validates these files when Debian starts.
+
+5. Follow the symlink section in the in-app guide. Miauterm expects `/bin -> usr/bin`, `/sbin -> usr/sbin`, and `/lib -> usr/lib`; it repairs ordinary Debian usr-merge layouts when it can. Do not delete existing directories to force links. Conflicts or missing targets can prevent startup.
+6. After checking the staged tree, preserve the current installation and switch the directory names from Failsafe:
+
+   ```sh
+   mv "$PWD/debian" "$PWD/debian-previous"
+   mv "$PWD/debian-staging" "$PWD/debian"
+   ```
+
+   Keep the exported backup and `rootfs.tar` until the new system starts successfully. If startup validation fails, Miauterm can restore its bundled Debian on the next initialization. To roll back before that happens, move the failed `debian/` aside and rename `debian-previous/` back to `debian/`.
+
+This is a manual recovery path, not a supported distribution importer. The bundled Debian backup can be restored from Settings. A non-Debian rootfs will fail Miauterm's Debian checks and should not replace the working system.
 
 ## Download
 

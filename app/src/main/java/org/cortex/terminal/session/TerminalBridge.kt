@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 object TerminalBridge {
     private const val TAG = "TerminalBridge"
-    const val PREF_ALLOW_CLIPBOARD = "allow_osc52"
+    const val PREF_ALLOW_CLIPBOARD = "allow_osc52_explicit_opt_in"
     const val PREF_NOTIFY = "notify_long_commands"
     const val PREF_THRESHOLD = "long_command_threshold"
     private const val CHANNEL_ID = "cortex_commands"
@@ -32,13 +32,14 @@ object TerminalBridge {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val nextSlot = AtomicInteger(0)
 
+    internal fun clipboardWritesAllowed(preferences: android.content.SharedPreferences): Boolean =
+        preferences.getBoolean(PREF_ALLOW_CLIPBOARD, false)
+
     fun onClipboardRequest(context: Context, text: String) {
         val app = context.applicationContext
-        val allowed = try {
-            PreferenceManager.getDefaultSharedPreferences(app).getBoolean(PREF_ALLOW_CLIPBOARD, true)
-        } catch (_: Exception) {
-            true
-        }
+        val allowed = runCatching {
+            clipboardWritesAllowed(PreferenceManager.getDefaultSharedPreferences(app))
+        }.getOrDefault(false)
         if (!allowed) return
         mainHandler.post {
             try {

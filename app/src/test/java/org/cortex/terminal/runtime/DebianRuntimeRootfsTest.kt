@@ -1,6 +1,7 @@
 package org.cortex.terminal.runtime
 
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNull
 import org.junit.Assert.fail
 import org.junit.Test
 import java.io.File
@@ -18,6 +19,21 @@ class DebianRuntimeRootfsTest {
             } catch (error: IllegalStateException) {
                 assertTrue(error.message.orEmpty().contains("/usr/sbin/useradd"))
             }
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun rejectsAccountHomesThatEscapeTheRootfs() {
+        val root = createValidRootfs()
+        try {
+            File(root, "etc/passwd").writeText(
+                "root:x:0:0:root:/root:/bin/bash\n" +
+                    "guest:x:1000:1000:guest:/../../data/data/private:/bin/bash\n"
+            )
+
+            assertNull(DebianRuntime.accountByName(root, "guest"))
         } finally {
             root.deleteRecursively()
         }

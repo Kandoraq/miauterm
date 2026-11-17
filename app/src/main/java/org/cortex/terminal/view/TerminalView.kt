@@ -585,7 +585,7 @@ class TerminalView @JvmOverloads constructor(
     private var cachedTypeface: Typeface? = null
 
     fun setTerminalFont(fontKey: String, forceReload: Boolean = false): String {
-        if (!forceReload && fontKey == currentFontKey && cachedTypeface != null) {
+        if (!forceReload && fontKey != "custom" && fontKey == currentFontKey && cachedTypeface != null) {
             textPaint.typeface = cachedTypeface
             measureCharDimensions()
             updateTerminalDimensions()

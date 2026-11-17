@@ -122,7 +122,7 @@
     <string name="pref_notify_summary">Notify when a command finishes while Miauterm is in the background</string>
     <string name="pref_notify_threshold_title">Notify after</string>
     <string name="pref_clipboard_title">Clipboard access from programs</string>
-    <string name="pref_clipboard_summary">Let programs in the terminal (tmux, vim, ssh) copy text to the Android clipboard (OSC 52)</string>
+    <string name="pref_clipboard_summary">Allow Debian programs, including remote sessions, to write OSC 52 text to the Android clipboard. Off by default.</string>
 
     <string name="pref_cat_files">Files</string>
 

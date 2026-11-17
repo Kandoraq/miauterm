@@ -76,8 +76,8 @@
             app:useSimpleSummaryProvider="true" />
 
         <SwitchPreferenceCompat
-            app:defaultValue="true"
-            app:key="allow_osc52"
+            app:defaultValue="false"
+            app:key="allow_osc52_explicit_opt_in"
             app:summary="@string/pref_clipboard_summary"
             app:title="@string/pref_clipboard_title" />
 

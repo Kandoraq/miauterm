@@ -103,8 +103,8 @@ object DebianBackup {
         val root = Environment.getCortexRoot(context)
         val staging = File(context.filesDir, "debian-restore-staging")
         val previous = File(context.filesDir, "debian-restore-previous")
-        SafeDelete.deleteRecursively(staging)
-        staging.mkdirs()
+        require(SafeDelete.deleteRecursively(staging)) { "Cannot clear restore staging directory" }
+        require(staging.mkdirs() || staging.isDirectory) { "Cannot create restore staging directory" }
         try {
             ZipFile(archive).use { zip ->
                 val manifestEntry = zip.getEntry(MANIFEST) ?: error("This is not a Miauterm backup")
@@ -174,8 +174,7 @@ object DebianBackup {
                     if (meta.getString("type") == "symlink") {
                         val target = File(staging, path)
                         target.parentFile?.mkdirs()
-                        val link = meta.getString("target")
-                        require(link.isNotEmpty() && '\u0000' !in link) { "Invalid symlink in backup" }
+                        val link = safeSymlinkTarget(path, meta.getString("target"))
                         Os.symlink(link, target.absolutePath)
                     }
                 }
@@ -188,7 +187,9 @@ object DebianBackup {
             require(SafeDelete.deleteRecursively(previous)) { "Cannot clear previous restore" }
             if (root.exists()) require(root.renameTo(previous)) { "Cannot move current Debian system" }
             if (!staging.renameTo(root)) {
-                previous.renameTo(root)
+                if (previous.exists() && !previous.renameTo(root)) {
+                    error("Cannot install restored Debian system or roll back the current system")
+                }
                 error("Cannot install restored Debian system")
             }
             SafeDelete.deleteRecursively(previous)
@@ -202,6 +203,30 @@ object DebianBackup {
             ?.any { it.trim() == "ID=debian" } == true &&
             File(root, "usr/bin/bash").let { it.isFile && it.canExecute() } &&
             File(root, "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1").isFile
+
+    internal fun safeSymlinkTarget(linkPath: String, target: String): String {
+        safePath(linkPath)
+        require(target.isNotEmpty() && '\u0000' !in target) { "Invalid symlink in backup" }
+
+        val linkParent = linkPath.split('/').dropLast(1)
+        val resolvedTarget = if (target.startsWith('/')) mutableListOf() else linkParent.toMutableList()
+        for (part in target.split('/')) {
+            when (part) {
+                "", "." -> Unit
+                ".." -> {
+                    if (resolvedTarget.isNotEmpty()) resolvedTarget.removeAt(resolvedTarget.lastIndex)
+                }
+                else -> resolvedTarget += part
+            }
+        }
+
+        var common = 0
+        while (common < linkParent.size && common < resolvedTarget.size &&
+            linkParent[common] == resolvedTarget[common]
+        ) common++
+        return (List(linkParent.size - common) { ".." } + resolvedTarget.drop(common))
+            .joinToString("/").ifEmpty { "." }
+    }
 
     private fun safePath(path: String): String {
         require(path.isNotEmpty() && !path.startsWith('/') && '\u0000' !in path) { "Invalid backup path" }

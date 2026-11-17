@@ -507,7 +507,7 @@ class SettingsActivity : AppCompatActivity() {
                 LocaleHelper.PREF_KEY to R.drawable.ic_language,
                 "notify_long_commands" to R.drawable.ic_notifications,
                 "long_command_threshold" to R.drawable.ic_schedule,
-                "allow_osc52" to R.drawable.ic_clipboard,
+                "allow_osc52_explicit_opt_in" to R.drawable.ic_clipboard,
                 "notify_servers" to R.drawable.ic_server,
                 "shared_folder_access" to R.drawable.ic_folder_shared,
                 DebianRuntime.PREF_LINUX_USER to R.drawable.ic_person,

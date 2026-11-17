@@ -37,7 +37,7 @@ jobs:
       - name: Verify Debian commands and default home creation
         run: bash scripts/verify-rootfs.sh --net
       - name: Test terminal and Debian runtime
-        run: ./gradlew --no-daemon :app:testDebugUnitTest --tests org.cortex.terminal.view.ExtraKeysLayoutTest --tests org.cortex.terminal.view.ExtraKeysConfigTest --tests org.cortex.terminal.view.ExtraKeysViewTest --tests org.cortex.terminal.view.TerminalInterfaceTest --tests org.cortex.terminal.session.SessionPromptTest --tests org.cortex.terminal.runtime.SharedFolderAccessTest --tests org.cortex.terminal.runtime.DebianRuntimeRootfsTest --tests org.cortex.terminal.runtime.DebianRuntimeDnsTest --tests org.cortex.terminal.runtime.MiautermCommandInstallerTest --tests org.cortex.terminal.api.ApiProtocolTest --tests org.cortex.terminal.api.ApiServerStartupTest
+        run: ./gradlew --no-daemon :app:testDebugUnitTest --tests org.cortex.terminal.view.ExtraKeysLayoutTest --tests org.cortex.terminal.view.ExtraKeysConfigTest --tests org.cortex.terminal.view.ExtraKeysViewTest --tests org.cortex.terminal.view.TerminalInterfaceTest --tests org.cortex.terminal.session.SessionPromptTest --tests org.cortex.terminal.session.TerminalBridgeClipboardTest --tests org.cortex.terminal.runtime.SharedFolderAccessTest --tests org.cortex.terminal.runtime.DebianRuntimeRootfsTest --tests org.cortex.terminal.runtime.DebianBackupSecurityTest --tests org.cortex.terminal.runtime.DebianRuntimeDnsTest --tests org.cortex.terminal.runtime.MiautermCommandInstallerTest --tests org.cortex.terminal.api.ApiProtocolTest --tests org.cortex.terminal.api.ApiServerStartupTest
       - name: Build installable arm64 APK
         run: ./gradlew --no-daemon :app:assembleDebug
       - name: Name the APK artifact
