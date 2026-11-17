@@ -225,9 +225,15 @@ object ApiCommands {
 
     private fun notification(context: Context, req: ApiRequest): ApiResult {
         val args = ApiArgs.parse(req.args, withValue = setOf("-t", "--title", "-c", "--content", "-i", "--id"))
-        if (args.operands.isNotEmpty()) throw IllegalArgumentException("unexpected '${args.operands.first()}' (the text goes after -c)")
+        val explicitContent = args.value("-c", "--content")
+        require(explicitContent == null || args.operands.isEmpty()) {
+            "give the message as positional text or with -c, not both"
+        }
         val title = args.value("-t", "--title") ?: "Miauterm"
-        val content = args.value("-c", "--content") ?: req.stdin?.trimEnd('\n') ?: ""
+        val content = explicitContent
+            ?: args.operands.takeIf { it.isNotEmpty() }?.joinToString(" ")
+            ?: req.stdin?.trimEnd('\n')
+            ?: ""
         val id = args.value("-i", "--id") ?: nextNotification.getAndIncrement().toString()
 
         val nm = notificationManager(context)
@@ -240,6 +246,9 @@ object ApiCommands {
                 NotificationChannel(CHANNEL_ID, lc.getString(R.string.api_channel_name), NotificationManager.IMPORTANCE_DEFAULT)
                     .apply { description = lc.getString(R.string.api_channel_description) }
             )
+            if (nm.getNotificationChannel(CHANNEL_ID)?.importance == NotificationManager.IMPORTANCE_NONE) {
+                return fail("the Miauterm command notification channel is turned off in Android's settings")
+            }
         }
         val open = PendingIntent.getActivity(
             context, 0,

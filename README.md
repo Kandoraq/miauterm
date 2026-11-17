@@ -98,6 +98,12 @@ Show the available app commands from a Debian shell:
 miauterm-cmd --help
 ```
 
+Post a notification from a Debian shell. The text is shown as the notification message; Android must allow notifications for Miauterm:
+
+```sh
+miauterm-cmd run notification "hello from Miauterm"
+```
+
 For a custom font, place a readable TTF file at `~/.config/miauterm/font.ttf` in the selected Debian user's home, select **Custom Font** in Settings, then run this in the active terminal:
 
 ```sh

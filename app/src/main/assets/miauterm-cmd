@@ -9,7 +9,8 @@ Usage:
 Commands:
   info                    Show app, Android, and device details
   battery                 Show battery status
-  notification             Post a notification
+  notification [text]      Post a notification with the given message
+                           Also accepts -t/--title, -c/--content, and -i/--id
   notification-remove      Remove a notification created by this app
   clipboard-get            Print clipboard text
   clipboard-set [text]     Set clipboard text (or read it from stdin)
@@ -27,6 +28,8 @@ Commands:
 Examples:
   miauterm-cmd run info
   miauterm-cmd run reloadfont
+  miauterm-cmd run notification "hello from Miauterm"
+  miauterm-cmd run notification --title "Build" "Build finished"
   su -
   su username
   miauterm-cmd run toast "Hello from Debian"
