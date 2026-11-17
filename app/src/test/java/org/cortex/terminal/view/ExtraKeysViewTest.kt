@@ -108,7 +108,7 @@ class ExtraKeysViewTest {
 
     private fun shownColor(button: Button): Int? {
         val holder = button.background as? android.graphics.drawable.StateListDrawable ?: return null
-        return (holder.current as? android.graphics.drawable.GradientDrawable)?.color?.defaultColor
+        return (holder.current as? android.graphics.drawable.ColorDrawable)?.color
     }
 
     private fun tapButton(button: Button, action: (Button) -> Unit) {
@@ -160,7 +160,7 @@ class ExtraKeysViewTest {
     }
 
     @Test
-    fun holdingAnFLatchesItBlueUntilTheSameKeyIsTappedOrTheNextKeyAppliesIt() {
+    fun holdingAnFLatchesItWithAccentUntilTheSameKeyIsTappedOrTheNextKeyAppliesIt() {
         val context = ApplicationProvider.getApplicationContext<Application>()
         val view = ExtraKeysView(context)
         val sent = mutableListOf<Int>()

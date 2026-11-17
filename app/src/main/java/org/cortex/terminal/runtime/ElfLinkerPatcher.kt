@@ -1,10 +1,12 @@
 package org.cortex.terminal.runtime
 
-import android.system.ErrnoException
 import android.system.Os
 import android.system.OsConstants
+import android.os.Build
 import android.util.Log
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
 
 object ElfLinkerPatcher {
     private const val TAG = "ElfLinkerPatcher"
@@ -32,43 +34,54 @@ object ElfLinkerPatcher {
         "usr/lib/ld-linux-armhf.so.3"
     )
 
-    internal fun isSymlink(file: File): Boolean = try {
-        OsConstants.S_ISLNK(Os.lstat(file.absolutePath).st_mode)
-    } catch (_: ErrnoException) {
-        false
-    } catch (_: Exception) {
-        false
+    internal fun isSymlink(file: File): Boolean {
+        val nativeResult = try {
+            OsConstants.S_ISLNK(Os.lstat(file.absolutePath).st_mode)
+        } catch (_: Exception) {
+            false
+        }
+        if (nativeResult) return true
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            runCatching { Files.isSymbolicLink(file.toPath()) }.getOrDefault(false)
+        } else false
     }
 
-    internal fun readSymlink(file: File): String? = try {
-        Os.readlink(file.absolutePath)
-    } catch (_: ErrnoException) {
-        null
-    } catch (_: Exception) {
-        null
+    internal fun readSymlink(file: File): String? {
+        val nativeTarget = runCatching { Os.readlink(file.absolutePath) }.getOrNull()
+        if (nativeTarget != null) return nativeTarget
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            runCatching { Files.readSymbolicLink(file.toPath()).toString() }.getOrNull()
+        } else null
     }
 
-    internal fun createSymlink(target: String, linkFile: File): Boolean = try {
-        Os.symlink(target, linkFile.absolutePath)
-        true
-    } catch (_: Exception) {
-        false
+    internal fun createSymlink(target: String, linkFile: File): Boolean {
+        runCatching { Os.symlink(target, linkFile.absolutePath) }
+        if (readSymlink(linkFile) == target) return true
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            return runCatching {
+                Files.createSymbolicLink(linkFile.toPath(), Paths.get(target))
+                readSymlink(linkFile) == target
+            }.getOrDefault(false)
+        }
+        return false
     }
 
-    internal fun deleteIfExists(file: File): Boolean = try {
-        Os.remove(file.absolutePath)
-        true
-    } catch (error: ErrnoException) {
-        error.errno == OsConstants.ENOENT
-    } catch (_: Exception) {
-        !file.exists() || file.delete()
+    internal fun deleteIfExists(file: File): Boolean {
+        runCatching { Os.remove(file.absolutePath) }
+        if (!file.exists() && !isSymlink(file)) return true
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            return runCatching { Files.deleteIfExists(file.toPath()); !file.exists() && !isSymlink(file) }
+                .getOrDefault(false)
+        }
+        return !file.exists() || file.delete()
     }
 
-    internal fun atomicReplace(src: File, dst: File): Boolean = try {
-        Os.rename(src.absolutePath, dst.absolutePath)
-        true
-    } catch (_: Exception) {
-        false
+    internal fun atomicReplace(src: File, dst: File): Boolean {
+        if (!src.exists() && !isSymlink(src)) return false
+        runCatching { Os.rename(src.absolutePath, dst.absolutePath) }
+        if (!src.exists() && !isSymlink(src) && (dst.exists() || isSymlink(dst))) return true
+        if (!src.renameTo(dst)) return false
+        return !src.exists() && !isSymlink(src) && (dst.exists() || isSymlink(dst))
     }
 
     fun isContainedInRoot(candidate: File, rootCanonicalPath: String): Boolean {
