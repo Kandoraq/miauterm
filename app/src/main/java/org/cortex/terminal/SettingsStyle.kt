@@ -2,6 +2,8 @@ package org.cortex.terminal
 
 import android.content.res.ColorStateList
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.StateListDrawable
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -51,7 +53,8 @@ internal class SettingsStyle(private val fragment: PreferenceFragmentCompat) {
 
         val padding = (14 * density).toInt()
         view.setPadding(padding, (12 * density).toInt(), padding, (12 * density).toInt())
-        view.background = Chrome.flatPressable(p.raised, p.raisedHigh)
+        view.elevation = 0f
+        view.background = Chrome.flatPressable(p.bg, p.raised)
 
         title?.setTextColor(forState(p.text))
         title?.textSize = 15f
@@ -66,11 +69,15 @@ internal class SettingsStyle(private val fragment: PreferenceFragmentCompat) {
         }
         if (switch != null) {
             val checked = intArrayOf(android.R.attr.state_checked)
-            switch.thumbTintList = ColorStateList(arrayOf(checked, intArrayOf()), intArrayOf(p.accent, p.textFaint))
-            switch.trackTintList = ColorStateList(
-                arrayOf(checked, intArrayOf()),
-                intArrayOf(p.accentSoft, p.outline)
-            )
+            val off = intArrayOf()
+            switch.thumbDrawable = StateListDrawable().apply {
+                addState(checked, ColorDrawable(p.accent))
+                addState(off, ColorDrawable(p.textFaint))
+            }
+            switch.trackDrawable = StateListDrawable().apply {
+                addState(checked, ColorDrawable(p.accentSoft))
+                addState(off, ColorDrawable(p.outline))
+            }
         }
     }
 }

@@ -133,6 +133,8 @@ class TerminalView @JvmOverloads constructor(
         isSelecting = false
         session?.setFocused(false)
         session?.onRedraw = null
+        clipboardExecutor?.shutdownNow()
+        clipboardExecutor = null
         session?.emulator?.onScreenUpdate = null
     }
 
@@ -1480,8 +1482,16 @@ class TerminalView @JvmOverloads constructor(
         return session?.emulator?.bracketedPaste(raw) ?: sanitizePastedText(raw)
     }
 
-    private val clipboardExecutor = java.util.concurrent.Executors.newSingleThreadExecutor { runnable ->
-        Thread(runnable, "Miauterm-ClipboardImage").apply { isDaemon = true }
+    private var clipboardExecutor: java.util.concurrent.ExecutorService? = null
+
+    private fun clipboardExecutor(): java.util.concurrent.ExecutorService {
+        val existing = clipboardExecutor
+        if (existing != null && !existing.isShutdown) return existing
+        val created = java.util.concurrent.Executors.newSingleThreadExecutor { runnable ->
+            Thread(runnable, "Miauterm-ClipboardImage").apply { isDaemon = true }
+        }
+        clipboardExecutor = created
+        return created
     }
 
     private fun saveImageFromUriAsync(
@@ -1489,7 +1499,7 @@ class TerminalView @JvmOverloads constructor(
         mimeType: String?,
         onResult: (String?) -> Unit
     ) {
-        clipboardExecutor.execute {
+        clipboardExecutor().execute {
             val path = runCatching { saveImageFromUri(uri, mimeType) }.getOrNull()
             post { onResult(path) }
         }

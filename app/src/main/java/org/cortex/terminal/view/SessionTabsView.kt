@@ -71,6 +71,7 @@ class SessionTabsView @JvmOverloads constructor(
 
     fun applyPalette() {
         val p = Chrome.palette
+        val scrollX = scroll.scrollX
         setBackgroundColor(p.bar)
         newButton.setTextColor(p.accent)
         newButton.background = null
@@ -79,6 +80,7 @@ class SessionTabsView @JvmOverloads constructor(
             intArrayOf(p.accent, p.textDim)
         ))
         rebuild()
+        scroll.post { scroll.scrollTo(scrollX, 0) }
     }
 
     private fun scrollToActive() {

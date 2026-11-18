@@ -650,7 +650,7 @@ class TerminalBuffer(var rows: Int, var cols: Int, private val maxHistory: Int =
 
     fun allRowsWithIndex(): List<Pair<Int, TerminalRow>> {
         rebuildRowsCacheIfNeeded()
-        return rowsCache
+        return ArrayList(rowsCache)
     }
 
     fun rowForIndex(bufferRow: Int): TerminalRow? {
