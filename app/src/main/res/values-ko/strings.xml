@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">프로그램의 클립보드 접근</string>
     <string name="pref_clipboard_summary">터미널의 프로그램(tmux, vim, ssh)이 Android 클립보드에 텍스트를 복사하도록 허용 (OSC 52)</string>
     <string name="pref_cat_files">파일</string>
-    <string name="pref_cat_support">커뮤니티 및 지원</string>
     <string name="pref_bug_report_title">버그 보고서 보내기</string>
     <string name="pref_bug_report_summary">버전, Debian 시스템 상태, 앱 로그를 선택한 앱과 공유합니다</string>
     <string name="bug_report_chooser">버그 보고서 보내기</string>

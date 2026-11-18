@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Pristup programa međuspremniku</string>
     <string name="pref_clipboard_summary">Dopusti programima u terminalu (tmux, vim, ssh) kopiranje teksta u Androidov međuspremnik (OSC 52)</string>
     <string name="pref_cat_files">Datoteke</string>
-    <string name="pref_cat_support">Zajednica i podrška</string>
     <string name="pref_bug_report_title">Pošalji izvješće o pogrešci</string>
     <string name="pref_bug_report_summary">Dijeli verzije, stanje sustava Debian i zapisnik aplikacije s aplikacijom koju odaberete</string>
     <string name="bug_report_chooser">Pošalji izvješće o pogrešci putem</string>

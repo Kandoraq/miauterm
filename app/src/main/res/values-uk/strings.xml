@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Доступ програм до буфера обміну</string>
     <string name="pref_clipboard_summary">Дозволити програмам у терміналі (tmux, vim, ssh) копіювати текст у буфер обміну Android (OSC 52)</string>
     <string name="pref_cat_files">Файли</string>
-    <string name="pref_cat_support">Спільнота та підтримка</string>
     <string name="pref_bug_report_title">Надіслати звіт про помилку</string>
     <string name="pref_bug_report_summary">Передає версії, стан системи Debian і журнал застосунку в застосунок, який ви оберете</string>
     <string name="bug_report_chooser">Надіслати звіт про помилку через</string>

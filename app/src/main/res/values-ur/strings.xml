@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">پروگراموں کی کلپ بورڈ تک رسائی</string>
     <string name="pref_clipboard_summary">ٹرمینل کے پروگراموں (tmux, vim, ssh) کو Android کلپ بورڈ پر متن کاپی کرنے دیں (OSC 52)</string>
     <string name="pref_cat_files">فائلیں</string>
-    <string name="pref_cat_support">کمیونٹی اور معاونت</string>
     <string name="pref_bug_report_title">بگ رپورٹ بھیجیں</string>
     <string name="pref_bug_report_summary">ورژن، Debian سسٹم کی حالت اور ایپ کا لاگ آپ کی منتخب کردہ ایپ کے ساتھ شیئر کرتا ہے</string>
     <string name="bug_report_chooser">بگ رپورٹ اس کے ذریعے بھیجیں</string>

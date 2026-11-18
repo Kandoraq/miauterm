@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">وصول البرامج إلى الحافظة</string>
     <string name="pref_clipboard_summary">السماح للبرامج في الطرفية (tmux وvim وssh) بنسخ النص إلى حافظة Android (OSC 52)</string>
     <string name="pref_cat_files">الملفات</string>
-    <string name="pref_cat_support">المجتمع والدعم</string>
     <string name="pref_bug_report_title">إرسال تقرير خطأ</string>
     <string name="pref_bug_report_summary">يشارك الإصدارات وحالة نظام Debian وسجل التطبيق مع تطبيق تختاره</string>
     <string name="bug_report_chooser">إرسال تقرير الخطأ عبر</string>

@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Proqramların mübadilə buferinə girişi</string>
     <string name="pref_clipboard_summary">Terminaldakı proqramlara (tmux, vim, ssh) mətni Android mübadilə buferinə kopyalamağa icazə ver (OSC 52)</string>
     <string name="pref_cat_files">Fayllar</string>
-    <string name="pref_cat_support">İcma və dəstək</string>
     <string name="pref_bug_report_title">Xəta hesabatı göndər</string>
     <string name="pref_bug_report_summary">Versiyaları, Debian sisteminin vəziyyətini və tətbiqin jurnalını seçdiyiniz tətbiqlə paylaşır</string>
     <string name="bug_report_chooser">Xəta hesabatını göndər:</string>

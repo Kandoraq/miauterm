@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Programmers tilgang til utklippstavlen</string>
     <string name="pref_clipboard_summary">La programmer i terminalen (tmux, vim, ssh) kopiere tekst til Androids utklippstavle (OSC 52)</string>
     <string name="pref_cat_files">Filer</string>
-    <string name="pref_cat_support">Fellesskap og støtte</string>
     <string name="pref_bug_report_title">Send en feilrapport</string>
     <string name="pref_bug_report_summary">Deler versjonene, tilstanden til Debian-systemet og appens logg med en app du velger</string>
     <string name="bug_report_chooser">Send feilrapporten med</string>

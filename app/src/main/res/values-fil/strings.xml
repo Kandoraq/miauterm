@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Access ng mga programa sa clipboard</string>
     <string name="pref_clipboard_summary">Payagan ang mga programa sa terminal (tmux, vim, ssh) na kumopya ng text sa clipboard ng Android (OSC 52)</string>
     <string name="pref_cat_files">Mga File</string>
-    <string name="pref_cat_support">Komunidad at Suporta</string>
     <string name="pref_bug_report_title">Magpadala ng bug report</string>
     <string name="pref_bug_report_summary">Ibinabahagi ang mga bersyon, ang estado ng Debian system at ang log ng app sa app na pipiliin mo</string>
     <string name="bug_report_chooser">Ipadala ang bug report gamit ang</string>

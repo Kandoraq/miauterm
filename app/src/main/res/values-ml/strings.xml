@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">പ്രോഗ്രാമുകൾക്ക് ക്ലിപ്‌ബോർഡ് ആക്‌സസ്</string>
     <string name="pref_clipboard_summary">ടെർമിനലിലെ പ്രോഗ്രാമുകളെ (tmux, vim, ssh) Android ക്ലിപ്‌ബോർഡിലേക്ക് ടെക്സ്റ്റ് പകർത്താൻ അനുവദിക്കുക (OSC 52)</string>
     <string name="pref_cat_files">ഫയലുകൾ</string>
-    <string name="pref_cat_support">കമ്മ്യൂണിറ്റിയും പിന്തുണയും</string>
     <string name="pref_bug_report_title">ബഗ് റിപ്പോർട്ട് അയയ്ക്കുക</string>
     <string name="pref_bug_report_summary">പതിപ്പുകൾ, Debian സിസ്റ്റത്തിന്റെ നില, ആപ്പിന്റെ ലോഗ് എന്നിവ നിങ്ങൾ തിരഞ്ഞെടുക്കുന്ന ആപ്പുമായി പങ്കിടുന്നു</string>
     <string name="bug_report_chooser">ബഗ് റിപ്പോർട്ട് ഇതുവഴി അയയ്ക്കുക</string>

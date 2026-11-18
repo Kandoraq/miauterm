@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Acesso dos programas à área de transferência</string>
     <string name="pref_clipboard_summary">Permite que programas no terminal (tmux, vim, ssh) copiem texto para a área de transferência do Android (OSC 52)</string>
     <string name="pref_cat_files">Arquivos</string>
-    <string name="pref_cat_support">Comunidade e suporte</string>
     <string name="pref_bug_report_title">Enviar um relatório de erro</string>
     <string name="pref_bug_report_summary">Compartilha as versões, o estado do sistema Debian e o registro do app com um app que você escolher</string>
     <string name="bug_report_chooser">Enviar o relatório de erro com</string>

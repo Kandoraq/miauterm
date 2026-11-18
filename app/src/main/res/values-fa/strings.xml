@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">دسترسی برنامه‌ها به کلیپ‌بورد</string>
     <string name="pref_clipboard_summary">اجازه بده برنامه‌های داخل ترمینال (tmux، vim، ssh) متن را در کلیپ‌بورد Android کپی کنند (OSC 52)</string>
     <string name="pref_cat_files">فایل‌ها</string>
-    <string name="pref_cat_support">جامعه و پشتیبانی</string>
     <string name="pref_bug_report_title">ارسال گزارش خطا</string>
     <string name="pref_bug_report_summary">نسخه‌ها، وضعیت سیستم Debian و گزارش برنامه را با برنامه‌ای که انتخاب می‌کنید به اشتراک می‌گذارد</string>
     <string name="bug_report_chooser">ارسال گزارش خطا با</string>

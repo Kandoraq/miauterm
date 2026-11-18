@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Quyền truy cập bộ nhớ tạm của chương trình</string>
     <string name="pref_clipboard_summary">Cho phép các chương trình trong terminal (tmux, vim, ssh) sao chép văn bản vào bộ nhớ tạm Android (OSC 52)</string>
     <string name="pref_cat_files">Tệp</string>
-    <string name="pref_cat_support">Cộng đồng &amp; Hỗ trợ</string>
     <string name="pref_bug_report_title">Gửi báo cáo lỗi</string>
     <string name="pref_bug_report_summary">Chia sẻ các phiên bản, trạng thái hệ thống Debian và nhật ký của ứng dụng với ứng dụng bạn chọn</string>
     <string name="bug_report_chooser">Gửi báo cáo lỗi bằng</string>

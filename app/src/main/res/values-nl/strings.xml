@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Klembordtoegang voor programma’s</string>
     <string name="pref_clipboard_summary">Programma’s in de terminal (tmux, vim, ssh) toestaan tekst naar het Android-klembord te kopiëren (OSC 52)</string>
     <string name="pref_cat_files">Bestanden</string>
-    <string name="pref_cat_support">Community en ondersteuning</string>
     <string name="pref_bug_report_title">Foutrapport versturen</string>
     <string name="pref_bug_report_summary">Deelt de versies, de staat van het Debian-systeem en het logboek van de app met een app naar keuze</string>
     <string name="bug_report_chooser">Foutrapport versturen met</string>

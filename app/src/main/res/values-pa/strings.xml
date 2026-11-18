@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">ਪ੍ਰੋਗਰਾਮਾਂ ਦੀ ਕਲਿੱਪਬੋਰਡ ਪਹੁੰਚ</string>
     <string name="pref_clipboard_summary">ਟਰਮੀਨਲ ਦੇ ਪ੍ਰੋਗਰਾਮਾਂ (tmux, vim, ssh) ਨੂੰ Android ਕਲਿੱਪਬੋਰਡ ਵਿੱਚ ਟੈਕਸਟ ਕਾਪੀ ਕਰਨ ਦਿਓ (OSC 52)</string>
     <string name="pref_cat_files">ਫ਼ਾਈਲਾਂ</string>
-    <string name="pref_cat_support">ਭਾਈਚਾਰਾ ਅਤੇ ਸਹਾਇਤਾ</string>
     <string name="pref_bug_report_title">ਬੱਗ ਰਿਪੋਰਟ ਭੇਜੋ</string>
     <string name="pref_bug_report_summary">ਵਰਜਨ, Debian ਸਿਸਟਮ ਦੀ ਸਥਿਤੀ ਅਤੇ ਐਪ ਦਾ ਲੌਗ ਤੁਹਾਡੀ ਚੁਣੀ ਐਪ ਨਾਲ ਸਾਂਝਾ ਕਰਦਾ ਹੈ</string>
     <string name="bug_report_chooser">ਬੱਗ ਰਿਪੋਰਟ ਇਸ ਨਾਲ ਭੇਜੋ</string>

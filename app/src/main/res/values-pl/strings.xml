@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Dostęp programów do schowka</string>
     <string name="pref_clipboard_summary">Pozwól programom w terminalu (tmux, vim, ssh) kopiować tekst do schowka Androida (OSC 52)</string>
     <string name="pref_cat_files">Pliki</string>
-    <string name="pref_cat_support">Społeczność i pomoc</string>
     <string name="pref_bug_report_title">Wyślij raport o błędzie</string>
     <string name="pref_bug_report_summary">Udostępnia wersje, stan systemu Debian i dziennik aplikacji wybranej przez Ciebie aplikacji</string>
     <string name="bug_report_chooser">Wyślij raport o błędzie przez</string>

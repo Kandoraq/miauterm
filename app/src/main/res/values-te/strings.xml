@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">ప్రోగ్రామ్‌ల నుండి క్లిప్‌బోర్డ్ యాక్సెస్</string>
     <string name="pref_clipboard_summary">టెర్మినల్‌లోని ప్రోగ్రామ్‌లు (tmux, vim, ssh) Android క్లిప్‌బోర్డ్‌కు వచనాన్ని కాపీ చేయడానికి అనుమతించు (OSC 52)</string>
     <string name="pref_cat_files">ఫైల్‌లు</string>
-    <string name="pref_cat_support">సంఘం మరియు మద్దతు</string>
     <string name="pref_bug_report_title">బగ్ నివేదికను పంపండి</string>
     <string name="pref_bug_report_summary">వెర్షన్‌లు, Debian సిస్టమ్ స్థితి మరియు యాప్ లాగ్‌ను మీరు ఎంచుకున్న యాప్‌తో షేర్ చేస్తుంది</string>
     <string name="bug_report_chooser">బగ్ నివేదికను దీని ద్వారా పంపండి</string>

@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">ಪ್ರೋಗ್ರಾಂಗಳಿಂದ ಕ್ಲಿಪ್‌ಬೋರ್ಡ್ ಪ್ರವೇಶ</string>
     <string name="pref_clipboard_summary">ಟರ್ಮಿನಲ್‌ನಲ್ಲಿರುವ ಪ್ರೋಗ್ರಾಂಗಳು (tmux, vim, ssh) Android ಕ್ಲಿಪ್‌ಬೋರ್ಡ್‌ಗೆ ಪಠ್ಯ ನಕಲಿಸಲು ಅನುಮತಿಸಿ (OSC 52)</string>
     <string name="pref_cat_files">ಫೈಲ್‌ಗಳು</string>
-    <string name="pref_cat_support">ಸಮುದಾಯ ಮತ್ತು ಬೆಂಬಲ</string>
     <string name="pref_bug_report_title">ಬಗ್ ವರದಿ ಕಳುಹಿಸಿ</string>
     <string name="pref_bug_report_summary">ಆವೃತ್ತಿಗಳು, Debian ಸಿಸ್ಟಂನ ಸ್ಥಿತಿ ಮತ್ತು ಆ್ಯಪ್‌ನ ಲಾಗ್ ಅನ್ನು ನೀವು ಆಯ್ಕೆ ಮಾಡುವ ಆ್ಯಪ್‌ನೊಂದಿಗೆ ಹಂಚಿಕೊಳ್ಳುತ್ತದೆ</string>
     <string name="bug_report_chooser">ಬಗ್ ವರದಿಯನ್ನು ಇದರ ಮೂಲಕ ಕಳುಹಿಸಿ</string>

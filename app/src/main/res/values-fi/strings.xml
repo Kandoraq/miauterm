@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Ohjelmien pääsy leikepöydälle</string>
     <string name="pref_clipboard_summary">Salli päätteen ohjelmien (tmux, vim, ssh) kopioida tekstiä Androidin leikepöydälle (OSC 52)</string>
     <string name="pref_cat_files">Tiedostot</string>
-    <string name="pref_cat_support">Yhteisö ja tuki</string>
     <string name="pref_bug_report_title">Lähetä virheraportti</string>
     <string name="pref_bug_report_summary">Jakaa versiot, Debian-järjestelmän tilan ja sovelluksen lokin valitsemallesi sovellukselle</string>
     <string name="bug_report_chooser">Lähetä virheraportti sovelluksella</string>

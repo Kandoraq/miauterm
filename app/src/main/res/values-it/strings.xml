@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Accesso agli appunti dai programmi</string>
     <string name="pref_clipboard_summary">Consenti ai programmi nel terminale (tmux, vim, ssh) di copiare testo negli appunti di Android (OSC 52)</string>
     <string name="pref_cat_files">File</string>
-    <string name="pref_cat_support">Community e assistenza</string>
     <string name="pref_bug_report_title">Invia una segnalazione di bug</string>
     <string name="pref_bug_report_summary">Condivide le versioni, lo stato del sistema Debian e il registro dell’app con un’app a tua scelta</string>
     <string name="bug_report_chooser">Invia la segnalazione con</string>

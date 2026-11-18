@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Достъп на програмите до клипборда</string>
     <string name="pref_clipboard_summary">Позволява на програмите в терминала (tmux, vim, ssh) да копират текст в клипборда на Android (OSC 52)</string>
     <string name="pref_cat_files">Файлове</string>
-    <string name="pref_cat_support">Общност и поддръжка</string>
     <string name="pref_bug_report_title">Изпращане на доклад за грешка</string>
     <string name="pref_bug_report_summary">Споделя версиите, състоянието на системата Debian и дневника на приложението с избрано от вас приложение</string>
     <string name="bug_report_chooser">Изпращане на доклада чрез</string>

@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">程序访问剪贴板</string>
     <string name="pref_clipboard_summary">允许终端中的程序（tmux、vim、ssh）将文本复制到 Android 剪贴板（OSC 52）</string>
     <string name="pref_cat_files">文件</string>
-    <string name="pref_cat_support">社区和支持</string>
     <string name="pref_bug_report_title">发送错误报告</string>
     <string name="pref_bug_report_summary">将版本、Debian 系统状态和应用日志分享给您选择的应用</string>
     <string name="bug_report_chooser">发送错误报告方式</string>

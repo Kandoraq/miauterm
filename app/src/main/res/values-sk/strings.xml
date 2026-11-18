@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Prístup programov ku schránke</string>
     <string name="pref_clipboard_summary">Povoliť programom v termináli (tmux, vim, ssh) kopírovať text do schránky Androidu (OSC 52)</string>
     <string name="pref_cat_files">Súbory</string>
-    <string name="pref_cat_support">Komunita a podpora</string>
     <string name="pref_bug_report_title">Odoslať hlásenie o chybe</string>
     <string name="pref_bug_report_summary">Zdieľa verzie, stav systému Debian a denník aplikácie s aplikáciou, ktorú vyberiete</string>
     <string name="bug_report_chooser">Odoslať hlásenie o chybe pomocou</string>

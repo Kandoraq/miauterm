@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Programs åtkomst till urklipp</string>
     <string name="pref_clipboard_summary">Låt program i terminalen (tmux, vim, ssh) kopiera text till Androids urklipp (OSC 52)</string>
     <string name="pref_cat_files">Filer</string>
-    <string name="pref_cat_support">Community och support</string>
     <string name="pref_bug_report_title">Skicka en felrapport</string>
     <string name="pref_bug_report_summary">Delar versionerna, Debian-systemets tillstånd och appens logg med en app du väljer</string>
     <string name="bug_report_chooser">Skicka felrapporten med</string>

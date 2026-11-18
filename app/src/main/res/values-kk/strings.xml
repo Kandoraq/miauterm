@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Бағдарламалардың буферге қолжетімділігі</string>
     <string name="pref_clipboard_summary">Терминалдағы бағдарламаларға (tmux, vim, ssh) мәтінді Android буферіне көшіруге рұқсат ету (OSC 52)</string>
     <string name="pref_cat_files">Файлдар</string>
-    <string name="pref_cat_support">Қауымдастық және қолдау</string>
     <string name="pref_bug_report_title">Қате туралы есеп жіберу</string>
     <string name="pref_bug_report_summary">Нұсқаларды, Debian жүйесінің күйін және қолданба журналын өзіңіз таңдаған қолданбамен бөліседі</string>
     <string name="bug_report_chooser">Қате туралы есепті жіберу:</string>

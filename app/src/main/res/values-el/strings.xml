@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Πρόσβαση προγραμμάτων στο πρόχειρο</string>
     <string name="pref_clipboard_summary">Να επιτρέπεται στα προγράμματα του τερματικού (tmux, vim, ssh) να αντιγράφουν κείμενο στο πρόχειρο του Android (OSC 52)</string>
     <string name="pref_cat_files">Αρχεία</string>
-    <string name="pref_cat_support">Κοινότητα και υποστήριξη</string>
     <string name="pref_bug_report_title">Αποστολή αναφοράς σφάλματος</string>
     <string name="pref_bug_report_summary">Μοιράζεται τις εκδόσεις, την κατάσταση του συστήματος Debian και το αρχείο καταγραφής της εφαρμογής με μια εφαρμογή της επιλογής σας</string>
     <string name="bug_report_chooser">Αποστολή της αναφοράς με</string>

@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Ufikiaji wa programu kwenye ubao wa kunakili</string>
     <string name="pref_clipboard_summary">Ruhusu programu kwenye terminal (tmux, vim, ssh) kunakili maandishi kwenye ubao wa kunakili wa Android (OSC 52)</string>
     <string name="pref_cat_files">Faili</string>
-    <string name="pref_cat_support">Jumuiya na Usaidizi</string>
     <string name="pref_bug_report_title">Tuma ripoti ya hitilafu</string>
     <string name="pref_bug_report_summary">Inashiriki matoleo, hali ya mfumo wa Debian na kumbukumbu za programu na programu unayochagua</string>
     <string name="bug_report_chooser">Tuma ripoti ya hitilafu kwa</string>

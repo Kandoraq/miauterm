@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">การเข้าถึงคลิปบอร์ดจากโปรแกรม</string>
     <string name="pref_clipboard_summary">อนุญาตให้โปรแกรมในเทอร์มินัล (tmux, vim, ssh) คัดลอกข้อความไปยังคลิปบอร์ด Android (OSC 52)</string>
     <string name="pref_cat_files">ไฟล์</string>
-    <string name="pref_cat_support">ชุมชนและการสนับสนุน</string>
     <string name="pref_bug_report_title">ส่งรายงานข้อบกพร่อง</string>
     <string name="pref_bug_report_summary">แชร์เวอร์ชัน สถานะของระบบ Debian และบันทึกของแอปกับแอปที่คุณเลือก</string>
     <string name="bug_report_chooser">ส่งรายงานข้อบกพร่องด้วย</string>

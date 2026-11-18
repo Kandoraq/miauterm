@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">প্রোগ্রাম থেকে ক্লিপবোর্ড অ্যাক্সেস</string>
     <string name="pref_clipboard_summary">টার্মিনালের প্রোগ্রামগুলিকে (tmux, vim, ssh) Android ক্লিপবোর্ডে টেক্সট কপি করতে দিন (OSC 52)</string>
     <string name="pref_cat_files">ফাইল</string>
-    <string name="pref_cat_support">কমিউনিটি ও সহায়তা</string>
     <string name="pref_bug_report_title">বাগ রিপোর্ট পাঠান</string>
     <string name="pref_bug_report_summary">সংস্করণ, Debian সিস্টেমের অবস্থা ও অ্যাপের লগ আপনার বেছে নেওয়া অ্যাপের সাথে শেয়ার করে</string>
     <string name="bug_report_chooser">বাগ রিপোর্ট পাঠান এর মাধ্যমে</string>

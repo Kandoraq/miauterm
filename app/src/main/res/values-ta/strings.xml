@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">நிரல்களின் கிளிப்போர்டு அணுகல்</string>
     <string name="pref_clipboard_summary">டெர்மினலில் உள்ள நிரல்கள் (tmux, vim, ssh) Android கிளிப்போர்டில் உரையை நகலெடுக்க அனுமதி (OSC 52)</string>
     <string name="pref_cat_files">கோப்புகள்</string>
-    <string name="pref_cat_support">சமூகமும் ஆதரவும்</string>
     <string name="pref_bug_report_title">பிழை அறிக்கையை அனுப்பு</string>
     <string name="pref_bug_report_summary">பதிப்புகள், Debian அமைப்பின் நிலை மற்றும் ஆப்ஸின் பதிவை நீங்கள் தேர்ந்தெடுக்கும் ஆப்ஸுடன் பகிர்கிறது</string>
     <string name="bug_report_chooser">பிழை அறிக்கையை இதன் மூலம் அனுப்பு</string>

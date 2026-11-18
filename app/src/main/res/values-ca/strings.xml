@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Accés dels programes al porta-retalls</string>
     <string name="pref_clipboard_summary">Permet que els programes del terminal (tmux, vim, ssh) copiïn text al porta-retalls d’Android (OSC 52)</string>
     <string name="pref_cat_files">Fitxers</string>
-    <string name="pref_cat_support">Comunitat i assistència</string>
     <string name="pref_bug_report_title">Envia un informe d’error</string>
     <string name="pref_bug_report_summary">Comparteix les versions, l’estat del sistema Debian i el registre de l’aplicació amb l’aplicació que trieu</string>
     <string name="bug_report_chooser">Envia l’informe d’error amb</string>

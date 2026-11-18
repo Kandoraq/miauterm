@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Accès des programmes au presse-papiers</string>
     <string name="pref_clipboard_summary">Autoriser les programmes du terminal (tmux, vim, ssh) à copier du texte dans le presse-papiers Android (OSC 52)</string>
     <string name="pref_cat_files">Fichiers</string>
-    <string name="pref_cat_support">Communauté et assistance</string>
     <string name="pref_bug_report_title">Envoyer un rapport de bug</string>
     <string name="pref_bug_report_summary">Partage les versions, l’état du système Debian et le journal de l’application avec l’application de votre choix</string>
     <string name="bug_report_chooser">Envoyer le rapport de bug avec</string>

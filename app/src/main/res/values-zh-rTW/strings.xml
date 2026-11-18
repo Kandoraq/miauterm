@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">程式存取剪貼簿</string>
     <string name="pref_clipboard_summary">允許終端機中的程式（tmux、vim、ssh）將文字複製到 Android 剪貼簿（OSC 52）</string>
     <string name="pref_cat_files">檔案</string>
-    <string name="pref_cat_support">社群與支援</string>
     <string name="pref_bug_report_title">傳送錯誤回報</string>
     <string name="pref_bug_report_summary">將版本、Debian 系統狀態和應用程式記錄分享給您選擇的應用程式</string>
     <string name="bug_report_chooser">傳送錯誤回報方式</string>

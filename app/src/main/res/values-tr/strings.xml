@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Programların pano erişimi</string>
     <string name="pref_clipboard_summary">Terminaldeki programların (tmux, vim, ssh) metni Android panosuna kopyalamasına izin ver (OSC 52)</string>
     <string name="pref_cat_files">Dosyalar</string>
-    <string name="pref_cat_support">Topluluk ve destek</string>
     <string name="pref_bug_report_title">Hata raporu gönder</string>
     <string name="pref_bug_report_summary">Sürümleri, Debian sisteminin durumunu ve uygulamanın günlüğünü seçtiğiniz bir uygulamayla paylaşır</string>
     <string name="bug_report_chooser">Hata raporunu şununla gönder</string>

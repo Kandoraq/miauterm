@@ -97,7 +97,6 @@
     <string name="pref_linux_user_title">User login Linux</string>
     <string name="pref_linux_user_summary">Kosongkan untuk masuk sebagai root. Masukkan nama persis akun yang sudah ada di /etc/passwd. Berlaku untuk sesi baru.</string>
     <string name="linux_user_not_found">Akun Linux tidak ditemukan. Buat akun terlebih dahulu atau kosongkan untuk memakai root.</string>
-    <string name="pref_cat_support">Komunitas &amp; Dukungan</string>
     <string name="pref_cat_updates_support" translatable="false">Pembaruan &amp; Dukungan</string>
     <string name="pref_bug_report_title">Kirim laporan bug</string>
     <string name="pref_bug_report_summary">Membagikan versi, status sistem Debian, dan log aplikasi ke aplikasi yang Anda pilih</string>

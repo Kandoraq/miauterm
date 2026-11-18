@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Acceso de los programas al portapapeles</string>
     <string name="pref_clipboard_summary">Permite que los programas del terminal (tmux, vim, ssh) copien texto al portapapeles de Android (OSC 52)</string>
     <string name="pref_cat_files">Archivos</string>
-    <string name="pref_cat_support">Comunidad y soporte</string>
     <string name="pref_bug_report_title">Enviar un informe de error</string>
     <string name="pref_bug_report_summary">Comparte las versiones, el estado del sistema Debian y el registro de la aplicación con la aplicación que elijas</string>
     <string name="bug_report_chooser">Enviar el informe de error con</string>

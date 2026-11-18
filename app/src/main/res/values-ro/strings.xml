@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Acces la clipboard pentru programe</string>
     <string name="pref_clipboard_summary">Permite programelor din terminal (tmux, vim, ssh) să copieze text în clipboardul Android (OSC 52)</string>
     <string name="pref_cat_files">Fișiere</string>
-    <string name="pref_cat_support">Comunitate și asistență</string>
     <string name="pref_bug_report_title">Trimite un raport de eroare</string>
     <string name="pref_bug_report_summary">Partajează versiunile, starea sistemului Debian și jurnalul aplicației cu o aplicație aleasă de tine</string>
     <string name="bug_report_chooser">Trimite raportul de eroare cu</string>

@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Приступ програма привременој меморији</string>
     <string name="pref_clipboard_summary">Дозволи програмима у терминалу (tmux, vim, ssh) да копирају текст у Android привремену меморију (OSC 52)</string>
     <string name="pref_cat_files">Датотеке</string>
-    <string name="pref_cat_support">Заједница и подршка</string>
     <string name="pref_bug_report_title">Пошаљи извештај о грешци</string>
     <string name="pref_bug_report_summary">Дели верзије, стање система Debian и дневник апликације са апликацијом коју изаберете</string>
     <string name="bug_report_chooser">Пошаљи извештај о грешци преко</string>

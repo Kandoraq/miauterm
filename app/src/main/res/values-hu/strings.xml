@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">A programok vágólap-hozzáférése</string>
     <string name="pref_clipboard_summary">A terminálban futó programok (tmux, vim, ssh) másolhatnak szöveget az Android vágólapjára (OSC 52)</string>
     <string name="pref_cat_files">Fájlok</string>
-    <string name="pref_cat_support">Közösség és támogatás</string>
     <string name="pref_bug_report_title">Hibajelentés küldése</string>
     <string name="pref_bug_report_summary">Megosztja a verziókat, az Debian rendszer állapotát és az alkalmazás naplóját a választott alkalmazással</string>
     <string name="bug_report_chooser">Hibajelentés küldése ezzel:</string>

@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">プログラムによるクリップボードへのアクセス</string>
     <string name="pref_clipboard_summary">ターミナル内のプログラム（tmux、vim、ssh）が Android のクリップボードにテキストをコピーできるようにします（OSC 52）</string>
     <string name="pref_cat_files">ファイル</string>
-    <string name="pref_cat_support">コミュニティとサポート</string>
     <string name="pref_bug_report_title">バグレポートを送信</string>
     <string name="pref_bug_report_summary">バージョン、Debian システムの状態、アプリのログを選んだアプリで共有します</string>
     <string name="bug_report_chooser">バグレポートの送信先</string>

@@ -85,7 +85,6 @@
     <string name="pref_clipboard_title">Akses papan keratan daripada program</string>
     <string name="pref_clipboard_summary">Benarkan program dalam terminal (tmux, vim, ssh) menyalin teks ke papan keratan Android (OSC 52)</string>
     <string name="pref_cat_files">Fail</string>
-    <string name="pref_cat_support">Komuniti &amp; Sokongan</string>
     <string name="pref_bug_report_title">Hantar laporan pepijat</string>
     <string name="pref_bug_report_summary">Berkongsi versi, keadaan sistem Debian dan log apl dengan apl pilihan anda</string>
     <string name="bug_report_chooser">Hantar laporan pepijat dengan</string>
