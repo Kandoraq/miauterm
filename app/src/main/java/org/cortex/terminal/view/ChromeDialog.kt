@@ -29,8 +29,8 @@ object ChromeDialog {
             }
             for (which in intArrayOf(DialogInterface.BUTTON_NEGATIVE, DialogInterface.BUTTON_NEUTRAL)) {
                 dialog.getButton(which)?.apply {
-                    background = Chrome.buttonBackground(p, 2 * density, 0, filled = false)
-                    setTextColor(p.accent)
+                    background = Chrome.flatPressable(p.raised, p.raisedHigh)
+                    setTextColor(p.text)
                     setPadding(pad * 2, pad, pad * 2, pad)
                 }
             }
