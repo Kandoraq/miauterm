@@ -280,6 +280,7 @@
 
     <string name="bug_report_chooser">Send the bug report with</string>
     <string name="bug_report_failed">The bug report could not be made: %1$s</string>
+    <string name="bug_report_open_failed">Could not open GitHub Issues.</string>
 
     <!-- Settings choices -->
     <string name="font_size_small">Small (10sp)</string>
