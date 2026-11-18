@@ -1,11 +1,13 @@
 package org.cortex.terminal.runtime
 
 import android.content.Context
+import android.util.Log
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
 
 internal object DebianOperationRunner {
+    private const val TAG = "DebianOperationRunner"
     sealed class State {
         object Idle : State()
         object Running : State()
@@ -73,8 +75,8 @@ internal object DebianOperationRunner {
         for (listener in listeners) {
             try {
                 listener(next)
-            } catch (_: Exception) {
-
+            } catch (e: Exception) {
+                Log.w(TAG, "Operation listener failed", e)
             }
         }
     }

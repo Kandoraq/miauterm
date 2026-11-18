@@ -1332,7 +1332,9 @@ object DebianRuntime {
     fun selectedAccount(context: Context, root: File = Environment.getCortexRoot(context)): LinuxAccount {
         val wanted = PreferenceManager.getDefaultSharedPreferences(context).getString(PREF_LINUX_USER, "")
             ?.trim().orEmpty().ifBlank { "root" }
-        return accountByName(root, wanted) ?: accounts(root).first()
+        return accountByName(root, wanted)
+            ?: accounts(root).firstOrNull()
+            ?: LinuxAccount("root", 0, 0, "/root", "/bin/bash")
     }
 
     fun accountByName(root: File, name: String): LinuxAccount? = accounts(root).firstOrNull { it.name == name }

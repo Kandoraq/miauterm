@@ -1429,7 +1429,7 @@ class TerminalView @JvmOverloads constructor(
     }
 
     private fun putOnClipboard(text: String) {
-        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
         clipboard.setPrimaryClip(ClipData.newPlainText("Miauterm", text))
         Toast.makeText(context, R.string.copied_to_clipboard, Toast.LENGTH_SHORT).show()
     }
@@ -1528,8 +1528,11 @@ class TerminalView @JvmOverloads constructor(
     private fun saveImageFromUri(uri: Uri, mimeType: String?): String? {
         try {
             if (uri.scheme == "file" && uri.path != null) {
-                val f = File(uri.path!!)
-                if (f.exists()) return f.absolutePath + " "
+                val path = uri.path
+                if (path != null) {
+                    val f = File(path)
+                    if (f.exists()) return f.absolutePath + " "
+                }
             }
 
             val ext = when (mimeType?.lowercase()) {

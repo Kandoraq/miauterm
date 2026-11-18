@@ -29,7 +29,9 @@
     <string name="new_session_name_hint" translatable="false">Session name (optional)</string>
     <string name="new_session_failsafe" translatable="false">Start in failsafe mode</string>
     <string name="create" translatable="false">Create</string>
+    <string name="files_root_label" translatable="false">proot (%1$s)</string>
     <string name="reset" translatable="false">Reset</string>
+    <string name="default_localhost" translatable="false">localhost</string>
     <string name="pref_cat_network" translatable="false">Network</string>
     <string name="pref_network_settings_toggle" translatable="false">Custom DNS and hostname</string>
     <string name="pref_network_settings_closed" translatable="false">Tap to configure Debian network identity.</string>

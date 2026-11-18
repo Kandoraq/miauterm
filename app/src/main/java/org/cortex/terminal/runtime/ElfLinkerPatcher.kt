@@ -121,14 +121,14 @@ object ElfLinkerPatcher {
                 ld64Real.setExecutable(true, true)
                 ld64Real.setReadable(true, true)
                 ld64Real.setWritable(true, true)
-                try { Os.chmod(ld64Real.absolutePath, 448) } catch (_: Exception) {}
+                try { Os.chmod(ld64Real.absolutePath, 448) } catch (e: Exception) { Log.w(TAG, "chmod failed: ${e.message}") }
                 if (!ld64Link.exists() && !isSymlink(ld64Link)) {
                     createSymlink("ld-2.39.so", ld64Link)
                 }
                 ld64Link.setExecutable(true, true)
                 ld64Link.setReadable(true, true)
                 ld64Link.setWritable(true, true)
-                try { Os.chmod(ld64Link.absolutePath, 448) } catch (_: Exception) {}
+                try { Os.chmod(ld64Link.absolutePath, 448) } catch (e: Exception) { Log.w(TAG, "chmod failed: ${e.message}") }
             }
 
             val ld32Real = File(root, "usr/lib/arm-linux-gnueabihf/ld-2.39.so")
@@ -137,14 +137,14 @@ object ElfLinkerPatcher {
                 ld32Real.setExecutable(true, true)
                 ld32Real.setReadable(true, true)
                 ld32Real.setWritable(true, true)
-                try { Os.chmod(ld32Real.absolutePath, 448) } catch (_: Exception) {}
+                try { Os.chmod(ld32Real.absolutePath, 448) } catch (e: Exception) { Log.w(TAG, "chmod failed: ${e.message}") }
                 if (!ld32Link.exists() && !isSymlink(ld32Link)) {
                     createSymlink("ld-2.39.so", ld32Link)
                 }
                 ld32Link.setExecutable(true, true)
                 ld32Link.setReadable(true, true)
                 ld32Link.setWritable(true, true)
-                try { Os.chmod(ld32Link.absolutePath, 448) } catch (_: Exception) {}
+                try { Os.chmod(ld32Link.absolutePath, 448) } catch (e: Exception) { Log.w(TAG, "chmod failed: ${e.message}") }
             }
 
             val libDir = File(root, "lib")
@@ -158,7 +158,7 @@ object ElfLinkerPatcher {
                         direct64.setExecutable(true, true)
                         direct64.setReadable(true, true)
                         direct64.setWritable(true, true)
-                        try { Os.chmod(direct64.absolutePath, 448) } catch (_: Exception) {}
+                        try { Os.chmod(direct64.absolutePath, 448) } catch (e: Exception) { Log.w(TAG, "chmod failed: ${e.message}") }
                     }
                 }
                 val direct32 = File(libDir, "ld-linux-armhf.so.3")
@@ -170,7 +170,7 @@ object ElfLinkerPatcher {
                         direct32.setExecutable(true, true)
                         direct32.setReadable(true, true)
                         direct32.setWritable(true, true)
-                        try { Os.chmod(direct32.absolutePath, 448) } catch (_: Exception) {}
+                        try { Os.chmod(direct32.absolutePath, 448) } catch (e: Exception) { Log.w(TAG, "chmod failed: ${e.message}") }
                     }
                 }
             }
@@ -582,7 +582,7 @@ object ElfLinkerPatcher {
                 tmp.setExecutable(true, true)
                 tmp.setReadable(true, true)
                 tmp.setWritable(true, true)
-                try { Os.chmod(tmp.absolutePath, 448) } catch (_: Exception) {}
+                try { Os.chmod(tmp.absolutePath, 448) } catch (e: Exception) { Log.w(TAG, "chmod failed: ${e.message}") }
                 if (!atomicReplace(tmp, file)) {
                     deleteIfExists(tmp)
                     return
@@ -590,7 +590,7 @@ object ElfLinkerPatcher {
                 file.setExecutable(true, true)
                 file.setReadable(true, true)
                 file.setWritable(true, true)
-                try { Os.chmod(file.absolutePath, 448) } catch (_: Exception) {}
+                try { Os.chmod(file.absolutePath, 448) } catch (e: Exception) { Log.w(TAG, "chmod failed: ${e.message}") }
                 Log.i(TAG, "Successfully wrote patched linker atomically: ${file.absolutePath}")
             }
         } catch (e: Exception) {

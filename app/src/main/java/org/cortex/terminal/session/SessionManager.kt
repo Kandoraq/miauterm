@@ -214,23 +214,24 @@ class SessionManager(private val context: Context) {
             sessions.clear()
             currentSessionIndex = -1
         }
-        if (forget) {
-            val target = store
-            try {
-                saveExecutor.execute { target?.clear() }
-            } catch (_: java.util.concurrent.RejectedExecutionException) {
-            }
-        }
         for (s in sessionsToDestroy) {
             s.destroy()
         }
         if (waitForProcesses) {
             sessionsToDestroy.forEach { it.awaitProcessExit(3_000) }
-            if (forget) {
+        }
+        if (forget) {
+            val target = store
+            if (waitForProcesses) {
                 try {
-                    saveExecutor.submit { store?.clear() }.get(5, java.util.concurrent.TimeUnit.SECONDS)
+                    saveExecutor.submit { target?.clear() }.get(5, java.util.concurrent.TimeUnit.SECONDS)
                 } catch (e: Exception) {
                     Log.w(TAG, "Could not clear saved sessions before replacing Debian", e)
+                }
+            } else {
+                try {
+                    saveExecutor.execute { target?.clear() }
+                } catch (_: java.util.concurrent.RejectedExecutionException) {
                 }
             }
         }

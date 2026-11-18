@@ -151,7 +151,7 @@ class DebianFilesActivity : AppCompatActivity() {
             runOnUiThread {
                 if (isFinishing || isDestroyed || current !== directory) return@runOnUiThread
                 val relative = if (directory == root) "/" else "/${directory.relativeTo(root).path}"
-                pathView.text = "proot ($relative)"
+                pathView.text = getString(R.string.files_root_label, relative)
                 if (children == null) {
                     summaryView.text = ""
                     adapter.submitList(emptyList())
@@ -271,7 +271,7 @@ class DebianFilesActivity : AppCompatActivity() {
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.files_delete) { _, _ ->
 
-                Thread({
+                fileExecutor.execute {
                     val deleted = org.cortex.terminal.runtime.SafeDelete.deleteRecursively(file)
                     runOnUiThread {
                         if (!isFinishing && !isDestroyed) {
@@ -279,7 +279,7 @@ class DebianFilesActivity : AppCompatActivity() {
                             else showMessage(getString(R.string.files_operation_failed))
                         }
                     }
-                }, "Miauterm-FileDelete").start()
+                }
             }
             .create()
         org.cortex.terminal.view.ChromeDialog.style(dialog).show()
@@ -395,7 +395,7 @@ class DebianFilesActivity : AppCompatActivity() {
 
     private fun copyPath(file: File) {
         val path = if (file == root) "/" else "/${file.relativeTo(root).path}"
-        val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
         clipboard.setPrimaryClip(ClipData.newPlainText("Debian path", path))
         showMessage(getString(R.string.files_path_copied, path))
     }
@@ -480,7 +480,7 @@ class DebianFilesActivity : AppCompatActivity() {
         private val actions = view.findViewById<ImageButton>(R.id.fileActions)
         fun bind(entry: Entry, click: (Entry) -> Unit, longClick: (Entry) -> Unit) {
             val p = org.cortex.terminal.view.Chrome.palette
-            name.text = if (entry.shortcut && entry.file == root) "proot (/)" else entry.label
+            name.text = if (entry.shortcut && entry.file == root) getString(R.string.files_root_label, "/") else entry.label
             name.setTextColor(p.text)
             details.setTextColor(p.textDim)
             val mode = entry.mode and 0x1ff

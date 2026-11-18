@@ -10,10 +10,13 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.util.Log
+import java.io.File
 import org.cortex.terminal.LocaleHelper
 import org.cortex.terminal.MainActivity
 import org.cortex.terminal.R
 import org.cortex.terminal.session.SessionManager
+import org.cortex.terminal.session.SessionStore
 
 class CortexService : Service() {
 
@@ -54,10 +57,12 @@ class CortexService : Service() {
             val versionPrefs = context.getSharedPreferences("cortex_service", Context.MODE_PRIVATE)
             val lastVersionCode = versionPrefs.getInt(PREF_LAST_VERSION_CODE, 0)
             if (lastVersionCode != 0 && lastVersionCode < appVersion && _sessionManager != null) {
-                android.util.Log.i("CortexService", "App version updated from $lastVersionCode to $appVersion. Resetting sessions.")
+                Log.i("CortexService", "App version updated from $lastVersionCode to $appVersion. Resetting sessions.")
                 try {
                     _sessionManager?.destroyAll(forget = false)
-                } catch (e: Exception) {}
+                } catch (e: Exception) {
+                    Log.w("CortexService", "Could not destroy sessions after version update", e)
+                }
                 _sessionManager = null
             }
             if (versionPrefs.getInt(PREF_LAST_VERSION_CODE, 0) != appVersion) {
@@ -66,7 +71,7 @@ class CortexService : Service() {
 
             if (_sessionManager == null) {
                 _sessionManager = SessionManager(context.applicationContext).also {
-                    it.store = org.cortex.terminal.session.SessionStore(java.io.File(context.filesDir, "sessions"))
+                    it.store = SessionStore(File(context.filesDir, "sessions"))
                 }
             }
             return _sessionManager!!
@@ -99,7 +104,7 @@ class CortexService : Service() {
                 }
                 true
             } catch (e: Exception) {
-                android.util.Log.e("CortexService", "setWakeLock failed to start service", e)
+                Log.e("CortexService", "setWakeLock failed to start service", e)
                 false
             }
         }
@@ -114,16 +119,16 @@ class CortexService : Service() {
                         context.startForegroundService(intent)
                     } catch (e: IllegalStateException) {
 
-                        android.util.Log.w("CortexService", "startForegroundService blocked, using startService", e)
+                        Log.w("CortexService", "startForegroundService blocked, using startService", e)
                         try { context.startService(intent) } catch (e2: Exception) {
-                            android.util.Log.e("CortexService", "Failed to start service", e2)
+                            Log.e("CortexService", "Failed to start service", e2)
                         }
                     }
                 } else {
                     context.startService(intent)
                 }
             } catch (e: Exception) {
-                android.util.Log.e("CortexService", "Failed to start service", e)
+                Log.e("CortexService", "Failed to start service", e)
             }
         }
 
@@ -135,9 +140,9 @@ class CortexService : Service() {
 
                 context.startService(intent)
             } catch (e: IllegalStateException) {
-                android.util.Log.w("CortexService", "updateNotification skipped (background)", e)
+                Log.w("CortexService", "updateNotification skipped (background)", e)
             } catch (e: Exception) {
-                android.util.Log.e("CortexService", "updateNotification failed", e)
+                Log.e("CortexService", "updateNotification failed", e)
             }
         }
 
@@ -145,9 +150,9 @@ class CortexService : Service() {
             try {
                 context.stopService(Intent(context, CortexService::class.java))
             } catch (e: IllegalStateException) {
-                android.util.Log.w("CortexService", "stop skipped (background)", e)
+                Log.w("CortexService", "stop skipped (background)", e)
             } catch (e: Exception) {
-                android.util.Log.e("CortexService", "stop failed", e)
+                Log.e("CortexService", "stop failed", e)
             }
         }
     }
@@ -163,7 +168,7 @@ class CortexService : Service() {
         try {
             createNotificationChannel()
         } catch (e: Exception) {
-            android.util.Log.e("CortexService", "createNotificationChannel failed", e)
+            Log.e("CortexService", "createNotificationChannel failed", e)
         }
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -182,7 +187,7 @@ class CortexService : Service() {
                 startForeground(NOTIFICATION_ID, buildNotification())
             }
         } catch (e: Exception) {
-            android.util.Log.e("CortexService", "startForeground failed", e)
+            Log.e("CortexService", "startForeground failed", e)
 
             try { startForeground(NOTIFICATION_ID, buildNotification()) } catch (e2: Exception) {}
         }
@@ -190,7 +195,7 @@ class CortexService : Service() {
         try {
             getOrCreateSessionManager(this)
         } catch (e: Exception) {
-            android.util.Log.e("CortexService", "getOrCreateSessionManager failed", e)
+            Log.e("CortexService", "getOrCreateSessionManager failed", e)
         }
 
         org.cortex.terminal.api.ApiServer.start(this)
@@ -217,7 +222,7 @@ class CortexService : Service() {
                 startForeground(NOTIFICATION_ID, buildNotification())
             }
         } catch (e: Exception) {
-            android.util.Log.w("CortexService", "re-promote startForeground failed", e)
+            Log.w("CortexService", "re-promote startForeground failed", e)
             stopSelf()
             return START_NOT_STICKY
         }
@@ -238,13 +243,16 @@ class CortexService : Service() {
                 updateNotificationDisplay()
             }
             ACTION_COPY_LINK -> {
-                intent.getStringExtra(EXTRA_LINK)?.takeIf { it.startsWith("http://localhost:") }?.let { link ->
-                    try {
-                        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("URL", link))
-                        android.widget.Toast.makeText(this, LocaleHelper.wrap(this).getString(R.string.copied_url, link), android.widget.Toast.LENGTH_SHORT).show()
-                    } catch (e: Exception) {
-                        android.util.Log.w("CortexService", "Copying the link failed", e)
+                intent.getStringExtra(EXTRA_LINK)?.let { link ->
+                    val uri = runCatching { android.net.Uri.parse(link) }.getOrNull()
+                    if (uri?.scheme == "http" && uri.host == "localhost" && uri.port in 1..65535) {
+                        try {
+                            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                            clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("URL", link))
+                            android.widget.Toast.makeText(this, LocaleHelper.wrap(this).getString(R.string.copied_url, link), android.widget.Toast.LENGTH_SHORT).show()
+                        } catch (e: Exception) {
+                            Log.w("CortexService", "Copying the link failed", e)
+                        }
                     }
                 }
             }
@@ -278,7 +286,7 @@ class CortexService : Service() {
                 lock.acquire(WAKE_LOCK_TIMEOUT_MS)
             }
         } catch (e: Exception) {
-            android.util.Log.e("CortexService", "Failed to acquire wakelock", e)
+            Log.e("CortexService", "Failed to acquire wakelock", e)
         }
     }
 
@@ -291,7 +299,7 @@ class CortexService : Service() {
             }
             wakeLock = null
         } catch (e: Exception) {
-            android.util.Log.e("CortexService", "Failed to release wakelock", e)
+            Log.e("CortexService", "Failed to release wakelock", e)
         }
     }
 
@@ -300,7 +308,9 @@ class CortexService : Service() {
             releaseWakeLock()
             _sessionManager?.destroyAll()
             _sessionManager = null
-        } catch (e: Exception) {}
+        } catch (e: Exception) {
+            Log.w("CortexService", "Could not exit all sessions", e)
+        }
 
         stopForeground(Service.STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -317,7 +327,7 @@ class CortexService : Service() {
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             nm.notify(NOTIFICATION_ID, buildNotification())
         } catch (e: Exception) {
-            android.util.Log.e("CortexService", "Failed to update notification", e)
+            Log.e("CortexService", "Failed to update notification", e)
         }
     }
 
@@ -419,7 +429,7 @@ class CortexService : Service() {
             localServers = null
             releaseWakeLock()
         } catch (e: Exception) {
-            android.util.Log.e("CortexService", "Service cleanup failed", e)
+            Log.e("CortexService", "Service cleanup failed", e)
         } finally {
             instance = null
             super.onDestroy()

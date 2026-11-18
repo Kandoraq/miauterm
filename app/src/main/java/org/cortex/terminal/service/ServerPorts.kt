@@ -17,7 +17,7 @@ object ServerPorts {
             val uid = fields[7].toIntOrNull() ?: continue
             if (uid !in uids) continue
             val port = fields[1].substringAfterLast(':').toIntOrNull(16) ?: continue
-            if (port > 0) ports += port
+            if (port in 1..65535) ports += port
         }
         return ports
     }

@@ -75,8 +75,8 @@ internal class FileLocks private constructor(
     private val locks: List<FileLock>
 ) : AutoCloseable {
     override fun close() {
-        locks.forEach { try { it.release() } catch (_: Exception) {} }
-        files.forEach { try { it.close() } catch (_: Exception) {} }
+        locks.forEach { lock -> try { lock.release() } catch (e: Exception) { Log.w(TAG, "Could not release file lock", e) } }
+        files.forEach { file -> try { file.close() } catch (e: Exception) { Log.w(TAG, "Could not close lock file", e) } }
     }
 
     companion object {

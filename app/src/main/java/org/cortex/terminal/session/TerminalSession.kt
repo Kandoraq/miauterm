@@ -57,7 +57,9 @@ class TerminalSession(
     var restoredOutput: String? = null
 
     fun currentDirectory(): String? {
-        guestWorkingDirectory?.takeIf { it.startsWith("/") && ".." !in it }?.let { return it }
+        guestWorkingDirectory?.takeIf { path ->
+            path.startsWith("/") && path.split('/').none { it == ".." }
+        }?.let { return it }
         val pid = ptyProcess?.pid ?: return null
         if (!isRunning) return startDirectory
         return try {
@@ -357,6 +359,7 @@ class TerminalSession(
         ptyProcess?.destroy()
         try {
             readerThread?.interrupt()
+            readerThread?.join(1000)
         } catch (_: Exception) {}
     }
 }

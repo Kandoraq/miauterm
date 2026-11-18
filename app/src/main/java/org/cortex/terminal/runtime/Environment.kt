@@ -16,7 +16,8 @@ object Environment {
 
     fun getHomeDir(context: Context): File {
         val root = getCortexRoot(context)
-        val home = DebianRuntime.selectedAccount(context, root).home
+        if (!root.isDirectory) return context.filesDir
+        val home = runCatching { DebianRuntime.selectedAccount(context, root).home }.getOrNull() ?: "/root"
         return File(root, home.removePrefix("/"))
     }
 

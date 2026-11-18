@@ -140,7 +140,8 @@ object ApiCommands {
     }
 
     private fun network(context: Context): ApiResult {
-        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
+            ?: return fail("connectivity service unavailable")
         val lines = mutableListOf<Pair<Int, String>>()
         @Suppress("DEPRECATION")
         val networks = cm.allNetworks
@@ -203,8 +204,8 @@ object ApiCommands {
         )
     }
 
-    private fun notificationManager(context: Context): NotificationManager =
-        context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    private fun notificationManager(context: Context): NotificationManager? =
+        context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
 
     private fun notification(context: Context, req: ApiRequest): ApiResult {
         val args = ApiArgs.parse(req.args, withValue = setOf("-t", "--title", "-c", "--content", "-i", "--id"))
@@ -219,7 +220,7 @@ object ApiCommands {
             ?: ""
         val id = args.value("-i", "--id") ?: nextNotification.getAndIncrement().toString()
 
-        val nm = notificationManager(context)
+        val nm = notificationManager(context) ?: return fail("notification service unavailable")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && !nm.areNotificationsEnabled()) {
             return fail("notifications are turned off for Miauterm in Android's settings")
         }
@@ -256,18 +257,19 @@ object ApiCommands {
 
     private fun notificationRemove(context: Context, req: ApiRequest): ApiResult {
         val id = req.args.singleOrNull() ?: throw IllegalArgumentException("usage: notification-remove ID")
-        notificationManager(context).cancel(NOTIFICATION_TAG + id, 1)
+        val nm = notificationManager(context) ?: return fail("notification service unavailable")
+        nm.cancel(NOTIFICATION_TAG + id, 1)
         return ok()
     }
 
-    private fun clipboard(context: Context): ClipboardManager =
-        context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    private fun clipboard(context: Context): ClipboardManager? =
+        context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
 
     private const val CLIPBOARD_WAIT_SECONDS = 3L
 
     private fun clipboardGet(context: Context): ApiResult {
         val text = onMain(CLIPBOARD_WAIT_SECONDS) {
-            val clip = clipboard(context).primaryClip
+            val clip = clipboard(context)?.primaryClip
             if (clip == null || clip.itemCount == 0) null else clip.getItemAt(0).coerceToText(context)?.toString()
         }
         if (text == null && !CortexApp.isInForeground) {
@@ -278,7 +280,8 @@ object ApiCommands {
 
     private fun clipboardSet(context: Context, req: ApiRequest): ApiResult {
         val text = text(req, ApiArgs.parse(req.args))
-        onMain(CLIPBOARD_WAIT_SECONDS) { clipboard(context).setPrimaryClip(ClipData.newPlainText("Miauterm", text)) }
+        val cm = clipboard(context) ?: return fail("clipboard service unavailable")
+        onMain(CLIPBOARD_WAIT_SECONDS) { cm.setPrimaryClip(ClipData.newPlainText("Miauterm", text)) }
         return ok()
     }
 

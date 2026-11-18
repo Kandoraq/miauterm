@@ -109,9 +109,8 @@ object ApiServer {
         file.parentFile?.mkdirs()
         val tmp = File(file.parentFile, "${file.name}.tmp")
         tmp.delete()
-        tmp.writeText("")
-        android.system.Os.chmod(tmp.absolutePath, 420)
         tmp.writeText("$port $token\n")
+        android.system.Os.chmod(tmp.absolutePath, 384)
         if (!tmp.renameTo(file)) throw IOException("cannot write ${file.path}")
     }
 

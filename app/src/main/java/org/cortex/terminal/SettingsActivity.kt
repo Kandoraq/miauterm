@@ -125,7 +125,7 @@ class SettingsActivity : AppCompatActivity() {
     internal fun confirmReset() {
         org.cortex.terminal.view.ChromeDialog.style(
             AlertDialog.Builder(this)
-                .setTitle(getString(R.string.debian_reset_confirm_title, DebianRuntime.systemName(this) ?: "Linux system"))
+                .setTitle(getString(R.string.debian_reset_confirm_title, DebianRuntime.systemName(this) ?: getString(R.string.pref_cat_debian)))
                 .setMessage(R.string.debian_reset_confirm_message)
                 .setNegativeButton(R.string.cancel, null)
                 .setPositiveButton(R.string.pref_reset_debian_title) { _, _ ->
@@ -634,7 +634,7 @@ class SettingsActivity : AppCompatActivity() {
                 pref.text?.takeIf { it.isNotBlank() } ?: getString(R.string.pref_custom_dns_summary)
             }
             hostnamePreference?.summaryProvider = Preference.SummaryProvider<androidx.preference.EditTextPreference> { pref ->
-                pref.text?.takeIf { it.isNotBlank() } ?: "localhost"
+                pref.text?.takeIf { it.isNotBlank() } ?: getString(R.string.default_localhost)
             }
             networkToggle?.setOnPreferenceClickListener {
                 val expanded = dnsPreference?.isVisible != true
