@@ -67,10 +67,18 @@ internal class SettingsStyle(private val fragment: PreferenceFragmentCompat) {
         }
         if (switch != null) {
             val checked = intArrayOf(android.R.attr.state_checked)
-            switch.thumbTintList = ColorStateList(arrayOf(checked, intArrayOf()), intArrayOf(p.accent, p.textFaint))
+            val squareRadius = 2 * density
+            switch.showText = false
+            switch.thumbDrawable = Chrome.rounded(p.textDim, squareRadius).apply {
+                setSize((18 * density).toInt(), (18 * density).toInt())
+            }
+            switch.trackDrawable = Chrome.rounded(p.outline, squareRadius).apply {
+                setSize((38 * density).toInt(), (20 * density).toInt())
+            }
+            switch.thumbTintList = ColorStateList(arrayOf(checked, intArrayOf()), intArrayOf(p.accent, p.textDim))
             switch.trackTintList = ColorStateList(
                 arrayOf(checked, intArrayOf()),
-                intArrayOf(p.accentSoft, p.outline)
+                intArrayOf(p.accentSoft, p.raisedHigh)
             )
         }
     }

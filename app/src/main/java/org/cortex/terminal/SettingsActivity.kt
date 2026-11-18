@@ -232,6 +232,33 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    internal fun resetExtraKeysToDefault() {
+        val file = File(Environment.getHomeDir(this), ".config/miauterm/${ExtraKeysConfig.FILE_NAME}")
+        try {
+            extraKeysExecutor.execute {
+                val reset = runCatching {
+                    ExtraKeysConfig.writeLayout(file, ExtraKeysLayout.DEFAULT_TEXT)
+                    check(ExtraKeysLayout.parse(file.readText()).error == null) { "Default key layout could not be read back" }
+                }
+                runOnUiThread {
+                    if (isFinishing || isDestroyed) return@runOnUiThread
+                    reset.onSuccess {
+                        MainActivity.instance?.reloadExtraKeys()
+                        android.widget.Toast.makeText(this, R.string.extra_keys_saved, android.widget.Toast.LENGTH_SHORT).show()
+                    }.onFailure {
+                        android.widget.Toast.makeText(
+                            this,
+                            getString(R.string.extra_keys_invalid, it.message ?: "write failed"),
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            }
+        } catch (_: java.util.concurrent.RejectedExecutionException) {
+            android.widget.Toast.makeText(this, R.string.debian_operation_running, android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun showExtraKeysDialog(file: File, initial: String) {
         val parsed = ExtraKeysLayout.parse(initial)
         if (parsed.error != null) {
@@ -683,6 +710,9 @@ class SettingsActivity : AppCompatActivity() {
                 "network_settings_toggle" to R.drawable.ic_server,
                 "custom_dns_servers" to R.drawable.ic_server,
                 "custom_hostname" to R.drawable.ic_person,
+                "reset_custom_dns" to R.drawable.ic_restart,
+                "reset_custom_hostname" to R.drawable.ic_restart,
+                "reset_extra_keys" to R.drawable.ic_restart,
                 DebianRuntime.PREF_LINUX_USER to R.drawable.ic_person,
                 DebianRuntime.PREF_PROOT_DIAGNOSTICS to R.drawable.ic_tune,
                 "view_proot_log" to R.drawable.ic_receipt,
@@ -703,9 +733,13 @@ class SettingsActivity : AppCompatActivity() {
             val networkToggle = findPreference<Preference>("network_settings_toggle")
             val dnsPreference = findPreference<androidx.preference.EditTextPreference>("custom_dns_servers")
             val hostnamePreference = findPreference<androidx.preference.EditTextPreference>("custom_hostname")
+            val resetDnsPreference = findPreference<Preference>("reset_custom_dns")
+            val resetHostnamePreference = findPreference<Preference>("reset_custom_hostname")
             fun updateNetworkSettingsVisibility(expanded: Boolean) {
                 dnsPreference?.isVisible = expanded
                 hostnamePreference?.isVisible = expanded
+                resetDnsPreference?.isVisible = expanded
+                resetHostnamePreference?.isVisible = expanded
                 networkToggle?.summary = getString(
                     if (expanded) R.string.pref_network_settings_open else R.string.pref_network_settings_closed
                 )
@@ -734,17 +768,21 @@ class SettingsActivity : AppCompatActivity() {
                 if (!valid) android.widget.Toast.makeText(requireContext(), R.string.pref_custom_hostname_invalid, android.widget.Toast.LENGTH_LONG).show()
                 valid
             }
-            findPreference<androidx.preference.Preference>("reset_network_settings")?.setOnPreferenceClickListener {
-                androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
-                    .edit()
-                    .remove(DebianRuntime.PREF_CUSTOM_DNS_SERVERS)
-                    .remove(DebianRuntime.PREF_CUSTOM_HOSTNAME)
-                    .apply()
+            resetDnsPreference?.setOnPreferenceClickListener {
+                androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext()).edit()
+                    .remove(DebianRuntime.PREF_CUSTOM_DNS_SERVERS).apply()
                 dnsPreference?.text = ""
-                hostnamePreference?.text = ""
-                android.widget.Toast.makeText(requireContext(), R.string.pref_reset_network_summary, android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(requireContext(), R.string.pref_reset_custom_dns_summary, android.widget.Toast.LENGTH_SHORT).show()
                 true
             }
+            resetHostnamePreference?.setOnPreferenceClickListener {
+                androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext()).edit()
+                    .remove(DebianRuntime.PREF_CUSTOM_HOSTNAME).apply()
+                hostnamePreference?.text = ""
+                android.widget.Toast.makeText(requireContext(), R.string.pref_reset_custom_hostname_summary, android.widget.Toast.LENGTH_SHORT).show()
+                true
+            }
+
 
             findPreference<SwitchPreferenceCompat>("shared_folder_access")?.apply {
                 isPersistent = false
@@ -847,6 +885,10 @@ class SettingsActivity : AppCompatActivity() {
             }
             findPreference<Preference>("edit_extra_keys")?.setOnPreferenceClickListener {
                 (requireActivity() as SettingsActivity).editExtraKeys()
+                true
+            }
+            findPreference<Preference>("reset_extra_keys")?.setOnPreferenceClickListener {
+                (requireActivity() as SettingsActivity).resetExtraKeysToDefault()
                 true
             }
             findPreference<Preference>("check_updates")?.setOnPreferenceClickListener { preference ->

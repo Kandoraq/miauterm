@@ -180,6 +180,12 @@
     <string name="pref_cat_terminal">Terminal</string>
     <string name="pref_extra_keys_title">Customize extra keys</string>
     <string name="pref_extra_keys_summary">Choose visible buttons. Edit custom layouts in the Debian terminal.</string>
+    <string name="pref_reset_extra_keys_title" translatable="false">Reset extra keys</string>
+    <string name="pref_reset_extra_keys_summary" translatable="false">Restore the default two-row key layout.</string>
+    <string name="pref_reset_custom_dns_title" translatable="false">Reset DNS</string>
+    <string name="pref_reset_custom_dns_summary" translatable="false">Use DNS servers provided by Android.</string>
+    <string name="pref_reset_custom_hostname_title" translatable="false">Reset hostname</string>
+    <string name="pref_reset_custom_hostname_summary" translatable="false">Return the Debian hostname to localhost.</string>
     <string name="pref_about_title">About Miauterm</string>
     <string name="pref_about_summary" translatable="false">Project details, links and open-source notices</string>
     <string name="pref_check_updates_title" translatable="false">Check for updates</string>
