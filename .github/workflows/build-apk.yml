@@ -19,7 +19,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Install rootfs test tools
-        run: sudo apt-get update && sudo apt-get install -y zstd libcap2-bin
+        run: sudo apt-get update && sudo apt-get install -y zstd libcap2-bin gcc-aarch64-linux-gnu
       - uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
@@ -43,6 +43,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '8.7'
+      - name: Build ARM64 Debian port mapping library
+        run: bash scripts/build-port-remap.sh
       - name: Verify Debian commands and default home creation
         run: bash scripts/verify-rootfs.sh
       - name: Validate approved release tag against app version
@@ -78,6 +80,8 @@ jobs:
           "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$APK"
           "$BUILD_TOOLS/zipalign" -c -v 4 "$APK"
           unzip -t "$APK"
+          unzip -p "$APK" assets/libmiauterm-portmap.so > "$RUNNER_TEMP/miauterm-portmap.so"
+          readelf -h "$RUNNER_TEMP/miauterm-portmap.so" | grep -F 'AArch64'
           EXPECTED_ROOTFS_SHA="$(sha256sum app/src/main/assets/debian-arm64.tar.zst | cut -d ' ' -f 1)"
           PACKAGED_ROOTFS_SHA="$(unzip -p "$APK" assets/debian-arm64.tar.zst | sha256sum | cut -d ' ' -f 1)"
           test "$PACKAGED_ROOTFS_SHA" = "$EXPECTED_ROOTFS_SHA"
@@ -103,7 +107,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Install rootfs test tools
-        run: sudo apt-get update && sudo apt-get install -y zstd libcap2-bin
+        run: sudo apt-get update && sudo apt-get install -y zstd libcap2-bin gcc-aarch64-linux-gnu
       - uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
@@ -127,6 +131,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '8.7'
+      - name: Build ARM64 Debian port mapping library
+        run: bash scripts/build-port-remap.sh
       - name: Verify Debian commands and default home creation
         run: bash scripts/verify-rootfs.sh
       - name: Prepare release signing key
@@ -171,6 +177,8 @@ jobs:
           "$BUILD_TOOLS/aapt" dump badging "$OUT" | grep -F "package: name='com.miauterm.terminal'"
           "$BUILD_TOOLS/aapt" dump badging "$OUT" | grep -F "application-label:'Miauterm'"
           unzip -t "$OUT"
+          unzip -p "$OUT" assets/libmiauterm-portmap.so > "$RUNNER_TEMP/miauterm-portmap.so"
+          readelf -h "$RUNNER_TEMP/miauterm-portmap.so" | grep -F 'AArch64'
           EXPECTED_ROOTFS_SHA="$(sha256sum app/src/main/assets/debian-arm64.tar.zst | cut -d ' ' -f 1)"
           PACKAGED_ROOTFS_SHA="$(unzip -p "$OUT" assets/debian-arm64.tar.zst | sha256sum | cut -d ' ' -f 1)"
           test "$PACKAGED_ROOTFS_SHA" = "$EXPECTED_ROOTFS_SHA"

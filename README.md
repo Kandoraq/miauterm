@@ -46,7 +46,7 @@ Miauterm keeps the Debian root filesystem in the app's private files directory. 
 
 PRoot does not provide Android root privileges or a separate kernel mount namespace. This project does not offer a real `chroot` mode: starting one with device-wide root and shared mounts would cross the app's sandbox boundary. The Debian `root` account remains a PRoot-simulated identity.
 
-Rootless Android cannot reliably translate arbitrary guest `bind()` calls from privileged ports to other ports. Configure a server to listen directly on a high port, such as `2080` for an HTTP service that would normally use `80`, or `2443` for an HTTPS service that would normally use `443`. Miauterm does not currently rewrite those socket calls or create an automatic port forward.
+Miauterm maps guest server binds from port `80` to `2080` and `443` to `2443` using a small ARM64 glibc interposer loaded only inside Debian processes. Guest loopback connections to `80` and `443` follow the same mapping; connections to remote hosts are unchanged. The same guest-only library returns the configured Debian hostname to `gethostname()` and `uname()`, so tools such as Fastfetch see the guest name without changing Android's kernel hostname. This lets ordinary user-space programs use familiar values without Android root. Servers actually listen on `2080` and `2443`, which Miauterm uses in local server notifications. HTTPS detection accepts a local TLS handshake for service discovery; browser certificate trust remains the server's responsibility.
 
 When a session exits, PRoot's `--kill-on-exit` option and Miauterm's PTY process-group cleanup stop session children. Android can still retain a detached process that deliberately creates a new session of its own; PRoot cannot control processes that escape its process group.
 
@@ -68,6 +68,8 @@ Package compatibility depends on the program's kernel requirements, architecture
 
 - Bundled Debian 13 ARM64 root filesystem with first-run extraction progress.
 - PRoot terminal sessions, a failsafe shell, and Debian reset, backup, and restore tools.
+- Rootless Debian port mapping from guest ports `80`/`443` to Android-compatible `2080`/`2443`.
+- Manual GitHub release checks with an Android notification linking to the release page; APK download stays in the browser.
 - File browser for the app's Linux files, with file type and write-permission indicators.
 - Optional access to Android's Download and Documents folders. Access is off until enabled by the user.
 - Terminal themes, font selection, custom font reload, and configurable extra keys.
@@ -141,7 +143,7 @@ Download the signed ARM64 APK from the [Miauterm v0.1.1 release](https://github.
 - [Release APK SHA-256](https://github.com/Kandoraq/miauterm/releases/download/v0.1.1/Miauterm-v0.1.1-arm64.apk.sha256)
 - [Debug APK](https://github.com/Kandoraq/miauterm/releases/download/v0.1.1/Miauterm-arm64-debug.apk)
 
-The [Releases page](https://github.com/Kandoraq/miauterm/releases) contains the current APKs and their checksums. The [Build APK workflow](https://github.com/Kandoraq/miauterm/actions/workflows/build-apk.yml) runs rootfs validation and selected tests, builds ARM64 APKs, and verifies the release package before publishing it.
+The [Releases page](https://github.com/Kandoraq/miauterm/releases) contains the current APKs and their checksums. The [Build APK workflow](https://github.com/Kandoraq/miauterm/actions/workflows/build-apk.yml) validates the Debian rootfs, builds the ARM64 port mapping library and APK, and verifies the release package before publishing it. Use the Settings update check to receive a notification when GitHub has a newer release; it opens the release in your browser so the APK can be downloaded manually.
 
 ## Terminal commands and fonts
 
@@ -167,17 +169,19 @@ The app command service must be active for `miauterm-cmd` commands to reach Andr
 
 ## Build from source
 
-The GitHub Actions workflow is the project's release build path. It uses Java 17, Gradle 8.7, Android SDK platform 35, NDK 26.1.10909125, and CMake 3.22.1.
+The GitHub Actions workflow is the project's release build path. It uses Java 17, Gradle 8.7, Android SDK platform 34, NDK 26.1.10909125, and CMake 3.22.1.
 
-On a development computer with those tools installed, build a debug APK with:
+On a development computer with those tools installed, install the ARM64 glibc cross compiler, build the guest-only port mapping library, then run Gradle:
 
 ```sh
+sudo apt-get install gcc-aarch64-linux-gnu
+bash scripts/build-port-remap.sh
 ./gradlew :app:assembleDebug
 ```
 
 The APK is written under `app/build/outputs/apk/debug/`. The release variant requires the signing environment variables configured in `app/build.gradle.kts`; do not commit signing keys or passwords.
 
-To inspect CI build results, open [Actions](https://github.com/Kandoraq/miauterm/actions/workflows/build-apk.yml). The workflow also validates the bundled Debian root filesystem before building.
+To inspect CI build results, open [Actions](https://github.com/Kandoraq/miauterm/actions/workflows/build-apk.yml). The workflow builds the guest port mapping library, validates the bundled Debian root filesystem, and packages the ARM64 APK.
 
 ## Project structure
 
@@ -195,6 +199,8 @@ miauterm/
 │   └── src/
 │       ├── main/
 │       │   ├── AndroidManifest.xml
+│       │   ├── cpp/
+│       │   │   └── miauterm-portmap.c  # Guest glibc socket port remapping
 │       │   ├── assets/
 │       │   │   ├── debian-arm64.tar.zst
 │       │   │   ├── fonts/
@@ -236,6 +242,7 @@ miauterm/
 │   ├── libs.versions.toml
 │   └── wrapper/
 ├── scripts/
+│   ├── build-port-remap.sh
 │   ├── package-debian-rootfs.sh
 │   ├── sanitize-rootfs-tar.py
 │   └── verify-rootfs.sh

@@ -269,7 +269,7 @@
     <string name="files_path_copied">Copied Debian path: %1$s</string>
     <string name="debian_storage_error">Not enough storage space to complete this operation.</string>
 
-    <string name="pref_cat_support" translatable="false">Updates &amp; Support</string>
+    <string name="pref_cat_updates_support" translatable="false">Updates &amp; Support</string>
     <string name="pref_bug_report_title">Send a bug report</string>
 
     <string name="bug_report_chooser">Send the bug report with</string>

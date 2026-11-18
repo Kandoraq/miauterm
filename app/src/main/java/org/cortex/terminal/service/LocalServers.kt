@@ -194,9 +194,10 @@ class LocalServers(private val context: Context, private val root: File) {
         val p = pending[port] ?: return
         val now = SystemClock.elapsedRealtime()
         if (!enabled() || now < p.nextCheck) return
-        if (probeWithTimeout { answersHttp(port) }) {
+        val secure = probeWithTimeout { answersHttps(port) }
+        if (secure || probeWithTimeout { answersHttp(port) }) {
             pending.remove(port)
-            show(port, p.program)
+            show(port, p.program, secure)
         } else if (now - p.since > GIVE_UP_MS) {
             pending.remove(port)
             ignored += port
@@ -266,6 +267,30 @@ class LocalServers(private val context: Context, private val root: File) {
         }
     }
 
+    private fun answersHttps(port: Int): Boolean = LOOPBACKS.any { address ->
+        try {
+            Socket().use { raw ->
+                raw.connect(InetSocketAddress(address, port), CONNECT_TIMEOUT_MS)
+                val tls = LOCAL_TLS_SOCKET_FACTORY.createSocket(raw, "localhost", port, true) as javax.net.ssl.SSLSocket
+                tls.use {
+                    it.soTimeout = READ_TIMEOUT_MS
+                    it.startHandshake()
+                    it.getOutputStream().write("HEAD / HTTP/1.0\r\nHost: localhost:$port\r\n\r\n".toByteArray())
+                    val response = ByteArray(8)
+                    var count = 0
+                    while (count < response.size) {
+                        val read = it.getInputStream().read(response, count, response.size - count)
+                        if (read < 0) break
+                        count += read
+                    }
+                    ServerPorts.isHttpResponse(String(response, 0, count, Charsets.ISO_8859_1))
+                }
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     private fun answersHttp(port: Int): Boolean = LOOPBACKS.any { address ->
         try {
             Socket().use { socket ->
@@ -286,7 +311,7 @@ class LocalServers(private val context: Context, private val root: File) {
         }
     }
 
-    private fun show(port: Int, program: String?) {
+    private fun show(port: Int, program: String?, secure: Boolean) {
         synchronized(stateLock) {
             if (stopped) return
             val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -299,7 +324,8 @@ class LocalServers(private val context: Context, private val root: File) {
                     }
                 )
             }
-            val url = "http://localhost:$port/"
+            val scheme = if (secure) "https" else "http"
+            val url = "$scheme://localhost:$port/"
             val flags = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
             val open = PendingIntent.getActivity(
                 context, port,
@@ -343,5 +369,12 @@ class LocalServers(private val context: Context, private val root: File) {
         private const val READ_TIMEOUT_MS = 1500
         private const val PROBE_LIMIT_MS = 2500L
         private val LOOPBACKS = listOf(InetAddress.getByName("127.0.0.1"), InetAddress.getByName("::1"))
+        private val LOCAL_TLS_SOCKET_FACTORY = javax.net.ssl.SSLContext.getInstance("TLS").apply {
+            init(null, arrayOf(object : javax.net.ssl.X509TrustManager {
+                override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = emptyArray()
+                override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) = Unit
+                override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) = Unit
+            }), java.security.SecureRandom())
+        }.socketFactory
     }
 }

@@ -48,8 +48,9 @@ android {
         }
     }
 
-    androidResources {
+    sourceSets.getByName("main").assets.srcDir(file("$buildDir/generated/port-remap-assets"))
 
+    androidResources {
         noCompress += listOf("zst")
     }
 

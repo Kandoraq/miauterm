@@ -41,6 +41,8 @@ object DebianRuntime {
     private const val VERSION = 19
     private const val ROOTFS_ASSET = "debian-arm64.tar.zst"
     private const val PROOT_ASSET_DIR = "proot/arm64-v8a"
+    private const val PORT_REMAP_ASSET = "libmiauterm-portmap.so"
+    private const val PORT_REMAP_GUEST_PATH = "/usr/lib/miauterm/libportmap.so"
     private val prootFiles = listOf("proot", "loader", "libtalloc.so.2", "libandroid-shmem.so")
     private val essentialCommands = listOf(
         "usr/bin/passwd",
@@ -434,8 +436,8 @@ object DebianRuntime {
             "Miauterm checks Debian usr-merge links before startup: `/bin -> usr/bin`, `/sbin -> usr/sbin`, and `/lib -> usr/lib`. Matching files are merged; conflicting files stop repair without being overwritten. The bundled and validated rootfs is Debian ARM64. Other distributions are not supported by Debian startup checks.\n\n" +
             "Use Miauterm Settings to view or clear PRoot diagnostics, open a failsafe session, read the rootfs and symlink guide, back up or restore files, or reset the bundled Debian system. Export a backup before replacing files if you need to keep them.\n\n" +
             "## Network settings\n\n" +
-            "Set custom DNS servers and a Debian hostname from Miauterm Settings > Network. DNS accepts up to three IPv4 or IPv6 addresses separated by commas. Leave it blank to use Android-provided DNS with public fallbacks. The hostname sets the shell prompt, `\$HOSTNAME`, `\$MIAUTERM_HOSTNAME`, and `/etc/hostname`; PRoot cannot change Android's kernel hostname. Fastfetch and other tools that read Linux process and hardware data use the bound `/proc` and `/sys` views.\n\n" +
-            "Configure guest web servers on unprivileged ports. Use 2080 where a guide normally says port 80, and 2443 where it normally says port 443. PRoot cannot transparently rewrite socket bind calls into Android port forwards. For outgoing SSH, Miauterm attempts to install Debian's `openssh-client` during rootfs setup when network access is available. If `ssh` is still missing, run `apt install openssh-client`, then connect with `ssh user@host`. Miauterm does not start an SSH server.\n\n" +
+            "Set custom DNS servers and a Debian hostname from Miauterm Settings > Network. DNS accepts up to three IPv4 or IPv6 addresses separated by commas. Leave it blank to use Android-provided DNS with public fallbacks. The hostname sets the shell prompt, `\$HOSTNAME`, `\$MIAUTERM_HOSTNAME`, `/etc/hostname`, and the guest results of `gethostname()` and `uname()` used by Fastfetch. Android's kernel hostname is unchanged. Debian process and hardware reporting use the bound `/proc` and `/sys` views.\n\n" +
+            "Miauterm maps guest server binds from port 80 to 2080 and 443 to 2443. Loopback clients use the same mapping; connections to remote hosts keep their original ports. Guest services listen on the mapped high ports, which are also shown in local server notifications. For outgoing SSH, Miauterm attempts to install Debian's `openssh-client` during rootfs setup when network access is available. If `ssh` is still missing, run `apt install openssh-client`, then connect with `ssh user@host`. Miauterm does not start an SSH server.\n\n" +
             "Miauterm checks GitHub Releases only when you tap Settings > Updates & Support > Check for updates. If a newer release exists, Android shows a notification that opens the release page in your browser; APK download and installation remain manual.\n\n" +
             "The next release codename is Miauterm Coral. It is a codename only and does not replace the app's version number.\n\n" +
             "The `root` shell identity is simulated by PRoot; it is not Android root. Linux account names do not create separate Android security identities. Miauterm does not start a privileged chroot session.\n"
@@ -854,9 +856,45 @@ object DebianRuntime {
         val shell = account.shell.takeIf { it.startsWith("/") && File(rootfs, it.removePrefix("/")).canExecute() }
             ?: shellPath(rootfs)?.let { "/" + it.relativeTo(rootfs).invariantSeparatorsPath }
             ?: "/bin/sh"
-        args += listOf(shell, "-l", "-i")
+        if (installPortRemapLibrary(context, rootfs)) {
+            args += listOf(
+                "/usr/bin/env",
+                "LD_PRELOAD=$PORT_REMAP_GUEST_PATH",
+                "MIAUTERM_PORT_REMAP=80:2080,443:2443",
+                shell,
+                "-l",
+                "-i"
+            )
+        } else {
+            args += listOf(shell, "-l", "-i")
+        }
         return args.toTypedArray()
     }
+
+    private fun installPortRemapLibrary(context: Context, root: File): Boolean = runCatching {
+        val rootPath = root.canonicalFile
+        val env = File(rootPath, "usr/bin/env")
+        check(env.isFile && env.canExecute() && isArm64Elf(env)) {
+            "Debian /usr/bin/env is unavailable; guest port mapping is disabled"
+        }
+        val library = File(rootPath, PORT_REMAP_GUEST_PATH.removePrefix("/"))
+        var parent = library.parentFile ?: error("Invalid port map library path")
+        while (parent != rootPath && parent != null) {
+            check(!ElfLinkerPatcher.isSymlink(parent)) { "Port map directory is a symlink: ${parent.path}" }
+            check(parent.canonicalFile.path.startsWith(rootPath.path + File.separator)) {
+                "Port map directory leaves the Debian root filesystem"
+            }
+            parent = parent.parentFile
+        }
+        val bytes = context.assets.open(PORT_REMAP_ASSET).use { it.readBytes() }
+        FileInstaller.install(library, bytes, 420)
+        check(FileInstaller.holds(library, bytes)) { "Port map library verification failed" }
+        recordRuntimeEvent(context, "Guest ports 80 and 443 are mapped to 2080 and 2443")
+        true
+    }.onFailure { error ->
+        Log.w(TAG, "Guest port mapping is unavailable", error)
+        recordRuntimeEvent(context, "Guest port mapping unavailable: ${error.message ?: error.javaClass.simpleName}")
+    }.getOrDefault(false)
 
 
     private fun appendPseudoFilesystemBinds(args: MutableList<String>, rootfs: File) {
