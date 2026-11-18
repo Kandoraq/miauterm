@@ -522,8 +522,7 @@ object DebianRuntime {
             watchdog.interrupt()
         }
         if (timedOut.get()) {
-            process.destroyForcibly()
-            runCatching { process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS) }
+            process.destroy()
             throw IllegalStateException("Linux command timed out after ${timeoutMs / 1000} seconds")
         }
         return output.toString().trim() to process.waitFor()
