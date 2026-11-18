@@ -308,13 +308,13 @@ object ApiCommands {
 
     private fun fileUri(context: Context, path: String): Pair<Uri, String> {
         val file = File(ApiPaths.toAndroid(Environment.getCortexRoot(context).absolutePath, path))
-        if (!file.exists()) throw IllegalArgumentException("no such file: $path")
-        if (file.isDirectory) throw IllegalArgumentException("$path is a directory")
         val uri = try {
             FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
         } catch (e: IllegalArgumentException) {
             throw IllegalArgumentException("only files in Miauterm and in shared storage can be opened by other apps")
         }
+        if (!file.exists()) throw IllegalArgumentException("no such file: $path")
+        if (file.isDirectory) throw IllegalArgumentException("$path is a directory")
         val ext = file.extension.lowercase()
         val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
             ?: if (ext in textExtensions) "text/plain" else "application/octet-stream"
@@ -393,7 +393,12 @@ object ApiCommands {
                     finish("speaking failed")
                 }
             }
-            if (done.count == 0L) created.shutdown() else engine.set(created)
+            if (done.count == 0L) {
+                created.shutdown()
+            } else {
+                engine.set(created)
+                if (done.count == 0L) engine.getAndSet(null)?.shutdown()
+            }
         }
         if (!done.await(120, TimeUnit.SECONDS)) {
             main.post { finish("timed out") }
@@ -410,9 +415,13 @@ object ApiCommands {
             else -> throw IllegalArgumentException("usage: wakelock on|off|status")
         }
         if (CortexService.isWakeLockHeld != want) {
-            context.startService(Intent(context, CortexService::class.java).setAction(CortexService.ACTION_TOGGLE_WAKELOCK))
-            val deadline = SystemClock.uptimeMillis() + 3000
-            while (CortexService.isWakeLockHeld != want && SystemClock.uptimeMillis() < deadline) SystemClock.sleep(50)
+            if (!CortexService.setWakeLock(context, want)) {
+                return fail("wake lock service is unavailable")
+            }
+            val deadline = SystemClock.uptimeMillis() + 1500
+            while (CortexService.isWakeLockHeld != want && SystemClock.uptimeMillis() < deadline) {
+                Thread.sleep(25)
+            }
         }
         return ok(if (CortexService.isWakeLockHeld) "on" else "off")
     }

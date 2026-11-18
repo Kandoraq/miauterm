@@ -12,10 +12,11 @@ def main() -> None:
     host_prefix = rootfs_dir + os.sep
     rewritten = 0
     with tarfile.open(source_path, mode="r:") as source, tarfile.open(
-        output_path, mode="w", format=tarfile.GNU_FORMAT
+        output_path, mode="w", format=tarfile.PAX_FORMAT
     ) as output:
         for member in source:
             safe_member = copy.copy(member)
+            safe_member.pax_headers = dict(member.pax_headers)
             target = member.linkname
             if member.issym() and target.startswith(host_prefix):
                 guest_target = target[len(host_prefix):]

@@ -15,14 +15,17 @@ internal object MiautermCommandInstaller {
         FileInstaller.install(command, script, MODE_EXECUTABLE)
         check(command.canExecute()) { "Could not make miauterm-cmd executable" }
         FileInstaller.symlink("miauterm-cmd", File(root, NOTIFY_SEND_PATH))
-        removeLegacySu(context, root)
+        removeLegacySu(root)
     }
 
-    fun removeLegacySu(context: Context, root: File) {
+    fun removeLegacySu(root: File) {
         val legacySu = File(root, LEGACY_SU_PATH)
-        val legacyScript = context.assets.open("miauterm-su").use { it.readBytes() }
-        if (FileInstaller.holds(legacySu, legacyScript)) {
-            check(legacySu.delete()) { "Could not remove the legacy Miauterm su wrapper" }
+        val content = runCatching { legacySu.readText() }.getOrNull() ?: return
+        if (content.contains("miauterm-cmd run su") && !legacySu.delete()) {
+            android.util.Log.w(
+                "MiautermCommandInstaller",
+                "Could not remove the legacy Miauterm su wrapper at ${legacySu.path}"
+            )
         }
     }
 

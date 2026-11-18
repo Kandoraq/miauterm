@@ -1,16 +1,25 @@
 name: Build Miauterm APK
 on:
   workflow_dispatch:
-permissions:
-  contents: write
+    inputs:
+      release_tag:
+        description: 'Founder-approved release tag (for example v0.1.1). Leave empty to build without publishing.'
+        required: false
+        default: ''
+        type: string
+permissions: {}
 jobs:
   debug:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Install rootfs test tools
-        run: sudo apt-get update && sudo apt-get install -y zstd
+        run: sudo apt-get update && sudo apt-get install -y zstd libcap2-bin
       - uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
@@ -24,7 +33,7 @@ jobs:
       - name: Install Android build tools
         run: |
           for attempt in 1 2 3; do
-            if sdkmanager "platforms;android-35" "ndk;26.1.10909125" "cmake;3.22.1"; then
+            if sdkmanager "platforms;android-34" "ndk;26.1.10909125" "cmake;3.22.1"; then
               exit 0
             fi
             echo "sdkmanager failed at attempt $attempt" >&2
@@ -35,7 +44,24 @@ jobs:
         with:
           gradle-version: '8.7'
       - name: Verify Debian commands and default home creation
-        run: bash scripts/verify-rootfs.sh --net
+        run: bash scripts/verify-rootfs.sh
+      - name: Validate approved release tag against app version
+        if: inputs.release_tag != ''
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n 1)"
+          test -n "$version" || { echo "versionName not found in app/build.gradle.kts" >&2; exit 1; }
+          test "$RELEASE_TAG" = "v$version" || { echo "Release tag $RELEASE_TAG does not match versionName $version" >&2; exit 1; }
+          code="$(sed -n 's/^[[:space:]]*versionCode[[:space:]]*=[[:space:]]*\([0-9][0-9]*\).*/\1/p' app/build.gradle.kts | head -n 1)"
+          test -n "$code" || { echo "versionCode not found in app/build.gradle.kts" >&2; exit 1; }
+          if git rev-parse "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            test "$(git rev-list -n 1 "$RELEASE_TAG")" = "$GITHUB_SHA" || {
+              echo "Release tag $RELEASE_TAG does not point at the checked-out commit" >&2
+              exit 1
+            }
+          fi
       - name: Run all unit tests
         run: ./gradlew --no-daemon test
       - name: Run Android lint
@@ -64,14 +90,20 @@ jobs:
           if-no-files-found: error
           retention-days: 14
   release:
-    if: github.ref_type == 'tag'
+    if: inputs.release_tag != ''
     needs: debug
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.release_tag }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Install rootfs test tools
-        run: sudo apt-get update && sudo apt-get install -y zstd
+        run: sudo apt-get update && sudo apt-get install -y zstd libcap2-bin
       - uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
@@ -85,7 +117,7 @@ jobs:
       - name: Install Android build tools
         run: |
           for attempt in 1 2 3; do
-            if sdkmanager "platforms;android-35" "ndk;26.1.10909125" "cmake;3.22.1"; then
+            if sdkmanager "platforms;android-34" "ndk;26.1.10909125" "cmake;3.22.1"; then
               exit 0
             fi
             echo "sdkmanager failed at attempt $attempt" >&2
@@ -110,11 +142,12 @@ jobs:
           test -n "$RELEASE_KEY_PASSWORD"
           KEYSTORE="$RUNNER_TEMP/miauterm-release.p12"
           printf '%s' "$RELEASE_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
-          echo "RELEASE_STORE_FILE=$KEYSTORE" >> "$GITHUB_ENV"
-          echo "RELEASE_STORE_PASSWORD=$RELEASE_STORE_PASSWORD" >> "$GITHUB_ENV"
-          echo "RELEASE_KEY_ALIAS=$RELEASE_KEY_ALIAS" >> "$GITHUB_ENV"
-          echo "RELEASE_KEY_PASSWORD=$RELEASE_KEY_PASSWORD" >> "$GITHUB_ENV"
       - name: Build signed release APK
+        env:
+          RELEASE_STORE_FILE: ${{ runner.temp }}/miauterm-release.p12
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: ./gradlew --no-daemon :app:assembleRelease
       - name: Verify and package direct APK download
         run: |
@@ -122,8 +155,12 @@ jobs:
           mkdir -p dist
           APK="$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
           test -n "$APK"
-          OUT="dist/Miauterm-${GITHUB_REF_NAME}-arm64.apk"
+          OUT="dist/Miauterm-${RELEASE_TAG}-arm64.apk"
           cp "$APK" "$OUT"
+          MAPPING="app/build/outputs/mapping/release/mapping.txt"
+          test -f "$MAPPING"
+          MAPPING_OUT="dist/Miauterm-${RELEASE_TAG}-mapping.txt"
+          cp "$MAPPING" "$MAPPING_OUT"
           BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner -print | sort -V | tail -n 1 | xargs dirname)"
           "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$OUT"
           EXPECTED_SIGNER_SHA256="${{ secrets.RELEASE_SIGNER_SHA256 }}"
@@ -138,6 +175,7 @@ jobs:
           PACKAGED_ROOTFS_SHA="$(unzip -p "$OUT" assets/debian-arm64.tar.zst | sha256sum | cut -d ' ' -f 1)"
           test "$PACKAGED_ROOTFS_SHA" = "$EXPECTED_ROOTFS_SHA"
           (cd dist && sha256sum "$(basename "$OUT")" > "$(basename "$OUT").sha256")
+          (cd dist && sha256sum "$(basename "$MAPPING_OUT")" > "$(basename "$MAPPING_OUT").sha256")
       - name: Download the debug APK built above
         uses: actions/download-artifact@v8
         with:
@@ -147,20 +185,21 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          RELEASE_FILES=(dist/*.apk dist/*.sha256)
+          set -euo pipefail
+          RELEASE_FILES=(dist/*.apk dist/*.sha256 dist/*.txt)
           if [ -d debug-dist ]; then
             RELEASE_FILES+=(debug-dist/Miauterm-arm64-debug.apk debug-dist/Miauterm-arm64-debug.apk.sha256)
           fi
-          NOTES_FILE=".github/release-notes/${GITHUB_REF_NAME}.md"
-          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" "${RELEASE_FILES[@]}" --repo "$GITHUB_REPOSITORY" --clobber
+          NOTES_FILE=".github/release-notes/${RELEASE_TAG}.md"
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${RELEASE_FILES[@]}" --repo "$GITHUB_REPOSITORY" --clobber
             if [ -f "$NOTES_FILE" ]; then
-              gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --notes-file "$NOTES_FILE" --latest --title "Miauterm $GITHUB_REF_NAME"
+              gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --notes-file "$NOTES_FILE" --latest --title "Miauterm $RELEASE_TAG"
             else
-              gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --latest --title "Miauterm $GITHUB_REF_NAME"
+              gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --latest --title "Miauterm $RELEASE_TAG"
             fi
           elif [ -f "$NOTES_FILE" ]; then
-            gh release create "$GITHUB_REF_NAME" "${RELEASE_FILES[@]}" --repo "$GITHUB_REPOSITORY" --notes-file "$NOTES_FILE" --latest --title "Miauterm $GITHUB_REF_NAME"
+            gh release create "$RELEASE_TAG" "${RELEASE_FILES[@]}" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --notes-file "$NOTES_FILE" --latest --title "Miauterm $RELEASE_TAG"
           else
-            gh release create "$GITHUB_REF_NAME" "${RELEASE_FILES[@]}" --repo "$GITHUB_REPOSITORY" --generate-notes --latest --title "Miauterm $GITHUB_REF_NAME"
+            gh release create "$RELEASE_TAG" "${RELEASE_FILES[@]}" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --generate-notes --latest --title "Miauterm $RELEASE_TAG"
           fi

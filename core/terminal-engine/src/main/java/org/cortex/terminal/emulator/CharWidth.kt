@@ -5,6 +5,7 @@ object CharWidth {
     const val FIRST_NOT_NARROW = 0x1100
 
     fun of(cp: Int): Int {
+        if (cp < 0x0300) return 1
         if (inTable(COMBINING, cp)) return 0
         if (cp < FIRST_NOT_NARROW) return 1
 
@@ -14,7 +15,9 @@ object CharWidth {
         return 1
     }
 
-    fun of(c: Char): Int = if (c.code < FIRST_NOT_NARROW) 1 else of(c.code)
+    fun of(c: Char): Int = of(c.code)
+
+    fun isNarrow(c: Char): Boolean = c.code < 0x0300 || (c.code < FIRST_NOT_NARROW && of(c.code) == 1)
 
     private fun inTable(table: IntArray, cp: Int): Boolean {
         var lo = 0

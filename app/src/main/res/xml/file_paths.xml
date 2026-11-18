@@ -5,5 +5,6 @@
     <cache-path name="cortex_reports" path="reports/" />
     <!-- miauterm-cmd open/share: files in the rootfs and in shared storage -->
     <files-path name="cortex_rootfs" path="debian/" />
-    <external-path name="shared_storage" path="." />
+    <external-path name="shared_downloads" path="Download/" />
+    <external-path name="shared_documents" path="Documents/" />
 </paths>

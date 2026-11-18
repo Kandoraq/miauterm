@@ -47,6 +47,8 @@ class TerminalRow(val cols: Int) {
     }
 
     private fun blankCell(i: Int) {
+        val wasWide = chars[i] == WIDE_TAIL || chars[i] == ASTRAL || Character.isSurrogate(chars[i]) ||
+            (chars[i].code >= CharWidth.FIRST_NOT_NARROW && CharWidth.of(chars[i]) == 2)
         chars[i] = ' '
         fgColors[i] = TerminalColor.DEFAULT_FG
         bgColors[i] = TerminalColor.DEFAULT_BG
@@ -56,7 +58,19 @@ class TerminalRow(val cols: Int) {
         isUrlLink[i] = false
         setLink(i, null)
         astral?.let { if (i in it.indices) it[i] = 0 }
-        if (!links.isNullOrEmpty()) hasWide = chars.any { it == WIDE_TAIL || Character.isSurrogate(it) }
+        if (hasWide && wasWide) hasWide = containsWide()
+    }
+
+    private fun containsWide(): Boolean {
+        for (i in 0 until cols) {
+            val ch = chars[i]
+            if (ch == WIDE_TAIL || ch == ASTRAL || Character.isSurrogate(ch) ||
+                (ch.code >= CharWidth.FIRST_NOT_NARROW && CharWidth.of(ch) == 2)
+            ) {
+                return true
+            }
+        }
+        return false
     }
 
     private fun removeBrokenWide() {
@@ -281,8 +295,10 @@ class TerminalRow(val cols: Int) {
             isSearchCurrent[i] = false
             isUrlLink[i] = false
             links?.let { l -> if (i in l.indices) l[i] = null }
+            astral?.let { a -> if (i in a.indices) a[i] = 0 }
         }
-        if (hasWide) removeBrokenWide()
+        removeBrokenWide()
+        hasWide = containsWide()
     }
 
     fun insertChars(startCol: Int, count: Int, fg: Int = TerminalColor.DEFAULT_FG, bg: Int = TerminalColor.DEFAULT_BG) {
@@ -309,8 +325,10 @@ class TerminalRow(val cols: Int) {
             isSearchCurrent[i] = false
             isUrlLink[i] = false
             links?.let { l -> if (i in l.indices) l[i] = null }
+            astral?.let { a -> if (i in a.indices) a[i] = 0 }
         }
-        if (hasWide) removeBrokenWide()
+        removeBrokenWide()
+        hasWide = containsWide()
     }
 
     fun appendText(sb: StringBuilder, from: Int, to: Int) {

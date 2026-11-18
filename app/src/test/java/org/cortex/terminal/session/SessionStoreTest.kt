@@ -3,6 +3,7 @@ package org.cortex.terminal.session
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -54,8 +55,8 @@ class SessionStoreTest {
     fun longOutputKeepsItsEndFromALine() {
         val long = (1..20000).joinToString("\n") { "line $it" }
         val kept = SessionStore.trimOutput(long)
-        assert(kept.length <= SessionStore.MAX_CHARS)
-        assert(kept.startsWith("line ") && kept.endsWith("line 20000"))
+        assertTrue(kept.length <= SessionStore.MAX_CHARS)
+        assertTrue(kept.startsWith("line ") && kept.endsWith("line 20000"))
         assertEquals("short output stays", "a\nb", SessionStore.trimOutput("a\nb"))
     }
 }

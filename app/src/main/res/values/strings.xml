@@ -186,6 +186,8 @@
     <string name="debian_reset_confirm_message">This replaces the current Debian system with the bundled original and removes packages and files added since installation. Export a backup first if you need to keep them.</string>
     <string name="debian_restore_confirm_title">Replace Debian?</string>
     <string name="debian_restore_confirm_message">The selected backup replaces the current Debian system. Create a backup first if you need to keep it.</string>
+    <string name="debian_reinstall_confirm_title">Replace Debian system?</string>
+    <string name="debian_reinstall_confirm_message">The installed Debian system could not be verified or does not match the bundled version. Replacing it removes packages and files added since installation. Export a backup first if you need to keep them.</string>
     <string name="debian_operation_running">Working with Debian…</string>
     <string name="debian_operation_failed">Debian operation failed: %1$s</string>
     <string name="operation_failed_unknown">unknown error</string>
@@ -216,6 +218,7 @@
     <string name="files_list_error">Could not read this folder.</string>
     <string name="files_more_actions">Actions for %1$s</string>
     <string name="files_preview_too_large">Preview supports files up to 256 KB.</string>
+    <string name="files_binary_preview">Binary file preview is unavailable.</string>
     <string name="files_new_file">New file</string>
     <string name="files_new_folder">New folder</string>
     <string name="files_go_up">Go up</string>

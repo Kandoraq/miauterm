@@ -381,7 +381,11 @@ Java_org_cortex_terminal_pty_PtyNative_killProcess(
     jint pid,
     jint sig
 ) {
-    kill(pid, sig);
+    if (pid > 0 && kill(-pid, sig) < 0) {
+        kill(pid, sig);
+    } else if (pid <= 0) {
+        kill(pid, sig);
+    }
 }
 
 JNIEXPORT void JNICALL

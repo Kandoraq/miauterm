@@ -5,7 +5,6 @@ import android.content.res.ColorStateList
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import android.view.View
 import android.view.WindowManager
 import android.widget.ImageView
@@ -51,10 +50,8 @@ class MainActivity : AppCompatActivity() {
 
         private val bootstrapLock = Any()
         private var bootstrapInProgress = false
+        private const val REQUEST_POST_NOTIFICATIONS = 1001
 
-        @Volatile
-        private var startupCleanupDone = false
-        private val maintenanceStarted = java.util.concurrent.atomic.AtomicBoolean(false)
     }
 
     private lateinit var binding: ActivityMainBinding
@@ -78,12 +75,15 @@ class MainActivity : AppCompatActivity() {
     private var waitingForNotificationPrompt = false
     private var notificationPromptInterruptedActivity = false
     private var bootstrapDialog: BootstrapDialog? = null
+    @Volatile
+    private var bootstrapCancelled = false
     private var removedRootfsNoticeShown = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        DebianRuntime.reinstallConfirmation = { confirmRootfsReinstall() }
         extraKeysConfig = ExtraKeysConfig(Environment.getHomeDir(this))
 
         sessionManager = CortexService.getOrCreateSessionManager(this)
@@ -97,8 +97,10 @@ class MainActivity : AppCompatActivity() {
             val edgeSizeField = leftDragger.javaClass.getDeclaredField("mEdgeSize")
             edgeSizeField.isAccessible = true
             val density = resources.displayMetrics.density
-            edgeSizeField.setInt(leftDragger, (40 * density).toInt())
-        } catch (e: Exception) {}
+            edgeSizeField.setInt(leftDragger, (TerminalView.EDGE_SLOP_DP * density).toInt())
+        } catch (e: Exception) {
+            android.util.Log.w("MainActivity", "Could not widen the drawer edge", e)
+        }
 
         terminalView.onTerminalTouchWhenDrawerOpen = {
             if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
@@ -116,6 +118,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         extraKeysView.terminalView = terminalView
+        terminalView.onSessionChanged = { extraKeysView.clearLatch() }
         extraKeysView.onMenuClick = {
             if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
                 drawerLayout.closeDrawer(GravityCompat.START)
@@ -168,10 +171,27 @@ class MainActivity : AppCompatActivity() {
                     ).apply { description = getString(R.string.notif_channel_description) }
                 )
 
+                requestPermissions(
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                    REQUEST_POST_NOTIFICATIONS
+                )
                 return
             }
         }
         initializeRuntime()
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_POST_NOTIFICATIONS) {
+            waitingForNotificationPrompt = false
+            notificationPromptInterruptedActivity = false
+            if (!isFinishing && !isDestroyed) initializeRuntime()
+        }
     }
 
     private fun initializeRuntime() {
@@ -255,10 +275,13 @@ class MainActivity : AppCompatActivity() {
             showRemovedRootfsDialog()
         } else if (!systemReady) {
             isBootstrapping = true
+            bootstrapCancelled = false
             val progress = BootstrapDialog(this)
             bootstrapDialog = progress
+            progress.setOnCancel { bootstrapCancelled = true }
+            val progressRef = java.lang.ref.WeakReference(progress)
             try {
-                progress?.show()
+                progress.show()
             } catch (e: Exception) {
                 android.util.Log.e("MainActivity", "Failed to show progress dialog", e)
             }
@@ -266,10 +289,13 @@ class MainActivity : AppCompatActivity() {
 
                 val success = try {
                     runBootstrapOnce { percent ->
-                        runOnUiThread {
-                            if (progress != null) {
-                                progress.isIndeterminate = false
-                                progress.progress = percent
+                        if (!bootstrapCancelled) {
+                            runOnUiThread {
+                                val dialog = progressRef.get() ?: return@runOnUiThread
+                                if (!isFinishing && !isDestroyed && !bootstrapCancelled && dialog.isShowing) {
+                                    dialog.isIndeterminate = false
+                                    dialog.progress = percent
+                                }
                             }
                         }
                     }
@@ -280,14 +306,11 @@ class MainActivity : AppCompatActivity() {
 
                 runOnUiThread {
                     try {
-                        if (progress != null && progress.isShowing) {
-                            progress.dismiss()
-                        }
+                        progressRef.get()?.takeIf { it.isShowing }?.dismiss()
                     } catch (e: Exception) {}
                     bootstrapDialog = null
                     isBootstrapping = false
-                    if (isFinishing || isDestroyed) {
-
+                    if (isFinishing || isDestroyed || bootstrapCancelled) {
                         return@runOnUiThread
                     }
                     if (success) {
@@ -316,6 +339,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun confirmExit() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.exit_confirm_title)
+            .setMessage(R.string.exit_confirm_message)
+            .setPositiveButton(R.string.yes) { _, _ ->
+                CortexService.instance?.exitAll() ?: run {
+                    sessionManager.destroyAll()
+                    finish()
+                }
+            }
+            .setNegativeButton(R.string.no, null)
+            .showInChrome()
+    }
+
     private fun closeSession(index: Int) {
         val session = sessionManager.sessionAt(index) ?: return
         if (sessionManager.sessionCount() > 1) {
@@ -324,17 +361,7 @@ class MainActivity : AppCompatActivity() {
             refreshTabs()
             CortexService.updateNotification(this)
         } else {
-            AlertDialog.Builder(this)
-                .setTitle(R.string.exit_confirm_title)
-                .setMessage(R.string.exit_confirm_message)
-                .setPositiveButton(R.string.yes) { _, _ ->
-                    CortexService.instance?.exitAll() ?: run {
-                        sessionManager.destroyAll()
-                        finish()
-                    }
-                }
-                .setNegativeButton(R.string.no, null)
-                .showInChrome()
+            confirmExit()
         }
     }
 
@@ -362,7 +389,7 @@ class MainActivity : AppCompatActivity() {
             terminalView.removeCallbacks(applyExtraKeysRunnable)
             terminalView.postDelayed(applyExtraKeysRunnable, 150)
         }
-        if (!::sessionManager.isInitialized) return
+        if (!::sessionManager.isInitialized || !::sessionAdapter.isInitialized) return
         val failsafeSessionActive = pendingFailsafeSession || sessionManager.currentSession?.failsafeMode == true
         if (!failsafeSessionActive && DebianRuntime.isRemoved(this) && !removedRootfsNoticeShown) {
             showRemovedRootfsDialog()
@@ -371,7 +398,7 @@ class MainActivity : AppCompatActivity() {
             runCatching { MiautermCommandInstaller.install(this, Environment.getCortexRoot(this)) }
                 .onFailure { android.util.Log.e("MainActivity", "Could not update miauterm-cmd in Debian", it) }
         }
-        val current = sessionManager.currentSession
+        var current = sessionManager.currentSession
         if (current != null) {
             terminalView.session = current
         } else if (!isBootstrapping && DebianRuntime.isInstalled(this) && sessionManager.sessionCount() == 0 && !pendingFailsafeSession) {
@@ -381,11 +408,14 @@ class MainActivity : AppCompatActivity() {
             pendingFailsafeSession = false
             createNewSession(failsafeMode = true)
         }
+        current = sessionManager.currentSession
         if (!isBootstrapping && DebianRuntime.isInstalled(this)) {
             pendingSessionCommand?.let { command ->
-                pendingSessionCommand = null
-
-                createNewSession().write("$command\r")
+                val target = current ?: createNewSession()
+                if (target.isRunning) {
+                    pendingSessionCommand = null
+                    target.write("$command\r")
+                }
             }
         }
         terminalView.requestLayout()
@@ -443,13 +473,25 @@ class MainActivity : AppCompatActivity() {
         return terminalView.setTerminalFont(fontKey, forceReload = true)
     }
 
+    private var appliedPreferencesKey: String? = null
+
     private fun applyPreferences() {
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        val signature = listOf(
+            prefs.getString("terminal_font_size", "11"),
+            prefs.getString("terminal_font", "jetbrains_mono"),
+            prefs.getBoolean("show_session_tabs", true),
+            prefs.getBoolean("keep_screen_on", false),
+            prefs.getBoolean("secure_screen", false),
+            org.cortex.terminal.emulator.TerminalColor.currentThemeId
+        ).joinToString("|")
+        if (signature == appliedPreferencesKey) return
+        appliedPreferencesKey = signature
         val fontSizeStr = prefs.getString("terminal_font_size", "11") ?: "11"
         val fontSize = fontSizeStr.toFloatOrNull() ?: 11f
         terminalView.setTerminalTextSize(fontSize)
 
-        prefs.edit().remove("terminal_theme").apply()
+        if (prefs.contains("terminal_theme")) prefs.edit().remove("terminal_theme").apply()
         org.cortex.terminal.emulator.TerminalColor.applyTheme("miauterm")
 
         org.cortex.terminal.emulator.TerminalColor.takeRemap()?.let { remap ->
@@ -536,7 +578,37 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    private fun confirmRootfsReinstall(): Boolean {
+        if (isFinishing || isDestroyed) return false
+        val confirmed = java.util.concurrent.atomic.AtomicBoolean(false)
+        val latch = java.util.concurrent.CountDownLatch(1)
+        runOnUiThread {
+            if (isFinishing || isDestroyed) {
+                latch.countDown()
+                return@runOnUiThread
+            }
+            try {
+                AlertDialog.Builder(this)
+                    .setTitle(R.string.debian_reinstall_confirm_title)
+                    .setMessage(R.string.debian_reinstall_confirm_message)
+                    .setNegativeButton(android.R.string.cancel) { _, _ -> latch.countDown() }
+                    .setPositiveButton(R.string.pref_reset_debian_title) { _, _ ->
+                        confirmed.set(true)
+                        latch.countDown()
+                    }
+                    .setOnCancelListener { latch.countDown() }
+                    .show()
+            } catch (e: Exception) {
+                android.util.Log.w("MainActivity", "Could not show rootfs confirmation", e)
+                latch.countDown()
+            }
+        }
+        if (!latch.await(3, java.util.concurrent.TimeUnit.MINUTES)) return false
+        return confirmed.get()
+    }
+
     private fun runBootstrapOnce(onProgress: ((Int) -> Unit)? = null): Boolean {
+        val app = applicationContext
         val owner = synchronized(bootstrapLock) {
             if (bootstrapInProgress) false else {
                 bootstrapInProgress = true
@@ -545,10 +617,10 @@ class MainActivity : AppCompatActivity() {
         }
         if (!owner) {
             while (synchronized(bootstrapLock) { bootstrapInProgress }) Thread.sleep(250)
-            return DebianRuntime.isInstalled(this)
+            return DebianRuntime.isInstalled(app)
         }
         return try {
-            DebianRuntime.install(this, onProgress)
+            DebianRuntime.install(app, onProgress)
         } finally {
             synchronized(bootstrapLock) { bootstrapInProgress = false }
         }
@@ -639,17 +711,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                AlertDialog.Builder(this@MainActivity)
-                    .setTitle(R.string.exit_confirm_title)
-                    .setMessage(R.string.exit_confirm_message)
-                    .setPositiveButton(R.string.yes) { _, _ ->
-                        CortexService.instance?.exitAll() ?: run {
-                            sessionManager.destroyAll()
-                            finish()
-                        }
-                    }
-                    .setNegativeButton(R.string.no, null)
-                    .showInChrome()
+                confirmExit()
             }
         })
     }

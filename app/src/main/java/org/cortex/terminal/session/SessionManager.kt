@@ -19,8 +19,12 @@ class SessionManager(private val context: Context) {
     private val listeners = CopyOnWriteArrayList<SessionListener>()
 
     val sessions = mutableListOf<TerminalSession>()
+    @Volatile
     var currentSessionIndex = -1
         private set
+
+    @Volatile
+    private var restoring = false
 
     var onSessionChanged: ((TerminalSession?) -> Unit)? = null
 
@@ -34,6 +38,7 @@ class SessionManager(private val context: Context) {
         PreferenceManager.getDefaultSharedPreferences(context).getBoolean(PREF_RESTORE_SESSIONS, true)
 
     fun saveState() {
+        if (restoring) return
         val target = store ?: return
         val snapshot: List<TerminalSession>
         val current: Int
@@ -62,10 +67,29 @@ class SessionManager(private val context: Context) {
         val target = store ?: return false
         if (!restoreEnabled()) return false
         val state = target.load() ?: return false
-        for (saved in state.sessions) {
-            newSession(rows, cols, widthPx, heightPx, startDirectory = saved.directory, restoredOutput = saved.output, sessionName = saved.name)
+        val started = ArrayList<Pair<Int, TerminalSession>>()
+        restoring = true
+        try {
+            state.sessions.forEachIndexed { index, saved ->
+                val session = newSession(
+                    rows, cols, widthPx, heightPx,
+                    startDirectory = saved.directory,
+                    restoredOutput = saved.output,
+                    sessionName = saved.name
+                )
+                if (session.isRunning) {
+                    started += index to session
+                } else {
+                    removeSession(session)
+                }
+            }
+        } finally {
+            restoring = false
         }
-        switchTo(state.current)
+        if (started.isEmpty()) return false
+        val current = started.indexOfFirst { it.first == state.current }.takeIf { it >= 0 } ?: 0
+        switchTo(current)
+        saveState()
         return true
     }
 
@@ -120,7 +144,11 @@ class SessionManager(private val context: Context) {
         val startTime = System.currentTimeMillis()
         session.onSessionFinished = { exitCode ->
             val duration = System.currentTimeMillis() - startTime
-            if (exitCode == 0 && duration > 1500) {
+            org.cortex.terminal.runtime.DebianRuntime.recordRuntimeEvent(
+                context,
+                "Session finished with exit code $exitCode after ${duration}ms"
+            )
+            if (exitCode == 0 && duration > SESSION_START_GRACE_MS) {
                 removeSession(session)
             }
         }
@@ -153,10 +181,11 @@ class SessionManager(private val context: Context) {
 
     fun removeSession(session: TerminalSession) {
         val sessionToNotify: TerminalSession?
+        var toDestroy: TerminalSession? = null
         synchronized(sessions) {
             val idx = sessions.indexOf(session)
             if (idx >= 0) {
-                session.destroy()
+                toDestroy = session
                 sessions.removeAt(idx)
                 if (sessions.isEmpty()) {
                     currentSessionIndex = -1
@@ -169,6 +198,7 @@ class SessionManager(private val context: Context) {
                 return
             }
         }
+        toDestroy?.destroy()
         notifySessionChanged(sessionToNotify)
         saveState()
     }
@@ -210,5 +240,6 @@ class SessionManager(private val context: Context) {
     companion object {
         private const val TAG = "SessionManager"
         const val PREF_RESTORE_SESSIONS = "restore_sessions"
+        const val SESSION_START_GRACE_MS = 1500L
     }
 }

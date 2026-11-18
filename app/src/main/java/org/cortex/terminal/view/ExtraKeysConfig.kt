@@ -82,14 +82,6 @@ class ExtraKeysConfig(home: File) {
         ""
     }
 
-    fun writeExample() {
-        try {
-            FileInstaller.install(example, ExtraKeysLayout.DEFAULT_TEXT + "\n", 420)
-        } catch (e: Exception) {
-            Log.w(TAG, "Cannot write ${example.path}: ${e.message}")
-        }
-    }
-
     fun ensureConfigFile() {
         if (file.exists()) return
         check(dir.isDirectory || dir.mkdirs()) { "Could not create ${dir.path}" }
@@ -127,6 +119,7 @@ class ExtraKeysConfig(home: File) {
             val parent = checkNotNull(file.parentFile)
             check(parent.isDirectory || parent.mkdirs()) { "Could not create ${parent.path}" }
             FileInstaller.install(file, text, 420)
+            check(FileInstaller.holds(file, text.toByteArray(Charsets.UTF_8))) { "Could not verify ${file.path}" }
         }
     }
 }

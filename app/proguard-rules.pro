@@ -10,5 +10,8 @@
 -keepclassmembers class androidx.drawerlayout.widget.DrawerLayout {
     private androidx.customview.widget.ViewDragHelper mLeftDragger;
 }
+-keepclassmembers class androidx.customview.widget.ViewDragHelper {
+    private int mEdgeSize;
+}
 
 -keep interface org.cortex.terminal.pty.PtyNative$ExtractionProgress { *; }

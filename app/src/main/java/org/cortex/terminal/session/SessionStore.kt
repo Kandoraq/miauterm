@@ -52,7 +52,7 @@ class SessionStore(private val file: File) {
                 line.startsWith("name ") -> name = unescape(line.removePrefix("name "))
                 line.startsWith("output ") -> output = unescape(line.removePrefix("output "))
                 line.isEmpty() -> {}
-                else -> return null
+                else -> continue
             }
         }
         finish()
@@ -72,7 +72,11 @@ class SessionStore(private val file: File) {
 
         fun trimOutput(output: String): String {
             if (output.length <= MAX_CHARS) return output
-            val tail = output.substring(output.length - MAX_CHARS)
+            var start = output.length - MAX_CHARS
+            if (start > 0 && Character.isLowSurrogate(output[start]) && Character.isHighSurrogate(output[start - 1])) {
+                start++
+            }
+            val tail = output.substring(start)
             val nl = tail.indexOf('\n')
             return if (nl >= 0) tail.substring(nl + 1) else tail
         }

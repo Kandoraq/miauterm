@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
 import org.cortex.terminal.runtime.Environment
 import java.io.File
+import java.util.concurrent.Executors
 
 class DebianFilesActivity : AppCompatActivity() {
     private lateinit var root: File
@@ -33,11 +34,20 @@ class DebianFilesActivity : AppCompatActivity() {
     private lateinit var filesList: RecyclerView
     private lateinit var adapter: FileAdapter
     private lateinit var toolbar: MaterialToolbar
+    private val fileExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "Miauterm-FileManager").apply { isDaemon = true }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_debian_files)
-        root = Environment.getCortexRoot(this).canonicalFile
+        val cortexRoot = Environment.getCortexRoot(this)
+        root = runCatching { cortexRoot.canonicalFile }.getOrElse { cortexRoot.absoluteFile }
+        if (androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+                .getBoolean("secure_screen", false)
+        ) {
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        }
         pathView = findViewById(R.id.filesPath)
         summaryView = findViewById(R.id.filesSummary)
         emptyView = findViewById(R.id.filesEmpty)
@@ -88,20 +98,18 @@ class DebianFilesActivity : AppCompatActivity() {
         current?.let { outState.putString(STATE_CURRENT, it.relativeTo(root).invariantSeparatorsPath) }
     }
 
+    override fun onDestroy() {
+        fileExecutor.shutdownNow()
+        super.onDestroy()
+    }
+
     private fun goUp() {
         val directory = current ?: return
         current = if (directory == root) null else directory.parentFile?.takeIf { isInsideRoot(it) }
         showDirectory()
     }
 
-    private fun isInsideRoot(file: File): Boolean {
-        return try {
-            val path = file.canonicalFile.path
-            path == root.path || path.startsWith(root.path + File.separator)
-        } catch (_: Exception) {
-            false
-        }
-    }
+    private fun isInsideRoot(file: File): Boolean = Environment.isInside(root, file)
 
     private fun showDirectory() {
         val directory = current
@@ -132,24 +140,29 @@ class DebianFilesActivity : AppCompatActivity() {
             showDirectory()
             return
         }
-        val children = try {
-            directory.listFiles()?.mapNotNull { file ->
-                runCatching { Entry(file, Os.lstat(file.absolutePath).st_mode) }.getOrNull()
-            }?.sortedWith(compareBy<Entry>({ !it.isDirectory }, { it.file.name.lowercase() }))
-        } catch (_: Exception) {
-            null
+        fileExecutor.execute {
+            val children = try {
+                directory.listFiles()?.mapNotNull { file ->
+                    runCatching { Entry(file, Os.lstat(file.absolutePath).st_mode) }.getOrNull()
+                }?.sortedWith(compareBy<Entry>({ !it.isDirectory }, { it.file.name.lowercase() }))
+            } catch (_: Exception) {
+                null
+            }
+            runOnUiThread {
+                if (isFinishing || isDestroyed || current !== directory) return@runOnUiThread
+                val relative = if (directory == root) "/" else "/${directory.relativeTo(root).path}"
+                pathView.text = "proot ($relative)"
+                if (children == null) {
+                    summaryView.text = ""
+                    adapter.submitList(emptyList())
+                    showEmptyState(getString(R.string.files_list_error))
+                } else {
+                    summaryView.text = getString(R.string.files_directory_summary, children.size)
+                    adapter.submitList(children)
+                    showEmptyState(if (children.isEmpty()) getString(R.string.files_empty) else null)
+                }
+            }
         }
-        val relative = if (directory == root) "/" else "/${directory.relativeTo(root).path}"
-        pathView.text = "proot ($relative)"
-        if (children == null) {
-            summaryView.text = ""
-            adapter.submitList(emptyList())
-            showEmptyState(getString(R.string.files_list_error))
-            return
-        }
-        summaryView.text = getString(R.string.files_directory_summary, children.size)
-        adapter.submitList(children)
-        showEmptyState(if (children.isEmpty()) getString(R.string.files_empty) else null)
     }
 
     private fun showEmptyState(message: String?) {
@@ -217,11 +230,16 @@ class DebianFilesActivity : AppCompatActivity() {
             val target = File(directory, name)
             if (!isInsideRoot(target) || target.exists()) {
                 showMessage(getString(R.string.files_name_exists))
-                return@promptForName
+                return@promptForName false
             }
             val result = runCatching { if (isDirectory) target.mkdir() else target.createNewFile() }
-            if (result.getOrDefault(false)) showDirectory()
-            else showMessage(result.exceptionOrNull()?.message ?: getString(R.string.files_operation_failed))
+            if (result.getOrDefault(false)) {
+                showDirectory()
+                true
+            } else {
+                showMessage(result.exceptionOrNull()?.message ?: getString(R.string.files_operation_failed))
+                false
+            }
         }
     }
 
@@ -232,9 +250,15 @@ class DebianFilesActivity : AppCompatActivity() {
             val destination = File(parent, name)
             if (!isInsideRoot(parent) || destination.exists()) {
                 showMessage(getString(R.string.files_name_exists))
-                return@promptForName
+                return@promptForName false
             }
-            if (!file.renameTo(destination)) showMessage(getString(R.string.files_operation_failed)) else showDirectory()
+            if (!file.renameTo(destination)) {
+                showMessage(getString(R.string.files_operation_failed))
+                false
+            } else {
+                showDirectory()
+                true
+            }
         }
     }
 
@@ -266,45 +290,72 @@ class DebianFilesActivity : AppCompatActivity() {
             require(isInsideRoot(file) && file.isFile) { getString(R.string.files_unavailable) }
             require(mode and 0x92 != 0 && file.canWrite()) { getString(R.string.files_read_only) }
             require(file.length() <= EDIT_LIMIT) { getString(R.string.files_edit_too_large) }
-            val bytes = file.readBytes()
-            require(bytes.none { it == 0.toByte() }) { getString(R.string.files_binary_edit_unavailable) }
-            val editor = EditText(this).apply {
-                inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or
-                    InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-                typeface = android.graphics.Typeface.MONOSPACE
-                minLines = 10
-                maxLines = 18
-                gravity = android.view.Gravity.TOP or android.view.Gravity.START
-                setText(bytes.toString(Charsets.UTF_8))
-                setSelection(text.length)
-            }
-            val dialog = AlertDialog.Builder(this)
-                .setTitle(getString(R.string.files_edit_title, file.name))
-                .setView(editor)
-                .setNegativeButton(android.R.string.cancel, null)
-                .setPositiveButton(R.string.save, null)
-                .create()
-            org.cortex.terminal.view.ChromeDialog.style(dialog) {
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                    val value = editor.text.toString()
-                    if (value.toByteArray(Charsets.UTF_8).size > EDIT_LIMIT) {
-                        editor.error = getString(R.string.files_edit_too_large)
-                    } else {
-                        runCatching {
-                            require(isInsideRoot(file) && mode and 0x92 != 0 && file.canWrite())
-                            file.writeText(value, Charsets.UTF_8)
-                        }.onSuccess {
-                            dialog.dismiss()
-                            showDirectory()
-                            showMessage(getString(R.string.files_saved))
-                        }.onFailure { showMessage(it.message ?: getString(R.string.files_operation_failed)) }
+            fileExecutor.execute {
+                val result = runCatching {
+                    val bytes = file.readBytes()
+                    if (bytes.any { it == 0.toByte() }) null else bytes.toString(Charsets.UTF_8)
+                }
+                runOnUiThread {
+                    if (isFinishing || isDestroyed) return@runOnUiThread
+                    result.onSuccess { initial ->
+                        if (initial == null) {
+                            showMessage(getString(R.string.files_binary_edit_unavailable))
+                        } else {
+                            showEditorDialog(file, mode, initial)
+                        }
+                    }.onFailure { error ->
+                        showMessage(error.message ?: getString(R.string.files_unavailable))
                     }
                 }
-            }.show()
+            }
         }.onFailure { showMessage(it.message ?: getString(R.string.files_unavailable)) }
     }
 
-    private fun promptForName(title: String, initial: String, onSubmit: (String) -> Unit) {
+    private fun showEditorDialog(file: File, mode: Int, initial: String) {
+        val editor = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+                InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            typeface = android.graphics.Typeface.MONOSPACE
+            minLines = 10
+            maxLines = 18
+            gravity = android.view.Gravity.TOP or android.view.Gravity.START
+            setText(initial)
+            setSelection(text.length)
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.files_edit_title, file.name))
+            .setView(editor)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.save, null)
+            .create()
+        org.cortex.terminal.view.ChromeDialog.style(dialog) {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val value = editor.text.toString()
+                if (value.toByteArray(Charsets.UTF_8).size > EDIT_LIMIT) {
+                    editor.error = getString(R.string.files_edit_too_large)
+                } else {
+                    fileExecutor.execute {
+                        val saved = runCatching {
+                            require(isInsideRoot(file) && mode and 0x92 != 0 && file.canWrite())
+                            file.writeText(value, Charsets.UTF_8)
+                        }
+                        runOnUiThread {
+                            if (isFinishing || isDestroyed) return@runOnUiThread
+                            saved.onSuccess {
+                                dialog.dismiss()
+                                showDirectory()
+                                showMessage(getString(R.string.files_saved))
+                            }.onFailure { error ->
+                                showMessage(error.message ?: getString(R.string.files_operation_failed))
+                            }
+                        }
+                    }
+                }
+            }
+        }.show()
+    }
+
+    private fun promptForName(title: String, initial: String, onSubmit: (String) -> Boolean) {
         val input = EditText(this).apply {
             setSingleLine(true)
             inputType = InputType.TYPE_CLASS_TEXT
@@ -323,9 +374,10 @@ class DebianFilesActivity : AppCompatActivity() {
                 val name = input.text.toString().trim()
                 if (!validName(name)) {
                     input.error = getString(R.string.files_invalid_name)
+                } else if (!onSubmit(name)) {
+                    input.error = getString(R.string.files_operation_failed)
                 } else {
-                    onSubmit(name)
-                    if (input.error == null) dialog.dismiss()
+                    dialog.dismiss()
                 }
             }
         }.show()
@@ -354,27 +406,46 @@ class DebianFilesActivity : AppCompatActivity() {
 
     private fun showPreview(file: File, mode: Int) {
         runCatching {
-            require(isInsideRoot(file))
+            require(isInsideRoot(file) && file.isFile)
             require(file.length() <= PREVIEW_LIMIT) { getString(R.string.files_preview_too_large) }
-            val bytes = file.readBytes()
-            require(bytes.none { it == 0.toByte() }) { "Binary file preview is unavailable" }
-            val text = bytes.toString(Charsets.UTF_8)
-            val content = TextView(this).apply {
-                setTextColor(org.cortex.terminal.view.Chrome.palette.text)
-                textSize = 12f
-                typeface = android.graphics.Typeface.MONOSPACE
-                setPadding(18, 14, 18, 14)
-                this.text = text
+            fileExecutor.execute {
+                val result = runCatching {
+                    val bytes = file.readBytes()
+                    if (bytes.any { it == 0.toByte() }) null else bytes.toString(Charsets.UTF_8)
+                }
+                runOnUiThread {
+                    if (isFinishing || isDestroyed) return@runOnUiThread
+                    result.onSuccess { text ->
+                        if (text == null) {
+                            showMessage(getString(R.string.files_binary_preview))
+                        } else {
+                            showPreviewDialog(file, text)
+                        }
+                    }.onFailure { error ->
+                        showMessage(error.message ?: getString(R.string.files_unavailable))
+                    }
+                }
             }
-            val scroll = android.widget.ScrollView(this).apply { addView(content) }
-            androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle(file.name)
-                .setView(scroll)
-                .setPositiveButton(android.R.string.ok, null)
-                .show().also { org.cortex.terminal.view.ChromeDialog.style(it) }
         }.onFailure { error ->
-            android.widget.Toast.makeText(this, error.message ?: getString(R.string.files_unavailable), android.widget.Toast.LENGTH_SHORT).show()
+            showMessage(error.message ?: getString(R.string.files_unavailable))
         }
+    }
+
+    private fun showPreviewDialog(file: File, text: String) {
+        val content = TextView(this).apply {
+            setTextColor(org.cortex.terminal.view.Chrome.palette.text)
+            textSize = 12f
+            typeface = android.graphics.Typeface.MONOSPACE
+            setPadding(18, 14, 18, 14)
+            this.text = text
+        }
+        val scroll = android.widget.ScrollView(this).apply { addView(content) }
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(file.name)
+            .setView(scroll)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+        org.cortex.terminal.view.ChromeDialog.style(dialog)
     }
 
     private data class Entry(val file: File, val mode: Int, val shortcut: Boolean = false, val label: String = file.name) {

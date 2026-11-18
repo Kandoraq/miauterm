@@ -1,6 +1,7 @@
 package org.cortex.terminal.emulator
 
 import android.graphics.Color
+import java.net.URLDecoder
 import java.nio.ByteBuffer
 import java.nio.CharBuffer
 import java.nio.charset.CharsetDecoder
@@ -49,6 +50,7 @@ class TerminalEmulator(
     }
 
     var onTitleChange: ((String) -> Unit)? = null
+    var onWorkingDirectory: ((String) -> Unit)? = null
     var onBell: (() -> Unit)? = null
 
     var onClipboardSet: ((String) -> Unit)? = null
@@ -58,7 +60,9 @@ class TerminalEmulator(
     internal var monotonicMs: () -> Long = { System.nanoTime() / 1_000_000L }
     private var commandStartMs = -1L
     private var oscOverflow = false
+    private var oscEscape = false
     var onSendResponse: ((String) -> Unit)? = null
+    @Volatile
     var isApplicationCursorKeys = false
 
     enum class MouseMode {
@@ -69,9 +73,13 @@ class TerminalEmulator(
         ALL_MOTION
     }
 
+    @Volatile
     var mouseMode = MouseMode.OFF
+    @Volatile
     var isMouseSgr = false
+    @Volatile
     var isMouseUrxvt = false
+    @Volatile
     var isMouseUtf8 = false
 
     val isMouseTrackingActive: Boolean
@@ -211,10 +219,15 @@ class TerminalEmulator(
                 while (i < limit) {
                     val c = chars[i]
                     if (state == State.NORMAL && isPrintable(c)) {
-                        var j = i + 1
-                        while (j < limit && isPrintable(chars[j])) j++
-                        buffer.writeRun(chars, i, j)
-                        i = j
+                        if (activeCharset == '0') {
+                            buffer.writeChar(translateForCharset(c))
+                            i++
+                        } else {
+                            var j = i + 1
+                            while (j < limit && isPrintable(chars[j])) j++
+                            buffer.writeRun(chars, i, j)
+                            i = j
+                        }
                     } else {
                         processChar(c)
                         i++
@@ -255,8 +268,58 @@ class TerminalEmulator(
         }
     }
 
-    private fun handleCharset(@Suppress("UNUSED_PARAMETER") c: Char) {
+    private var charsetTarget = 0
+    private var g0Charset = 'B'
+    private var g1Charset = 'B'
+    private var activeCharsetSet = 0
 
+    private val activeCharset: Char
+        get() = if (activeCharsetSet == 1) g1Charset else g0Charset
+
+    private fun translateForCharset(c: Char): Char {
+        if (activeCharset != '0') return c
+        return when (val code = c.code) {
+            0x5F -> ' '
+            0x60 -> '◆'
+            0x61 -> '▒'
+            0x62 -> '␉'
+            0x63 -> '␌'
+            0x64 -> '␍'
+            0x65 -> '␊'
+            0x66 -> '°'
+            0x67 -> '±'
+            0x68 -> '␤'
+            0x69 -> '␋'
+            0x6A -> '┘'
+            0x6B -> '┐'
+            0x6C -> '┌'
+            0x6D -> '└'
+            0x6E -> '┼'
+            0x6F -> '⎺'
+            0x70 -> '⎻'
+            0x71 -> '─'
+            0x72 -> '⎼'
+            0x73 -> '⎽'
+            0x74 -> '├'
+            0x75 -> '┤'
+            0x76 -> '┴'
+            0x77 -> '┬'
+            0x78 -> '│'
+            0x79 -> '≤'
+            0x7A -> '≥'
+            0x7B -> 'π'
+            0x7C -> '≠'
+            0x7D -> '£'
+            0x7E -> '·'
+            else -> code.toChar()
+        }
+    }
+
+    private fun handleCharset(c: Char) {
+        when (charsetTarget) {
+            0 -> g0Charset = c
+            1 -> g1Charset = c
+        }
         state = State.NORMAL
     }
 
@@ -275,9 +338,11 @@ class TerminalEmulator(
                 buffer.isWrapPending = false
             }
             '\u0007' -> onBell?.invoke()
+            '\u000e' -> activeCharsetSet = 1
+            '\u000f' -> activeCharsetSet = 0
             else -> {
                 if (isPrintable(c)) {
-                    buffer.writeChar(c)
+                    buffer.writeChar(translateForCharset(c))
                 }
             }
         }
@@ -302,9 +367,15 @@ class TerminalEmulator(
                 state = State.OSC
                 oscBuffer.setLength(0)
                 oscOverflow = false
+                oscEscape = false
             }
             '(', ')', '*', '+' -> {
-
+                charsetTarget = when (c) {
+                    '(' -> 0
+                    ')' -> 1
+                    '*' -> 2
+                    else -> 3
+                }
                 state = State.CHARSET
             }
             '_', 'P', '^', 'X' -> {
@@ -324,6 +395,9 @@ class TerminalEmulator(
                 isMouseUtf8 = false
                 isBracketedPasteMode = false
                 isFocusReportingMode = false
+                g0Charset = 'B'
+                g1Charset = 'B'
+                activeCharsetSet = 0
                 cursorShape = CursorShape.BLOCK
                 isCursorBlinking = false
                 syncUpdateSinceMs = -1L
@@ -788,20 +862,41 @@ class TerminalEmulator(
     }
 
     private fun handleOsc(c: Char) {
-        if (c == '\u0007' || (c == '\\' && oscBuffer.endsWith("\u001b"))) {
-            val fullStr = oscBuffer.toString().removeSuffix("\u001b")
-            val overflow = oscOverflow
-            oscOverflow = false
-            state = State.NORMAL
-            dispatchOsc(fullStr, overflow)
-        } else {
-            val limit = if (oscBuffer.startsWith("52;")) MAX_OSC52_CHARS else MAX_OSC_CHARS
-            if (oscBuffer.length < limit) {
-                oscBuffer.append(c)
-            } else {
-                oscOverflow = true
-            }
+        if (c == '\u0007') {
+            finishOsc()
+            return
         }
+        if (oscEscape) {
+            if (c == '\\') {
+                finishOsc()
+            } else {
+                oscEscape = false
+                state = State.NORMAL
+                processChar('\u001b')
+                processChar(c)
+            }
+            return
+        }
+        if (c == '\u001b') {
+            oscEscape = true
+            return
+        }
+        val limit = if (oscBuffer.startsWith("52;")) MAX_OSC52_CHARS else MAX_OSC_CHARS
+        if (oscBuffer.length < limit) {
+            oscBuffer.append(c)
+        } else {
+            oscOverflow = true
+        }
+    }
+
+    private fun finishOsc() {
+        val fullStr = oscBuffer.toString()
+        val overflow = oscOverflow
+        oscBuffer.setLength(0)
+        oscOverflow = false
+        oscEscape = false
+        state = State.NORMAL
+        dispatchOsc(fullStr, overflow)
     }
 
     private fun dispatchOsc(full: String, overflow: Boolean) {
@@ -809,7 +904,13 @@ class TerminalEmulator(
         if (sep < 0) return
         val arg = full.substring(sep + 1)
         when (full.substring(0, sep)) {
-            "0", "2" -> onTitleChange?.invoke(arg)
+            "0", "2" -> if (!overflow) onTitleChange?.invoke(arg)
+            "7" -> if (!overflow) {
+                val raw = if (arg.startsWith("file://")) arg.removePrefix("file://") else arg
+                val path = if (raw.startsWith("/")) raw else raw.substringAfter('/', "")
+                val decoded = runCatching { URLDecoder.decode(path.replace("+", "%2B"), "UTF-8") }.getOrDefault(path)
+                if (decoded.startsWith("/")) onWorkingDirectory?.invoke(decoded)
+            }
 
             "8" -> if (!overflow) handleHyperlink(arg)
             "52" -> if (!overflow) handleClipboard(arg)

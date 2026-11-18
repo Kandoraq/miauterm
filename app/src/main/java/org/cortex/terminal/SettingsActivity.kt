@@ -22,6 +22,9 @@ import java.io.File
 
 class SettingsActivity : AppCompatActivity() {
     private var operationDialog: AlertDialog? = null
+    private val extraKeysExecutor = java.util.concurrent.Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "Miauterm-ExtraKeysSettings").apply { isDaemon = true }
+    }
 
     private val operationListener: (DebianOperationRunner.State) -> Unit = { state ->
         runOnUiThread {
@@ -84,8 +87,24 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     internal fun showProotLog() {
+        if (isFinishing || isDestroyed) return
         val log = DebianRuntime.prootLog(this)
-        val text = if (log.isFile) runCatching { log.readText().takeLast(32 * 1024) }.getOrDefault("") else ""
+        try {
+            extraKeysExecutor.execute {
+                val text = if (log.isFile) {
+                    runCatching { log.readText().takeLast(32 * 1024) }.getOrDefault("")
+                } else {
+                    ""
+                }
+                runOnUiThread {
+                    if (!isFinishing && !isDestroyed) showProotLogText(text)
+                }
+            }
+        } catch (_: java.util.concurrent.RejectedExecutionException) {
+        }
+    }
+
+    private fun showProotLogText(text: String) {
         val body = android.widget.TextView(this).apply {
             setTextColor(org.cortex.terminal.view.Chrome.palette.text)
             textSize = 11f
@@ -115,6 +134,22 @@ class SettingsActivity : AppCompatActivity() {
                         check(DebianRuntime.install(context, force = true)) {
                             context.getString(R.string.debian_install_failed)
                         }
+                    }
+                }
+                .create()
+        ).show()
+    }
+
+    internal fun confirmRemove() {
+        org.cortex.terminal.view.ChromeDialog.style(
+            AlertDialog.Builder(this)
+                .setTitle(getString(R.string.rootfs_remove_confirm_title, DebianRuntime.systemName(this) ?: "Debian"))
+                .setMessage(R.string.rootfs_remove_confirm_message)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.rootfs_remove_title) { _, _ ->
+                    runDebianOperation(getString(R.string.rootfs_remove_done), closeSettings = true) { context ->
+                        stopSessionsAndForget(context)
+                        DebianRuntime.removeDebian(context)
                     }
                 }
                 .create()
@@ -191,8 +226,19 @@ class SettingsActivity : AppCompatActivity() {
 
     internal fun editExtraKeys() {
         val file = File(Environment.getHomeDir(this), ".config/miauterm/${ExtraKeysConfig.FILE_NAME}")
-        val initial = runCatching { if (file.isFile) file.readText() else ExtraKeysLayout.DEFAULT_TEXT + "\n" }
-            .getOrDefault(ExtraKeysLayout.DEFAULT_TEXT + "\n")
+        try {
+            extraKeysExecutor.execute {
+                val initial = runCatching { if (file.isFile) file.readText() else ExtraKeysLayout.DEFAULT_TEXT + "\n" }
+                    .getOrDefault(ExtraKeysLayout.DEFAULT_TEXT + "\n")
+                runOnUiThread {
+                    if (!isFinishing && !isDestroyed) showExtraKeysDialog(file, initial)
+                }
+            }
+        } catch (_: java.util.concurrent.RejectedExecutionException) {
+        }
+    }
+
+    private fun showExtraKeysDialog(file: File, initial: String) {
         val parsed = ExtraKeysLayout.parse(initial)
         if (parsed.error != null) {
             android.widget.Toast.makeText(this, getString(R.string.extra_keys_invalid, parsed.error), android.widget.Toast.LENGTH_LONG).show()
@@ -266,12 +312,22 @@ class SettingsActivity : AppCompatActivity() {
                         "\"${value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r").replace("\u001b", "\\e")}\""
                     }
                 }
-                runCatching { ExtraKeysConfig.writeLayout(file, text) }.onSuccess {
-                    MainActivity.instance?.reloadExtraKeys()
-                    dialog.dismiss()
-                    android.widget.Toast.makeText(this, R.string.extra_keys_saved, android.widget.Toast.LENGTH_SHORT).show()
-                }.onFailure {
-                    android.widget.Toast.makeText(this, getString(R.string.extra_keys_invalid, it.message ?: "write failed"), android.widget.Toast.LENGTH_LONG).show()
+                extraKeysExecutor.execute {
+                    val saved = runCatching { ExtraKeysConfig.writeLayout(file, text) }
+                    runOnUiThread {
+                        if (isFinishing || isDestroyed) return@runOnUiThread
+                        saved.onSuccess {
+                            MainActivity.instance?.reloadExtraKeys()
+                            dialog.dismiss()
+                            android.widget.Toast.makeText(this, R.string.extra_keys_saved, android.widget.Toast.LENGTH_SHORT).show()
+                        }.onFailure {
+                            android.widget.Toast.makeText(
+                                this,
+                                getString(R.string.extra_keys_invalid, it.message ?: "write failed"),
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
                 }
             }
         }.show()
@@ -356,6 +412,7 @@ class SettingsActivity : AppCompatActivity() {
     override fun onDestroy() {
         operationDialog?.dismiss()
         operationDialog = null
+        extraKeysExecutor.shutdownNow()
         super.onDestroy()
     }
 
@@ -527,6 +584,7 @@ class SettingsActivity : AppCompatActivity() {
                 "backup_debian" to R.drawable.ic_backup,
                 "restore_debian" to R.drawable.ic_restore,
                 "reset_debian" to R.drawable.ic_restart,
+                "remove_debian" to R.drawable.ic_delete,
                 "edit_extra_keys" to R.drawable.ic_keyboard,
                 "about_miauterm" to R.drawable.ic_info,
                 "bug_report" to R.drawable.ic_bug_report
@@ -643,6 +701,10 @@ class SettingsActivity : AppCompatActivity() {
                 (requireActivity() as SettingsActivity).confirmReset()
                 true
             }
+            findPreference<Preference>("remove_debian")?.setOnPreferenceClickListener {
+                (requireActivity() as SettingsActivity).confirmRemove()
+                true
+            }
             findPreference<androidx.preference.EditTextPreference>(DebianRuntime.PREF_LINUX_USER)?.let { pref ->
                 pref.setOnPreferenceChangeListener { _, newValue ->
                     val requested = (newValue as? String).orEmpty().trim()
@@ -679,7 +741,8 @@ class SettingsActivity : AppCompatActivity() {
 
             findPreference<Preference>("bug_report")?.setOnPreferenceClickListener {
                 runCatching {
-                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/synccatcode/miauterm/issues/new/choose")))
+                    val report = BugReport.write(requireContext())
+                    BugReport.share(this, report)
                 }.onFailure {
                     android.widget.Toast.makeText(requireContext(), R.string.update_connect_failed, android.widget.Toast.LENGTH_LONG).show()
                 }

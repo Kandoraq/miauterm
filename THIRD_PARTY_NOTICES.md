@@ -22,6 +22,10 @@ PRoot is distributed under GNU GPL version 2 or later. The bundled PRoot copyrig
 - **Fira Code**: Copyright 2014–2020 The Fira Code Project Authors. Licensed under SIL Open Font License 1.1. The license text is included in `app/src/main/assets/licenses/OFL-1.1.txt`. Source: [tonsky/FiraCode](https://github.com/tonsky/FiraCode).
 - **JetBrains Mono**: Copyright 2020 The JetBrains Mono Project Authors. Licensed under SIL Open Font License 1.1. The license text is included in `app/src/main/assets/licenses/OFL-1.1.txt`. Source: [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono).
 
+## zstd
+
+The bundled native decoder under `core/terminal-engine/src/main/cpp/zstd/` comes from the [zstd project](https://github.com/facebook/zstd) and is distributed under the BSD 3-Clause license. Its license text is in [`core/terminal-engine/src/main/cpp/zstd/LICENSE`](core/terminal-engine/src/main/cpp/zstd/LICENSE).
+
 ## Project credits
 
 Miauterm is an unofficial fork of [Cortex Terminal](https://github.com/ssfuisu/cortex). The retained upstream source is distributed under Apache License 2.0. Third-party names and marks remain the property of their owners. These notices do not grant trademark rights.

@@ -2,9 +2,11 @@ package org.cortex.terminal.runtime
 
 import android.content.Context
 import android.net.ConnectivityManager
+import android.os.Build
 import android.os.Environment as AndroidEnvironment
 import androidx.preference.PreferenceManager
 import android.util.Log
+import org.cortex.terminal.BuildConfig
 import org.cortex.terminal.api.ApiServer
 import org.cortex.terminal.pty.PtyNative
 import java.io.File
@@ -68,17 +70,26 @@ object DebianRuntime {
     @Volatile
     var lastInstallError: String? = null
         private set
+    @Volatile
+    var reinstallConfirmation: (() -> Boolean)? = null
     private const val LOG_LIMIT = 2 * 1024 * 1024L
 
     fun isRemoved(context: Context): Boolean = PreferenceManager.getDefaultSharedPreferences(context)
         .getBoolean(PREF_ROOTFS_REMOVED, false)
 
+    private fun expectedVersionMarker(): String = "$VERSION\n${BuildConfig.ROOTFS_SHA256}\n"
+
+    private fun readVersionMarker(root: File): String? = runCatching {
+        val marker = File(root, ".miauterm-version")
+        if (!marker.isFile || ElfLinkerPatcher.isSymlink(marker) || marker.length() > 128) return@runCatching null
+        marker.readText().trim()
+    }.getOrNull()
+
     fun isInstalled(context: Context): Boolean {
         if (isRemoved(context)) return false
         val root = Environment.getCortexRoot(context)
-        val marker = File(root, ".miauterm-version")
         return runCatching {
-            marker.isFile && marker.readText().trim() == VERSION.toString() &&
+            readVersionMarker(root) == expectedVersionMarker().trim() &&
                 File(root, "root").isDirectory && systemName(root) != null && shellPath(root) != null &&
                 hasDebianUsrMergeLinks(root) &&
                 invalidEssentialCommand(root) == null &&
@@ -90,6 +101,16 @@ object DebianRuntime {
 
     @Synchronized
     fun install(context: Context, onProgress: ((Int) -> Unit)? = null, force: Boolean = false): Boolean {
+        val installLock = FileLocks.tryLock(listOf(File(context.filesDir, ".debian-install.lock")))
+        if (installLock == null) {
+            lastInstallError = "Another Debian installation is already in progress"
+            Log.w(TAG, lastInstallError)
+            return false
+        }
+        return installLock.use { installRootfs(context, onProgress, force) }
+    }
+
+    private fun installRootfs(context: Context, onProgress: ((Int) -> Unit)?, force: Boolean): Boolean {
         val root = Environment.getCortexRoot(context)
         val runtime = File(context.filesDir, "proot")
         val archive = File(context.cacheDir, ROOTFS_ASSET)
@@ -123,17 +144,20 @@ object DebianRuntime {
                 }
             }
 
-            if (!force && root.exists()) {
+            if (root.exists()) {
+                val existingMarker = readVersionMarker(root)
                 val existingRootWorks = runCatching {
                     verifyRootfs(root)
                     prepareHome(root)
                     MiautermCommandInstaller.install(context, root)
                     verifyProotStartsBash(context, root)
                 }.isSuccess
-                if (existingRootWorks) {
+                if (existingRootWorks && existingMarker == expectedVersionMarker().trim()) {
                     onProgress?.invoke(92)
-                    ensureNetworkTools(context, root)
-                    FileInstaller.install(File(root, ".miauterm-version"), "$VERSION\n", 420)
+                    updateResolvConf(root, networkDnsServers(context), customDnsServers(context))
+                    Thread {
+                        runCatching { provisionOptionalNetworkTools(context, root) }
+                    }.apply { isDaemon = true; start() }
                     File(context.filesDir, "rootfs-original.tar.zst").delete()
                     File(context.filesDir, "rootfs-original.installing").delete()
                     SafeDelete.deleteRecursively(previous)
@@ -144,6 +168,15 @@ object DebianRuntime {
                     lastInstallError = null
                     onProgress?.invoke(100)
                     return true
+                }
+                if (!force && reinstallConfirmation?.invoke() != true) {
+                    lastInstallError = if (existingRootWorks) {
+                        "Debian rootfs is from an older bundled version; confirm the upgrade to replace it."
+                    } else {
+                        "Debian rootfs verification failed; confirm reinstall to replace it."
+                    }
+                    Log.w(TAG, lastInstallError)
+                    return false
                 }
             }
 
@@ -162,11 +195,17 @@ object DebianRuntime {
             if (result != 0) throw IllegalStateException("Rootfs archive extraction failed ($result)")
             onProgress?.invoke(92)
             verifyRootfs(staging)
+            ElfLinkerPatcher.patchAllDynamicLinkers(staging)
+            ElfLinkerPatcher.ensureDynamicLinkerSymlinks(staging)
+            ElfLinkerPatcher.fixAbsoluteSymlinks(staging)
             prepareHome(staging)
             MiautermCommandInstaller.install(context, staging)
-            ensureNetworkTools(context, staging)
+            updateResolvConf(staging, networkDnsServers(context), customDnsServers(context))
+            Thread {
+                runCatching { provisionOptionalNetworkTools(context, staging) }
+            }.apply { isDaemon = true; start() }
             verifyProotStartsBash(context, staging)
-            FileInstaller.install(File(staging, ".miauterm-version"), "$VERSION\n", 420)
+            FileInstaller.install(File(staging, ".miauterm-version"), expectedVersionMarker(), 420)
 
             if (!SafeDelete.deleteRecursively(previous)) {
                 throw IllegalStateException("Could not clear the previous rootfs backup")
@@ -204,14 +243,22 @@ object DebianRuntime {
     }
 
     fun removeDebian(context: Context) {
+        val lock = FileLocks.tryLock(listOf(File(context.filesDir, ".debian-install.lock")))
+            ?: error("Another Debian operation is already in progress")
+        lock.use { removeDebianLocked(context) }
+    }
+
+    private fun removeDebianLocked(context: Context) {
         val root = Environment.getCortexRoot(context)
         val extras = listOf(
             root,
             File(context.filesDir, "debian-reset-staging"),
             File(context.filesDir, "debian-install-staging"),
             File(context.filesDir, "debian-install-previous"),
+            File(context.filesDir, "debian-install-failed"),
             File(context.filesDir, "debian-restore-staging"),
             File(context.filesDir, "debian-restore-previous"),
+            File(context.filesDir, "debian-restore-failed"),
             File(context.filesDir, "rootfs-original.tar.zst"),
             File(context.filesDir, "rootfs-original.installing")
         )
@@ -327,7 +374,9 @@ object DebianRuntime {
     private fun removeUnusedAndroidPlaceholders(rootHome: File) {
         val androidDirectory = File(rootHome, "android")
         if (ElfLinkerPatcher.isSymlink(androidDirectory)) {
-            check(androidDirectory.delete()) { "Could not remove the unused Android storage link" }
+            if (!ElfLinkerPatcher.deleteIfExists(androidDirectory)) {
+                Log.w(TAG, "Could not remove the unused Android storage link at ${androidDirectory.path}")
+            }
             return
         }
         if (!androidDirectory.isDirectory) return
@@ -338,9 +387,11 @@ object DebianRuntime {
                 !ElfLinkerPatcher.isSymlink(child) &&
                 child.list()?.isEmpty() == true
         }
-        placeholders.forEach { check(it.delete()) { "Could not remove ${it.path}" } }
-        if (placeholders.size == children.size && placeholders.isNotEmpty()) {
-            check(androidDirectory.delete()) { "Could not remove the unused Android storage directory" }
+        val removed = placeholders.count { it.delete() }
+        if (removed == placeholders.size && placeholders.size == children.size && placeholders.isNotEmpty()) {
+            if (!androidDirectory.delete()) {
+                Log.w(TAG, "Could not remove the unused Android storage directory at ${androidDirectory.path}")
+            }
         }
     }
 
@@ -356,15 +407,21 @@ object DebianRuntime {
             destination = File(rootHome, "Miauterm-README-$suffix.md")
             suffix++
         }
-        destination.parentFile?.mkdirs()
-        destination.writeText(managedReadmeContents())
-        if (isManagedReadme(previous)) {
-            check(previous.delete()) { "Could not move the Miauterm README from the Debian root" }
-        }
+        runCatching {
+            FileInstaller.install(destination, managedReadmeContents(), 420)
+            if (isManagedReadme(previous) && !ElfLinkerPatcher.deleteIfExists(previous)) {
+                Log.w(TAG, "Could not remove the old Miauterm README at ${previous.path}")
+            }
+        }.onFailure { Log.w(TAG, "Could not update the Miauterm README", it) }
     }
 
     private fun isManagedReadme(file: File): Boolean = runCatching {
-        file.isFile && file.readText().startsWith("# Miauterm Linux system")
+        if (!file.isFile || ElfLinkerPatcher.isSymlink(file)) return@runCatching false
+        file.inputStream().use { input ->
+            val header = ByteArray(64)
+            val count = input.read(header)
+            count > 0 && String(header, 0, count, Charsets.UTF_8).startsWith("# Miauterm Linux system")
+        }
     }.getOrDefault(false)
 
     private fun managedReadmeContents(): String =
@@ -392,7 +449,7 @@ object DebianRuntime {
         MiautermCommandInstaller.install(context, root)
         installProot(context, File(context.filesDir, "proot"))
         verifyProotStartsBash(context, root)
-        FileInstaller.install(File(root, ".miauterm-version"), "$VERSION\n", 420)
+        FileInstaller.install(File(root, ".miauterm-version"), expectedVersionMarker(), 420)
     }
 
     private fun verifyProotStartsBash(context: Context, root: File) {
@@ -450,17 +507,26 @@ object DebianRuntime {
         }
         watchdog.isDaemon = true
         watchdog.start()
-        val output = try {
-            process.inputStream.bufferedReader().use { it.readText().takeLast(2048).trim() }
+        val output = StringBuilder()
+        try {
+            process.inputStream.bufferedReader().use { reader ->
+                val buffer = CharArray(4096)
+                while (true) {
+                    val count = reader.read(buffer)
+                    if (count < 0) break
+                    output.append(buffer, 0, count)
+                    if (output.length > 4096) output.delete(0, output.length - 2048)
+                }
+            }
         } finally {
             watchdog.interrupt()
         }
         if (timedOut.get()) {
-            runCatching { process.destroy() }
-            process.waitFor()
+            process.destroyForcibly()
+            runCatching { process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS) }
             throw IllegalStateException("Linux command timed out after ${timeoutMs / 1000} seconds")
         }
-        return output to process.waitFor()
+        return output.toString().trim() to process.waitFor()
     }
 
     private fun installProot(context: Context, target: File) {
@@ -530,12 +596,14 @@ object DebianRuntime {
         }
     }
 
-    private fun invalidEssentialCommand(root: File): String? =
-        essentialCommands.firstOrNull { path ->
+    private fun invalidCommand(root: File, paths: List<String>): String? =
+        paths.firstOrNull { path ->
             val command = File(root, path)
             !command.isFile || command.length() < 4096L ||
                 !command.canExecute() || !isArm64Elf(command)
         }
+
+    private fun invalidEssentialCommand(root: File): String? = invalidCommand(root, essentialCommands)
 
     private fun repairDebianUsrMergeLinks(root: File) {
         for ((name, target) in listOf("bin" to "usr/bin", "sbin" to "usr/sbin", "lib" to "usr/lib")) {
@@ -736,9 +804,10 @@ object DebianRuntime {
 
     fun shellArguments(context: Context, guestDirectory: String?, failsafe: Boolean = false, accountOverride: LinuxAccount? = null): Array<String> {
         val rootfs = Environment.getCortexRoot(context)
-        MiautermCommandInstaller.removeLegacySu(context, rootfs)
+        MiautermCommandInstaller.removeLegacySu(rootfs)
         migrateManagedReadme(rootfs, File(rootfs, "root"))
         updateHostnameFile(rootfs, configuredHostname(context))
+        updateAndroidHostFile(rootfs, context)
         updateResolvConf(rootfs, networkDnsServers(context), customDnsServers(context))
         scheduleResolverUpdate(context, rootfs)
         lastResolverSummary?.let { recordRuntimeEvent(context, it) }
@@ -951,8 +1020,47 @@ object DebianRuntime {
     }
 
     private fun parseIpv6Address(value: String): Inet6Address? {
-        if (':' !in value) return null
-        return runCatching { InetAddress.getByName(value) as? Inet6Address }.getOrNull()
+        if (value.isEmpty() || value.any { it !in "0123456789abcdefABCDEF:." }) return null
+        var normalized = value
+        if ('.' in value) {
+            val lastColon = value.lastIndexOf(':')
+            if (lastColon < 0) return null
+            val ipv4 = parseIpv4Address(value.substring(lastColon + 1)) ?: return null
+            val octets = ipv4.address
+            val high = ((octets[0].toInt() and 0xff) shl 8) or (octets[1].toInt() and 0xff)
+            val low = ((octets[2].toInt() and 0xff) shl 8) or (octets[3].toInt() and 0xff)
+            normalized = value.substring(0, lastColon + 1) +
+                "%04x:%04x".format(java.util.Locale.ROOT, high, low)
+        }
+        val compression = normalized.indexOf("::")
+        if (compression >= 0 && normalized.indexOf("::", compression + 2) >= 0) return null
+        val head = if (compression >= 0) normalized.substring(0, compression) else normalized
+        val tail = if (compression >= 0) normalized.substring(compression + 2) else ""
+        val headGroups = if (head.isEmpty()) emptyList() else head.split(':')
+        val tailGroups = if (tail.isEmpty()) emptyList() else tail.split(':')
+        val groups = headGroups + tailGroups
+        val validGroup = { group: String ->
+            group.isNotEmpty() && group.length <= 4 && group.all { it.isDigit() || it.lowercaseChar() in 'a'..'f' }
+        }
+        if (groups.any { !validGroup(it) }) return null
+        val zeros = when {
+            compression < 0 -> {
+                if (groups.size != 8) return null
+                0
+            }
+            else -> {
+                if (groups.size >= 8) return null
+                8 - groups.size
+            }
+        }
+        val expanded = headGroups + List(zeros) { "0" } + tailGroups
+        val bytes = ByteArray(16)
+        for (index in expanded.indices) {
+            val group = expanded[index].toInt(16)
+            bytes[index * 2] = (group shr 8).toByte()
+            bytes[index * 2 + 1] = group.toByte()
+        }
+        return runCatching { Inet6Address.getByAddress(null, bytes, -1) }.getOrNull()
     }
 
     private fun parseIpv4Address(value: String): Inet4Address? {
@@ -988,7 +1096,7 @@ object DebianRuntime {
         return entries.map { entry ->
             require('%' !in entry) { "scoped IPv6 DNS addresses are not supported" }
             val address = if (':' in entry) {
-                InetAddress.getByName(entry).takeIf { it is Inet6Address }
+                parseIpv6Address(entry)
             } else {
                 val parts = entry.split('.')
                 val octets = parts.map { it.toIntOrNull() }
@@ -1002,12 +1110,16 @@ object DebianRuntime {
         }.distinct()
     }
 
-    internal fun isValidHostname(value: String): Boolean = value.isBlank() ||
-        (value.length <= 253 && Regex("(?i)^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$").matches(value))
+    internal fun isValidHostname(value: String): Boolean {
+        val normalized = value.trim().lowercase(java.util.Locale.ROOT)
+        return normalized.isEmpty() ||
+            (normalized.length <= 253 && Regex("^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$").matches(normalized))
+    }
 
-    private fun customDnsServers(context: Context): List<String> =
+    private fun customDnsServers(context: Context): List<String> = runCatching {
         parseCustomDnsServers(PreferenceManager.getDefaultSharedPreferences(context)
             .getString(PREF_CUSTOM_DNS_SERVERS, "").orEmpty())
+    }.onFailure { Log.w(TAG, "Ignoring invalid custom DNS settings", it) }.getOrDefault(emptyList())
 
     private fun configuredHostname(context: Context): String {
         val value = PreferenceManager.getDefaultSharedPreferences(context)
@@ -1022,6 +1134,17 @@ object DebianRuntime {
         if (ElfLinkerPatcher.isSymlink(hostnameFile)) return
         if (!hostnameFile.isFile || runCatching { hostnameFile.readText().trim() }.getOrNull() != hostname) {
             runCatching { FileInstaller.install(hostnameFile, "$hostname\n", 420) }
+        }
+    }
+
+    private fun updateAndroidHostFile(root: File, context: Context) {
+        val etc = File(root, "etc")
+        if (ElfLinkerPatcher.isSymlink(etc) || !etc.isDirectory) return
+        val hostFile = File(etc, "miauterm-android-host")
+        if (ElfLinkerPatcher.isSymlink(hostFile)) return
+        val value = "${Build.MANUFACTURER} ${Build.MODEL}".trim() + "\n"
+        if (runCatching { hostFile.readText() }.getOrNull() != value) {
+            runCatching { FileInstaller.install(hostFile, value, 420) }
         }
     }
 
@@ -1044,9 +1167,8 @@ object DebianRuntime {
         }
         val resolvConf = File(etc, "resolv.conf")
         if (ElfLinkerPatcher.isSymlink(resolvConf)) {
-            check(ElfLinkerPatcher.deleteIfExists(resolvConf)) {
-                "Could not replace Debian /etc/resolv.conf symlink"
-            }
+            Log.i(TAG, "Leaving the user-managed /etc/resolv.conf symlink unchanged")
+            return false
         }
 
         val current = if (resolvConf.isFile) resolvConf.readText() else ""
@@ -1067,12 +1189,7 @@ object DebianRuntime {
         }
     }
 
-    private fun invalidNetworkCommand(root: File): String? =
-        networkCommands.firstOrNull { path ->
-            val command = File(root, path)
-            !command.isFile || command.length() < 4096L ||
-                !command.canExecute() || !isArm64Elf(command)
-        }
+    private fun invalidNetworkCommand(root: File): String? = invalidCommand(root, networkCommands)
 
     private fun networkDnsServers(context: Context): List<InetAddress> {
         val connectivity = context.getSystemService(ConnectivityManager::class.java)
@@ -1082,24 +1199,33 @@ object DebianRuntime {
 
     private fun ensureNetworkTools(context: Context, root: File) {
         updateResolvConf(root, networkDnsServers(context), customDnsServers(context))
-        if (invalidNetworkCommand(root) == null) {
+        provisionOptionalNetworkTools(context, root)
+    }
+
+    private fun provisionOptionalNetworkTools(context: Context, root: File) {
+        try {
+            if (invalidNetworkCommand(root) == null) {
+                ensureSshClient(context, root)
+                return
+            }
+            val aptOptions = listOf(
+                "-o", "Acquire::http::Timeout=30",
+                "-o", "Acquire::https::Timeout=30",
+                "-o", "Acquire::Retries=1"
+            )
+            runRootfsCommand(context, root, listOf("/usr/bin/apt-get") + aptOptions + "update")
+            runRootfsCommand(
+                context,
+                root,
+                listOf("/usr/bin/apt-get") + aptOptions +
+                    listOf("install", "-y", "--no-install-recommends") + networkPackages
+            )
+            verifyNetworkCommands(root)
             ensureSshClient(context, root)
-            return
+        } catch (error: Exception) {
+            Log.w(TAG, "Could not provision optional Debian network tools; install them later with apt", error)
+            recordRuntimeEvent(context, "Optional Debian network tools skipped: ${error.message ?: error.javaClass.simpleName}")
         }
-        val aptOptions = listOf(
-            "-o", "Acquire::http::Timeout=30",
-            "-o", "Acquire::https::Timeout=30",
-            "-o", "Acquire::Retries=1"
-        )
-        runRootfsCommand(context, root, listOf("/usr/bin/apt-get") + aptOptions + "update")
-        runRootfsCommand(
-            context,
-            root,
-            listOf("/usr/bin/apt-get") + aptOptions +
-                listOf("install", "-y", "--no-install-recommends") + networkPackages
-        )
-        verifyNetworkCommands(root)
-        ensureSshClient(context, root)
     }
 
     private fun ensureSshClient(context: Context, root: File) {
@@ -1235,6 +1361,7 @@ object DebianRuntime {
             "LOGNAME=${account.name}",
             "HOSTNAME=${configuredHostname(context)}",
             "MIAUTERM_HOSTNAME=${configuredHostname(context)}",
+            "MIAUTERM_ANDROID_DEVICE=${Build.MANUFACTURER} ${Build.MODEL}".trim(),
             "SHELL=${account.shell.ifBlank { shellPath(rootfs)?.let { "/" + it.relativeTo(rootfs).invariantSeparatorsPath } ?: "/bin/sh" }}",
             "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
             "TERM=xterm-256color",

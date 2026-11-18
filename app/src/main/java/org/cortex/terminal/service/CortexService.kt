@@ -25,6 +25,8 @@ class CortexService : Service() {
         const val ACTION_STOP = "org.cortex.terminal.action.STOP"
         const val ACTION_EXIT = "org.cortex.terminal.action.EXIT"
         const val ACTION_TOGGLE_WAKELOCK = "org.cortex.terminal.action.TOGGLE_WAKELOCK"
+        const val ACTION_SET_WAKELOCK = "org.cortex.terminal.action.SET_WAKELOCK"
+        const val EXTRA_WAKELOCK_ENABLED = "org.cortex.terminal.extra.WAKELOCK_ENABLED"
         const val ACTION_UPDATE_NOTIFICATION = "org.cortex.terminal.action.UPDATE_NOTIFICATION"
 
         const val ACTION_COPY_LINK = "org.cortex.terminal.action.COPY_LINK"
@@ -34,8 +36,9 @@ class CortexService : Service() {
         var instance: CortexService? = null
             private set
 
+        @Volatile
         private var _sessionManager: SessionManager? = null
-        private var lastVersionCode: Int = 0
+        private const val PREF_LAST_VERSION_CODE = "last_version_code"
 
         @Synchronized
         fun getOrCreateSessionManager(context: Context): SessionManager {
@@ -48,15 +51,18 @@ class CortexService : Service() {
                 }
             } catch (e: Exception) { 0 }
 
+            val versionPrefs = context.getSharedPreferences("cortex_service", Context.MODE_PRIVATE)
+            val lastVersionCode = versionPrefs.getInt(PREF_LAST_VERSION_CODE, 0)
             if (lastVersionCode != 0 && lastVersionCode < appVersion && _sessionManager != null) {
                 android.util.Log.i("CortexService", "App version updated from $lastVersionCode to $appVersion. Resetting sessions.")
                 try {
-
                     _sessionManager?.destroyAll(forget = false)
                 } catch (e: Exception) {}
                 _sessionManager = null
             }
-            lastVersionCode = appVersion
+            if (versionPrefs.getInt(PREF_LAST_VERSION_CODE, 0) != appVersion) {
+                versionPrefs.edit().putInt(PREF_LAST_VERSION_CODE, appVersion).apply()
+            }
 
             if (_sessionManager == null) {
                 _sessionManager = SessionManager(context.applicationContext).also {
@@ -66,9 +72,37 @@ class CortexService : Service() {
             return _sessionManager!!
         }
 
+        private const val WAKE_LOCK_TIMEOUT_MS = 4 * 60 * 60 * 1000L
+
         @Volatile
-        var isWakeLockHeld: Boolean = false
-            private set
+        private var wakeLock: PowerManager.WakeLock? = null
+
+        val isWakeLockHeld: Boolean
+            get() = wakeLock?.isHeld == true
+
+        fun setWakeLock(context: Context, enabled: Boolean): Boolean {
+            val service = instance
+            if (service != null) {
+                service.applyWakeLock(enabled)
+                return true
+            }
+            if (!enabled) return true
+            val intent = Intent(context, CortexService::class.java).apply {
+                action = ACTION_SET_WAKELOCK
+                putExtra(EXTRA_WAKELOCK_ENABLED, enabled)
+            }
+            return try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+                true
+            } catch (e: Exception) {
+                android.util.Log.e("CortexService", "setWakeLock failed to start service", e)
+                false
+            }
+        }
 
         fun start(context: Context) {
             try {
@@ -109,10 +143,7 @@ class CortexService : Service() {
 
         fun stop(context: Context) {
             try {
-                val intent = Intent(context, CortexService::class.java).apply {
-                    action = ACTION_STOP
-                }
-                context.startService(intent)
+                context.stopService(Intent(context, CortexService::class.java))
             } catch (e: IllegalStateException) {
                 android.util.Log.w("CortexService", "stop skipped (background)", e)
             } catch (e: Exception) {
@@ -121,7 +152,6 @@ class CortexService : Service() {
         }
     }
 
-    private var wakeLock: PowerManager.WakeLock? = null
     private var localServers: LocalServers? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -188,6 +218,8 @@ class CortexService : Service() {
             }
         } catch (e: Exception) {
             android.util.Log.w("CortexService", "re-promote startForeground failed", e)
+            stopSelf()
+            return START_NOT_STICKY
         }
         when (intent?.action) {
             ACTION_EXIT -> {
@@ -196,6 +228,10 @@ class CortexService : Service() {
             }
             ACTION_TOGGLE_WAKELOCK -> {
                 toggleWakeLock()
+                updateNotificationDisplay()
+            }
+            ACTION_SET_WAKELOCK -> {
+                applyWakeLock(intent.getBooleanExtra(EXTRA_WAKELOCK_ENABLED, false))
                 updateNotificationDisplay()
             }
             ACTION_UPDATE_NOTIFICATION -> {
@@ -225,25 +261,21 @@ class CortexService : Service() {
     }
 
     private fun toggleWakeLock() {
-        if (isWakeLockHeld) {
-            releaseWakeLock()
-        } else {
-            acquireWakeLock()
-        }
+        applyWakeLock(!isWakeLockHeld)
+    }
+
+    private fun applyWakeLock(enabled: Boolean) {
+        if (enabled) acquireWakeLock() else releaseWakeLock()
     }
 
     private fun acquireWakeLock() {
         try {
-            if (wakeLock == null) {
+            val lock = wakeLock ?: run {
                 val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-                wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "cortex:wakelock")
+                pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "cortex:wakelock").also { wakeLock = it }
             }
-            wakeLock?.let {
-                if (!it.isHeld) {
-
-                    it.acquire(4 * 60 * 60 * 1000L)
-                    isWakeLockHeld = true
-                }
+            if (!lock.isHeld) {
+                lock.acquire(WAKE_LOCK_TIMEOUT_MS)
             }
         } catch (e: Exception) {
             android.util.Log.e("CortexService", "Failed to acquire wakelock", e)
@@ -257,7 +289,7 @@ class CortexService : Service() {
                     it.release()
                 }
             }
-            isWakeLockHeld = false
+            wakeLock = null
         } catch (e: Exception) {
             android.util.Log.e("CortexService", "Failed to release wakelock", e)
         }
@@ -307,7 +339,7 @@ class CortexService : Service() {
 
     private fun buildNotification(): Notification {
         val lc = LocaleHelper.wrap(this)
-        val sessionCount = _sessionManager?.sessionCount()?.takeIf { it > 0 } ?: 1
+        val sessionCount = _sessionManager?.sessionCount() ?: 0
         val contentText = if (isWakeLockHeld) {
             lc.getString(R.string.notif_sessions_wake_lock, sessionCount)
         } else {
@@ -380,10 +412,17 @@ class CortexService : Service() {
     }
 
     override fun onDestroy() {
-        localServers?.stop()
-        localServers = null
-        releaseWakeLock()
-        instance = null
-        super.onDestroy()
+        try {
+            stopForeground(Service.STOP_FOREGROUND_REMOVE)
+            org.cortex.terminal.api.ApiServer.stop(this)
+            localServers?.stop()
+            localServers = null
+            releaseWakeLock()
+        } catch (e: Exception) {
+            android.util.Log.e("CortexService", "Service cleanup failed", e)
+        } finally {
+            instance = null
+            super.onDestroy()
+        }
     }
 }

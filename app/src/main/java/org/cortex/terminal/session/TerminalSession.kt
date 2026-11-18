@@ -9,7 +9,6 @@ import org.cortex.terminal.runtime.DebianRuntime
 import org.cortex.terminal.runtime.Environment
 import java.io.File
 import java.io.IOException
-import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 import kotlin.concurrent.withLock
@@ -32,6 +31,8 @@ class TerminalSession(
     private var ptyProcess: PtyProcess? = null
     private var readerThread: Thread? = null
     private val rootfsRecoveryStarted = AtomicBoolean(false)
+    private val starting = AtomicBoolean(false)
+    private val destroyed = AtomicBoolean(false)
     @Volatile
     var isRunning = false
         private set
@@ -43,15 +44,20 @@ class TerminalSession(
     var title = "Miauterm"
     @Volatile var accountName: String = "root"
         private set
-    fun promptLabel(): String = sessionName?.takeIf { it.isNotBlank() } ?: sessionPromptLabel(accountName)
+    fun promptLabel(): String = sessionName?.takeIf { it.isNotBlank() }
+        ?: sessionPromptLabel(accountName, currentDirectory() ?: startDirectory)
 
     var numberProvider: (() -> Int)? = null
 
     var startDirectory: String? = null
 
+    @Volatile
+    private var guestWorkingDirectory: String? = null
+
     var restoredOutput: String? = null
 
     fun currentDirectory(): String? {
+        guestWorkingDirectory?.takeIf { it.startsWith("/") && ".." !in it }?.let { return it }
         val pid = ptyProcess?.pid ?: return null
         if (!isRunning) return startDirectory
         return try {
@@ -66,7 +72,7 @@ class TerminalSession(
     }
 
     fun start() {
-        if (isRunning) return
+        if (isRunning || destroyed.get() || !starting.compareAndSet(false, true)) return
         var stage = "preparing session"
         try {
             val shell: String
@@ -117,13 +123,14 @@ class TerminalSession(
                     DebianRuntime.recordRuntimeEvent(context, "Debian shell probe failed: $probe")
                     if (!DebianRuntime.isRemoved(context) && rootfsRecoveryStarted.compareAndSet(false, true)) {
                         val notice = "\r\nDebian shell is missing. Repairing the bundled Linux system...\r\n"
-                        emulator.processInput(notice.toByteArray(Charsets.UTF_8), 0, notice.length)
+                        val noticeBytes = notice.toByteArray(Charsets.UTF_8)
+                        emulator.processInput(noticeBytes, 0, noticeBytes.size)
                         thread(name = "Miauterm-rootfs-repair") {
                             val repaired = runCatching { DebianRuntime.install(context) }.getOrDefault(false)
                             val repairedShell = DebianRuntime.shellPathForSession(root)
                             if (repaired && repairedShell != null && repairedShell.isFile && repairedShell.canExecute()) {
                                 DebianRuntime.recordRuntimeEvent(context, "Automatic Debian rootfs repair succeeded")
-                                start()
+                                if (!destroyed.get()) start()
                             } else {
                                 val detail = DebianRuntime.lastInstallError
                                     ?: "No executable shell after repair. ${DebianRuntime.shellProbeSummary(root)}"
@@ -164,9 +171,10 @@ class TerminalSession(
                 args = DebianRuntime.shellArguments(context, guestDirectory, failsafeMode, account)
                 ptyEnv = DebianRuntime.environment(context, failsafeMode, root, account)
                 cwd = rootCwd
-                restoredOutput?.let { showRestoredOutput(it) }
-                restoredOutput = null
             }
+
+            restoredOutput?.let { showRestoredOutput(it) }
+            restoredOutput = null
 
             stage = "creating Android terminal PTY"
             ptyProcess = PtyProcess.create(
@@ -179,6 +187,11 @@ class TerminalSession(
                 widthPx = widthPx,
                 heightPx = heightPx
             )
+            if (destroyed.get()) {
+                ptyProcess?.destroy()
+                ptyProcess = null
+                return
+            }
             val process = ptyProcess
             if (process == null) {
                 val message = "Android did not create a terminal PTY. Check Android logcat for MiautermPty errors."
@@ -192,8 +205,10 @@ class TerminalSession(
             val startTime = System.currentTimeMillis()
             DebianRuntime.recordRuntimeEvent(context, "PTY created; pid=${process.pid}; launching PRoot")
             emulator.onTitleChange = { newTitle -> this.title = newTitle }
+            emulator.onWorkingDirectory = { path -> guestWorkingDirectory = path }
             emulator.onClipboardSet = { text -> TerminalBridge.onClipboardRequest(context, text) }
             emulator.onCommandFinished = { durationMs, exitCode ->
+                guestWorkingDirectory = null
                 TerminalBridge.onCommandFinished(context, numberProvider?.invoke() ?: 1, durationMs, exitCode)
             }
             emulator.onSendResponse = { response -> write(response) }
@@ -219,7 +234,8 @@ class TerminalSession(
                             Log.e(tag, "Emulator could not process PTY output", e)
                             if (emulatorFailures >= 3) {
                                 val msg = "\r\n[Miauterm could not render Linux output - see diagnostic log]\r\n"
-                                runCatching { emulator.processInput(msg.toByteArray(), 0, msg.length) }
+                                val bytes = msg.toByteArray(Charsets.UTF_8)
+                                runCatching { emulator.processInput(bytes, 0, bytes.size) }
                                 break
                             }
                         }
@@ -238,20 +254,28 @@ class TerminalSession(
                     isRunning = false
                     if (code != 0) {
                         val msg = "\r\n[Linux session exited with code $code - see Settings > Debian system > diagnostic log]\r\n"
-                        runCatching { emulator.processInput(msg.toByteArray(), 0, msg.length) }
-                    } else if (duration <= 1500) {
+                        val bytes = msg.toByteArray(Charsets.UTF_8)
+                        runCatching { emulator.processInput(bytes, 0, bytes.size) }
+                    } else if (duration <= SessionManager.SESSION_START_GRACE_MS) {
                         val msg = "\r\n[Debian shell exited immediately - see Settings > Debian system > diagnostic log]\r\n"
-                        runCatching { emulator.processInput(msg.toByteArray(), 0, msg.length) }
+                        val bytes = msg.toByteArray(Charsets.UTF_8)
+                        runCatching { emulator.processInput(bytes, 0, bytes.size) }
                     }
                     onSessionFinished?.invoke(code)
                 }
             }
         } catch (t: Throwable) {
+            if (readerThread == null) {
+                ptyProcess?.destroy()
+                ptyProcess = null
+            }
             val detail = t.message?.takeIf { it.isNotBlank() } ?: t.javaClass.simpleName
             val message = "Failed while $stage: $detail"
             DebianRuntime.recordRuntimeEvent(context, "Session startup failed at $stage: $detail")
             Log.e(tag, message, t)
             showStartupFailure(message)
+        } finally {
+            starting.set(false)
         }
     }
 
@@ -271,9 +295,12 @@ class TerminalSession(
         emulator.processInput(bytes, 0, bytes.size)
     }
 
-    private val writeExecutor = Executors.newSingleThreadExecutor { runnable ->
-        Thread(runnable, "Cortex-PtyWriter").apply { isDaemon = true }
-    }
+    private val writeExecutor = java.util.concurrent.ThreadPoolExecutor(
+        1, 1, 0L, java.util.concurrent.TimeUnit.MILLISECONDS,
+        java.util.concurrent.LinkedBlockingQueue<Runnable>(1024),
+        { runnable -> Thread(runnable, "Cortex-PtyWriter").apply { isDaemon = true } },
+        java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy()
+    )
 
     fun write(bytes: ByteArray) {
         if (!isRunning || writeExecutor.isShutdown) return
@@ -324,6 +351,7 @@ class TerminalSession(
     }
 
     fun destroy() {
+        destroyed.set(true)
         isRunning = false
         writeExecutor.shutdownNow()
         ptyProcess?.destroy()

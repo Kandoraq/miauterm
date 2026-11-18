@@ -14,16 +14,18 @@ import java.net.Socket
 import java.net.SocketTimeoutException
 import java.security.SecureRandom
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
 import kotlin.concurrent.thread
 
 object ApiServer {
     private const val TAG = "MiautermCmd"
 
+    @Volatile
     private var server: ServerSocket? = null
 
     val port: Int? get() = server?.localPort
+
+    @Volatile
     private var workers: ExecutorService? = null
 
     internal fun connectionDirectory(context: Context): File =
@@ -45,7 +47,12 @@ object ApiServer {
             socket = ServerSocket(0, 16, InetAddress.getByName("127.0.0.1"))
             val token = newToken()
             writeConf(connectionFile(app), socket.localPort, token)
-            pool = Executors.newFixedThreadPool(4) { r -> Thread(r, "Miauterm-command").apply { isDaemon = true } }
+            pool = java.util.concurrent.ThreadPoolExecutor(
+                4, 4, 0L, java.util.concurrent.TimeUnit.MILLISECONDS,
+                java.util.concurrent.ArrayBlockingQueue<Runnable>(16),
+                { r -> Thread(r, "Miauterm-command").apply { isDaemon = true } },
+                java.util.concurrent.ThreadPoolExecutor.AbortPolicy()
+            )
             server = socket
             workers = pool
             val listener = socket
@@ -72,6 +79,7 @@ object ApiServer {
                 Log.w(TAG, "Closing the failed API socket failed", closeError)
             }
             pool?.shutdownNow()
+            runCatching { connectionFile(app).delete() }
             server = null
             workers = null
             Log.e(TAG, "Miauterm app command service cannot start", e)

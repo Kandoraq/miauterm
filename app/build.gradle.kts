@@ -3,9 +3,14 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
+fun detectKeystoreType(file: java.io.File): String {
+    val magic = java.io.DataInputStream(file.inputStream()).use { runCatching { it.readInt() }.getOrNull() }
+    return if (magic == 0xFEEDFEED.toInt()) "JKS" else "PKCS12"
+}
+
 android {
     namespace = "org.cortex.terminal"
-    compileSdk = 35
+    compileSdk = 34
 
     ndkVersion = "26.1.10909125"
 
@@ -17,8 +22,10 @@ android {
         versionCode = 30005
         versionName = "0.1.1"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
+        val rootfsDigest = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(file("src/main/assets/debian-arm64.tar.zst").readBytes())
+            .joinToString("") { "%02x".format(it) }
+        buildConfigField("String", "ROOTFS_SHA256", "\"$rootfsDigest\"")
     }
 
     buildFeatures {
@@ -80,7 +87,7 @@ android {
     signingConfigs {
         create("release") {
             if (hasReleaseSigning && activeKeystore != null) {
-                storeType = "PKCS12"
+                storeType = detectKeystoreType(activeKeystore as java.io.File)
                 storeFile = activeKeystore as java.io.File
                 storePassword = activeStorePass as String
                 keyAlias = activeAlias as String
@@ -141,7 +148,7 @@ android {
     lint {
         checkReleaseBuilds = true
         abortOnError = true
-        disable.addAll(listOf("ExpiredTargetSdkVersion"))
+        warning.add("ExpiredTargetSdkVersion")
     }
 }
 
@@ -153,12 +160,8 @@ dependencies {
     implementation(libs.androidx.preference)
     implementation(libs.androidx.drawerlayout)
     implementation(libs.androidx.recyclerview)
-    implementation(libs.androidx.viewpager2)
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
-    androidTestImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.test.runner)
-    androidTestImplementation(libs.androidx.test.junit)
 }

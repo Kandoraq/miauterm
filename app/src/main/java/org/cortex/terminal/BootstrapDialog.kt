@@ -53,4 +53,10 @@ class BootstrapDialog(activity: Activity) {
     fun show() = dialog.show()
 
     fun dismiss() = dialog.dismiss()
+
+    fun setOnCancel(listener: () -> Unit) {
+        dialog.setButton(AlertDialog.BUTTON_NEGATIVE, view.context.getString(android.R.string.cancel)) { _, _ ->
+            listener()
+        }
+    }
 }

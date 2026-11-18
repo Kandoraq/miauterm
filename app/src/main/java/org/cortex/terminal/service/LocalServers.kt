@@ -28,6 +28,9 @@ class LocalServers(private val context: Context, private val root: File) {
     private val dir = File(root, "run/cortex/listening")
     @Volatile
     private var executor: ScheduledExecutorService? = null
+    private fun newProbeExecutor(): java.util.concurrent.ExecutorService =
+        Executors.newFixedThreadPool(2) { r -> Thread(r, "Cortex-LocalServers-Probe").apply { isDaemon = true } }
+    private var probeExecutor: java.util.concurrent.ExecutorService = newProbeExecutor()
     private var observer: FileObserver? = null
 
     private class Pending(val program: String?, val since: Long, var nextCheck: Long, var attempts: Int = 0)
@@ -49,12 +52,14 @@ class LocalServers(private val context: Context, private val root: File) {
     fun start() {
         if (executor != null) return
         stopped = false
+        if (probeExecutor.isShutdown) probeExecutor = newProbeExecutor()
         executor = Executors.newSingleThreadScheduledExecutor { r ->
             Thread(r, "Cortex-LocalServers").apply { isDaemon = true }
         }
         scheduleNext(1)
     }
 
+    @Synchronized
     private fun scheduleNext(delaySeconds: Long) {
         val running = executor ?: return
         try {
@@ -85,6 +90,7 @@ class LocalServers(private val context: Context, private val root: File) {
         val running = executor
         executor = null
         running?.shutdownNow()
+        probeExecutor.shutdownNow()
 
         try {
             running?.awaitTermination(1, TimeUnit.SECONDS)
@@ -157,7 +163,7 @@ class LocalServers(private val context: Context, private val root: File) {
         }
 
         val listening = procListening()
-        stopShowing(shown.keys.filter { if (listening != null) it !in listening else !accepts(it) })
+        stopShowing(shown.keys.filter { if (listening != null) it !in listening else !probeWithTimeout { accepts(it) } })
 
         dir.listFiles()?.forEach { file ->
             val port = file.name.toIntOrNull() ?: return@forEach
@@ -188,7 +194,7 @@ class LocalServers(private val context: Context, private val root: File) {
         val p = pending[port] ?: return
         val now = SystemClock.elapsedRealtime()
         if (!enabled() || now < p.nextCheck) return
-        if (answersHttp(port)) {
+        if (probeWithTimeout { answersHttp(port) }) {
             pending.remove(port)
             show(port, p.program)
         } else if (now - p.since > GIVE_UP_MS) {
@@ -242,6 +248,13 @@ class LocalServers(private val context: Context, private val root: File) {
 
         val api = ApiServer.port
         return if (api == null || api in ports) ports else null
+    }
+
+    private fun probeWithTimeout(block: () -> Boolean): Boolean = try {
+        java.util.concurrent.CompletableFuture.supplyAsync(block, probeExecutor)
+            .get(PROBE_LIMIT_MS, TimeUnit.MILLISECONDS)
+    } catch (e: Exception) {
+        false
     }
 
     private fun accepts(port: Int): Boolean = LOOPBACKS.any { address ->
@@ -328,6 +341,7 @@ class LocalServers(private val context: Context, private val root: File) {
         private const val GIVE_UP_MS = 60_000L
         private const val CONNECT_TIMEOUT_MS = 500
         private const val READ_TIMEOUT_MS = 1500
+        private const val PROBE_LIMIT_MS = 2500L
         private val LOOPBACKS = listOf(InetAddress.getByName("127.0.0.1"), InetAddress.getByName("::1"))
     }
 }

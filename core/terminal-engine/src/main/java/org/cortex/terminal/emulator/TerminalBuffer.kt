@@ -305,7 +305,7 @@ class TerminalBuffer(var rows: Int, var cols: Int, private val maxHistory: Int =
     var wideCharacters = true
 
     fun writeChar(c: Char) {
-        if (wideCharacters && c.code >= CharWidth.FIRST_NOT_NARROW) {
+        if (wideCharacters && !CharWidth.isNarrow(c)) {
             writeRun(charArrayOf(c), 0, 1)
         } else {
             writeCell(c)
@@ -338,7 +338,7 @@ class TerminalBuffer(var rows: Int, var cols: Int, private val maxHistory: Int =
         var i = start
         while (i < end) {
             var j = i
-            while (j < end && src[j].code < CharWidth.FIRST_NOT_NARROW) j++
+            while (j < end && CharWidth.isNarrow(src[j])) j++
             if (j > i) {
                 writeNarrow(src, i, j)
                 i = j
@@ -406,7 +406,7 @@ class TerminalBuffer(var rows: Int, var cols: Int, private val maxHistory: Int =
             }
         }
         var j = start + 1
-        while (j < end && !Character.isSurrogate(src[j]) && src[j] != TerminalRow.ASTRAL && CharWidth.of(src[j]) == 1) j++
+        while (j < end && !Character.isSurrogate(src[j]) && src[j] != TerminalRow.ASTRAL && CharWidth.isNarrow(src[j])) j++
         writeNarrow(src, start, j)
         return j
     }

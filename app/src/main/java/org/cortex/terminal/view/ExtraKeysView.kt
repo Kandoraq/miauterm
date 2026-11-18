@@ -236,7 +236,7 @@ class ExtraKeysView @JvmOverloads constructor(
             ExtraKeysLayout.Special.KEYBOARD -> { { terminalView?.toggleKeyboard() } }
             ExtraKeysLayout.Special.SPACE -> { { terminalView?.sendChar(' ') } }
             else -> {
-                val keyCode = keyCodeOf(key.special);
+                val keyCode = keyCodeOf(key.special)
                 { terminalView?.sendKeySequence(keyCode) }
             }
         }
@@ -335,15 +335,6 @@ class ExtraKeysView @JvmOverloads constructor(
                 }
                 layoutParams = params
 
-                setOnClickListener {
-                    try { action() } catch (e: Exception) { Log.w(TAG, "Extra key ${key.label} failed: ${e.message}") }
-                }
-                val latchSpecial = key.special?.takeIf { special ->
-                    special != ExtraKeysLayout.Special.CTRL && special != ExtraKeysLayout.Special.ALT &&
-                        special != ExtraKeysLayout.Special.MENU && special != ExtraKeysLayout.Special.FIND &&
-                        special != ExtraKeysLayout.Special.PASTE && special != ExtraKeysLayout.Special.KEYBOARD &&
-                        special != ExtraKeysLayout.Special.SPACE && !special.repeats
-                }
                 if (latchSpecial != null) {
                     val keyReference = this
                     setOnClickListener {
@@ -363,6 +354,11 @@ class ExtraKeysView @JvmOverloads constructor(
                                 dispatchKeySequence(keyCodeOf(latchSpecial))
                             }
                         }
+                    }
+                }
+                if (latchSpecial == null) {
+                    setOnClickListener {
+                        try { action() } catch (e: Exception) { Log.w(TAG, "Extra key ${key.label} failed: ${e.message}") }
                     }
                 }
                 val flashesAccent = !key.repeats
@@ -540,8 +536,16 @@ class ExtraKeysView @JvmOverloads constructor(
         altButton?.let { btn -> styleKey(btn, view.isAltPressed) }
     }
 
+    fun clearLatch() {
+        latchedKey?.let { styleKey(it.first, false) }
+        latchedKey = null
+        cancelPendingLatches()
+        updateModifierStyles()
+    }
+
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         cancelRepeat()
+        clearLatch()
     }
 }

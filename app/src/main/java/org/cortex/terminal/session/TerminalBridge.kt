@@ -27,7 +27,7 @@ object TerminalBridge {
     const val PREF_THRESHOLD = "long_command_threshold"
     private const val CHANNEL_ID = "cortex_commands"
     private const val NOTIFICATION_BASE_ID = 2000
-    private const val NOTIFICATION_SLOTS = 20
+    private const val NOTIFICATION_SLOTS = 100_000
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val nextSlot = AtomicInteger(0)
@@ -54,18 +54,20 @@ object TerminalBridge {
 
     fun onCommandFinished(context: Context, sessionNumber: Int, durationMs: Long, exitCode: Int?) {
         val app = context.applicationContext
-        try {
-            val prefs = PreferenceManager.getDefaultSharedPreferences(app)
-            val notify = CommandNotifications.shouldNotify(
-                enabled = prefs.getBoolean(PREF_NOTIFY, true),
-                thresholdSeconds = CommandNotifications.parseThreshold(prefs.getString(PREF_THRESHOLD, null)),
-                durationMs = durationMs,
-                appInForeground = CortexApp.isInForeground
-            )
-            if (!notify) return
-            postNotification(app, sessionNumber, durationMs, exitCode)
-        } catch (e: Exception) {
-            Log.w(TAG, "Could not post command notification", e)
+        mainHandler.post {
+            try {
+                val prefs = PreferenceManager.getDefaultSharedPreferences(app)
+                val notify = CommandNotifications.shouldNotify(
+                    enabled = prefs.getBoolean(PREF_NOTIFY, true),
+                    thresholdSeconds = CommandNotifications.parseThreshold(prefs.getString(PREF_THRESHOLD, null)),
+                    durationMs = durationMs,
+                    appInForeground = CortexApp.isInForeground
+                )
+                if (!notify) return@post
+                postNotification(app, sessionNumber, durationMs, exitCode)
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not post command notification", e)
+            }
         }
     }
 

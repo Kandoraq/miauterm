@@ -15,6 +15,8 @@ import android.graphics.Rect
 import android.graphics.Typeface
 import android.text.InputType
 import android.os.Build
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.util.AttributeSet
 import android.view.GestureDetector
 import android.view.Gravity
@@ -32,7 +34,6 @@ import android.view.inputmethod.SurroundingText
 import androidx.annotation.RequiresApi
 import androidx.core.view.inputmethod.EditorInfoCompat
 import androidx.core.view.inputmethod.InputConnectionCompat
-import androidx.core.view.inputmethod.InputContentInfoCompat
 import android.widget.LinearLayout
 import android.widget.OverScroller
 import android.widget.PopupWindow
@@ -58,6 +59,8 @@ class TerminalView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
+    var onSessionChanged: (() -> Unit)? = null
+
     var session: TerminalSession? = null
         set(value) {
             val previous = field
@@ -66,13 +69,16 @@ class TerminalView @JvmOverloads constructor(
             field = value
             value?.onRedraw = { postInvalidate() }
             value?.emulator?.onScreenUpdate = onEmulatorScreenUpdate
+            value?.emulator?.onBell = { playBell() }
             if (previous !== value) {
-
                 scrollOffset = 0
                 clearSelection()
+                selectionHistoryAnchor = historySize
+                accessibilityText = ""
                 previous?.setFocused(false)
                 value?.setFocused(hasWindowFocus())
                 cursorBlinkOn = true
+                onSessionChanged?.invoke()
             }
             isCtrlPressed = false
             isAltPressed = false
@@ -82,9 +88,12 @@ class TerminalView @JvmOverloads constructor(
             urlHits = emptyList()
             urlRefreshCounter = 0
             updateTerminalDimensions()
+            refreshAccessibilityText()
             onSearchChanged?.invoke("", -1, 0)
+            onSessionChanged?.invoke()
             postInvalidate()
         }
+
 
     private val screenUpdatePosted = AtomicBoolean(false)
     private val onEmulatorScreenUpdate: () -> Unit = {
@@ -92,7 +101,7 @@ class TerminalView @JvmOverloads constructor(
             val posted = post {
                 screenUpdatePosted.set(false)
                 urlRefreshCounter++
-                if (urlRefreshCounter % 90 == 0) {
+                if (urlRefreshCounter % URL_REFRESH_CADENCE == 0) {
                     try { refreshUrlLinks() } catch (_: Exception) {}
                     if (searchQuery.isNotEmpty()) {
                         try { startSearch(searchQuery) } catch (_: Exception) {}
@@ -133,13 +142,45 @@ class TerminalView @JvmOverloads constructor(
         if (hasWindowFocus) invalidate() else stopCursorBlink()
     }
 
+    private fun playBell() {
+        post {
+            runCatching {
+                val tone = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 60)
+                tone.startTone(ToneGenerator.TONE_PROP_BEEP, 80)
+                postDelayed({ tone.release() }, 200)
+            }
+        }
+    }
+
     private fun postScreenUpdate() {
+        refreshAccessibilityText()
         val wait = session?.emulator?.synchronizedUpdateRemainingMs() ?: 0L
         removeCallbacks(syncUpdateTimeoutRunnable)
         if (wait > 0L) {
             postDelayed(syncUpdateTimeoutRunnable, wait)
         } else {
             requestRedraw()
+        }
+    }
+
+    private var accessibilityText = ""
+
+    private fun refreshAccessibilityText() {
+        val emulator = session?.emulator ?: run {
+            accessibilityText = ""
+            return
+        }
+        if (!emulator.lock.tryLock()) return
+        try {
+            val buffer = emulator.buffer
+            val snapshot = StringBuilder()
+            for (r in 0 until rows) {
+                val line = buffer.getVisibleRow(r, scrollOffset).getText()
+                if (line.isNotEmpty()) snapshot.append(line).append('\n')
+            }
+            accessibilityText = snapshot.toString().trimEnd()
+        } finally {
+            emulator.lock.unlock()
         }
     }
 
@@ -157,8 +198,12 @@ class TerminalView @JvmOverloads constructor(
         }
     }
 
-    private companion object {
+    companion object {
         const val CURSOR_BLINK_MS = 500L
+        const val EDGE_SLOP_DP = 36f
+        private const val URL_REFRESH_CADENCE = 90
+        private const val MAX_CLIPBOARD_IMAGE_BYTES = 20L * 1024 * 1024
+        private const val CURSOR_LEFT = "\u001b[D"
     }
 
     private var cursorBlinkOn = true
@@ -213,6 +258,7 @@ class TerminalView @JvmOverloads constructor(
     var selectStartCol = 0
     var selectEndRow = 0
     var selectEndCol = 0
+    private var selectionHistoryAnchor = 0
 
     private enum class ActiveHandle {
         NONE, START, END
@@ -260,27 +306,27 @@ class TerminalView @JvmOverloads constructor(
     }
 
     private val selectionBgPaint = Paint().apply {
-        color = Color.WHITE
+        color = selectionBackground(Chrome.palette.dark, TerminalColor.DEFAULT_BG, Chrome.palette.accent)
         style = Paint.Style.FILL
     }
     private val searchMatchPaint = Paint().apply {
-        color = Color.parseColor("#45475a")
+        color = Chrome.mix(TerminalColor.DEFAULT_BG, TerminalColor.DEFAULT_FG, 0.25f)
         style = Paint.Style.FILL
     }
     private val searchCurrentPaint = Paint().apply {
-        color = Color.parseColor("#f9e2af")
+        color = TerminalColor.ANSI_COLORS[3]
         style = Paint.Style.FILL
     }
     private val linkUnderlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#89b4fa")
+        color = Chrome.palette.accent
         strokeWidth = 2f
     }
     private val selectionHandlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#89b4fa")
+        color = Chrome.palette.accent
         style = Paint.Style.FILL
     }
     private val selectionHandleStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.WHITE
+        color = Chrome.WHITE
         style = Paint.Style.STROKE
         strokeWidth = 3f
     }
@@ -351,7 +397,6 @@ class TerminalView @JvmOverloads constructor(
             }
         }
 
-    private val textBounds = Rect()
     private val scroller = OverScroller(context)
     private var scrollRemainder = 0f
     private var lastFlingY = 0
@@ -680,7 +725,7 @@ class TerminalView @JvmOverloads constructor(
     }
 
     private fun measureCharDimensions() {
-        textPaint.getTextBounds("X", 0, 1, textBounds)
+        textPaint.getTextBounds("X", 0, 1, Rect())
         wideWidths.clear()
         charWidth = textPaint.measureText("M")
         isFixedPitch = kotlin.math.abs(textPaint.measureText("i") - charWidth) < 0.01f &&
@@ -692,9 +737,14 @@ class TerminalView @JvmOverloads constructor(
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        val previousOffset = scrollOffset
+        val anchor = historySize - previousOffset
         super.onSizeChanged(w, h, oldw, oldh)
-        scrollOffset = 0
         updateTerminalDimensions()
+        if (previousOffset > 0 && scrollOffset == 0) {
+            scrollOffset = (historySize - anchor).coerceIn(0, historySize)
+            refreshAccessibilityText()
+        }
     }
 
     private fun updateTerminalDimensions() {
@@ -1010,7 +1060,7 @@ class TerminalView @JvmOverloads constructor(
         pinHandlePath.reset()
         pinHandlePath.moveTo(tipX, tipY)
         pinHandlePath.lineTo(centerX, centerY - radius * 0.5f)
-        pinHandlePath.lineTo(if (isStart) tipX else tipX, centerY)
+        pinHandlePath.lineTo(tipX, centerY)
         pinHandlePath.close()
 
         canvas.drawPath(pinHandlePath, selectionHandlePaint)
@@ -1053,7 +1103,7 @@ class TerminalView @JvmOverloads constructor(
         }
 
         val density = resources.displayMetrics.density
-        val edgeSlop = 36f * density
+        val edgeSlop = EDGE_SLOP_DP * density
 
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
@@ -1195,7 +1245,22 @@ class TerminalView @JvmOverloads constructor(
         return (x / charWidth).toInt().coerceIn(0, cols - 1)
     }
 
+    private fun reconcileSelectionHistory() {
+        if (!isSelecting) {
+            selectionHistoryAnchor = historySize
+            return
+        }
+        val current = historySize
+        val delta = selectionHistoryAnchor - current
+        if (delta != 0) {
+            selectStartRow += delta
+            selectEndRow += delta
+            selectionHistoryAnchor = current
+        }
+    }
+
     private fun getNormalizedSelection(): IntArray {
+        reconcileSelectionHistory()
         return if (selectStartRow < selectEndRow || (selectStartRow == selectEndRow && selectStartCol <= selectEndCol)) {
             intArrayOf(selectStartRow, selectStartCol, selectEndRow, selectEndCol)
         } else {
@@ -1296,7 +1361,7 @@ class TerminalView @JvmOverloads constructor(
 
         layout.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
         val origin = IntArray(2)
-        getLocationInWindow(origin)
+        getLocationOnScreen(origin)
         val norm = getNormalizedSelection()
         val pos = actionPopupPosition(
             viewLeft = origin[0], viewTop = origin[1], viewWidth = width, viewHeight = height,
@@ -1378,15 +1443,19 @@ class TerminalView @JvmOverloads constructor(
 
         val preferText = plainTextOnly && !item.text.isNullOrEmpty()
         if (!preferText && uri != null && hasImageMime) {
-            val savedPath = saveImageFromUri(uri, mimeType)
-            if (savedPath != null) {
-                session?.write(savedPath)
-                scrollOffset = 0
-                invalidate()
-                clearSelection()
-                Toast.makeText(context, context.getString(R.string.pasted_image_path, savedPath), Toast.LENGTH_SHORT).show()
-                return
+            val target = session
+            saveImageFromUriAsync(uri, mimeType) { savedPath ->
+                if (savedPath != null) {
+                    target?.write(savedPath)
+                    scrollOffset = 0
+                    invalidate()
+                    clearSelection()
+                    Toast.makeText(context, context.getString(R.string.pasted_image_path, savedPath), Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, R.string.image_save_failed, Toast.LENGTH_SHORT).show()
+                }
             }
+            return
         }
 
         val rawText = item?.coerceToText(context)?.toString() ?: return
@@ -1401,6 +1470,21 @@ class TerminalView @JvmOverloads constructor(
 
     private fun pastedText(raw: String): String {
         return session?.emulator?.bracketedPaste(raw) ?: sanitizePastedText(raw)
+    }
+
+    private val clipboardExecutor = java.util.concurrent.Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "Miauterm-ClipboardImage").apply { isDaemon = true }
+    }
+
+    private fun saveImageFromUriAsync(
+        uri: Uri,
+        mimeType: String?,
+        onResult: (String?) -> Unit
+    ) {
+        clipboardExecutor.execute {
+            val path = runCatching { saveImageFromUri(uri, mimeType) }.getOrNull()
+            post { onResult(path) }
+        }
     }
 
     private fun pruneClipboardImages(dir: File) {
@@ -1467,9 +1551,21 @@ class TerminalView @JvmOverloads constructor(
 
             val copied = context.contentResolver.openInputStream(uri)?.use { inStream ->
                 targetFile.outputStream().use { outStream ->
-                    inStream.copyTo(outStream)
+                    val buffer = ByteArray(64 * 1024)
+                    var total = 0L
+                    var completed = true
+                    while (true) {
+                        val count = inStream.read(buffer)
+                        if (count < 0) break
+                        total += count
+                        if (total > MAX_CLIPBOARD_IMAGE_BYTES) {
+                            completed = false
+                            break
+                        }
+                        outStream.write(buffer, 0, count)
+                    }
+                    completed
                 }
-                true
             } ?: false
             if (!copied) {
                 try { targetFile.delete() } catch (_: Exception) {}
@@ -1515,24 +1611,30 @@ class TerminalView @JvmOverloads constructor(
     private fun deleteSelection(): Boolean {
         if (!isSelecting) return false
         val emulator = session?.emulator
-        var backspaces = 0
+        var sequence = ""
         if (emulator != null) {
             emulator.lock.withLock {
                 val buffer = emulator.buffer
                 val norm = getNormalizedSelection()
-                if (!buffer.isAlternate && norm[0] == norm[2] && norm[0] == buffer.cursorRow &&
-                    norm[3] == buffer.cursorCol && selectionHoldsCell(norm, buffer.cursorRow, buffer.cursorCol)
-                ) {
-                    backspaces = norm[3] - norm[1] + 1
+                if (!buffer.isAlternate && norm[0] == norm[2] && norm[0] == buffer.cursorRow) {
+                    val count = norm[3] - norm[1] + 1
+                    sequence = when {
+                        norm[3] == buffer.cursorCol -> "\u007f".repeat(count)
+                        norm[3] < buffer.cursorCol ->
+                            "\u001b[D".repeat(buffer.cursorCol - norm[3]) + "\u007f".repeat(count)
+                        norm[1] > buffer.cursorCol ->
+                            "\u001b[3~".repeat(norm[1] - buffer.cursorCol + count)
+                        else -> "\u007f".repeat((buffer.cursorCol - norm[1]).coerceAtLeast(0))
+                    }
                 }
             }
         }
         clearSelection()
-        if (backspaces > 0) {
+        if (sequence.isNotEmpty()) {
             scrollOffset = 0
-            session?.write("\u007f".repeat(backspaces))
+            session?.write(sequence)
         }
-        return backspaces > 0
+        return sequence.isNotEmpty()
     }
 
     private fun postSearchChanged() {
@@ -1873,33 +1975,33 @@ class TerminalView @JvmOverloads constructor(
                 val uri = inputContentInfo.contentUri
                 val description = inputContentInfo.description
                 val mimeType = if (description.mimeTypeCount > 0) description.getMimeType(0) else null
+                val target = session
+                val releasePermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1 &&
+                    (flags and InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION) != 0
 
-                val savedPath = saveImageFromUri(uri, mimeType)
-                if (savedPath != null) {
-                    post {
-                        session?.write(savedPath)
-                        scrollOffset = 0
-                        invalidate()
-                        clearSelection()
-                        Toast.makeText(context, context.getString(R.string.pasted_image_path, savedPath), Toast.LENGTH_SHORT).show()
+                saveImageFromUriAsync(uri, mimeType) { savedPath ->
+                    try {
+                        if (savedPath != null) {
+                            target?.write(savedPath)
+                            scrollOffset = 0
+                            invalidate()
+                            clearSelection()
+                            Toast.makeText(context, context.getString(R.string.pasted_image_path, savedPath), Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, R.string.image_save_failed, Toast.LENGTH_SHORT).show()
+                        }
+                    } finally {
+                        if (releasePermission) {
+                            try {
+                                inputContentInfo.releasePermission()
+                            } catch (e: Exception) {}
+                        }
                     }
-                    true
-                } else {
-                    post {
-                        Toast.makeText(context, R.string.image_save_failed, Toast.LENGTH_SHORT).show()
-                    }
-                    false
                 }
+                true
             } catch (e: Exception) {
                 android.util.Log.e("TerminalView", "Error committing rich content", e)
                 false
-            } finally {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1 &&
-                    (flags and InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION) != 0) {
-                    try {
-                        inputContentInfo.releasePermission()
-                    } catch (e: Exception) {}
-                }
             }
         }
 
@@ -2012,18 +2114,7 @@ class TerminalView @JvmOverloads constructor(
 
         val emulator = session?.emulator
         if (emulator != null) {
-            val visibleText = StringBuilder()
-            emulator.lock.withLock {
-                val buffer = emulator.buffer
-                for (r in 0 until rows) {
-                    val row = buffer.getVisibleRow(r, scrollOffset)
-                    val text = row.getText()
-                    if (text.isNotEmpty()) {
-                        visibleText.append(text).append("\n")
-                    }
-                }
-            }
-            info.text = visibleText.toString().trimEnd()
+            info.text = accessibilityText
             info.contentDescription = context.getString(R.string.terminal_screen_desc, cols, rows)
         } else {
             info.contentDescription = context.getString(R.string.terminal_screen_inactive_desc)

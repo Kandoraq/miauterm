@@ -45,8 +45,10 @@ object TerminalSearch {
         return out
     }
 
-    private fun columnOf(columns: IntArray?, index: Int): Int =
-        if (columns == null) index else columns[index.coerceIn(0, columns.size - 1)]
+    private fun columnOf(columns: IntArray?, index: Int): Int = when {
+        columns == null || columns.isEmpty() -> index
+        else -> columns[index.coerceIn(0, columns.size - 1)]
+    }
 
     private fun endColumnOf(row: TerminalRow, columns: IntArray?, index: Int): Int {
         val col = columnOf(columns, index)
