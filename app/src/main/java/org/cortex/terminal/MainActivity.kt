@@ -84,6 +84,7 @@ class MainActivity : AppCompatActivity() {
     private var removedRootfsNoticeShown = false
     private var shortcutNewSession = false
     private var shortcutSettings = false
+    private var releaseCheckStarted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -442,6 +443,28 @@ class MainActivity : AppCompatActivity() {
         terminalView.requestLayout()
         terminalView.postInvalidate()
         refreshTabs()
+        checkForReleaseNotification()
+    }
+
+    private fun checkForReleaseNotification() {
+        if (releaseCheckStarted) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) return
+        if (!androidx.core.app.NotificationManagerCompat.from(this).areNotificationsEnabled()) return
+        releaseCheckStarted = true
+        val preferences = PreferenceManager.getDefaultSharedPreferences(this)
+        val now = System.currentTimeMillis()
+        val lastCheck = preferences.getLong("last_github_release_check", 0L)
+        if (now - lastCheck < 24L * 60L * 60L * 1000L) return
+        preferences.edit().putLong("last_github_release_check", now).apply()
+        Thread({
+            when (val result = GitHubUpdateChecker.check()) {
+                is GitHubUpdateChecker.Result.Available -> GitHubUpdateChecker.postNotification(applicationContext, result.release)
+                GitHubUpdateChecker.Result.Current, is GitHubUpdateChecker.Result.Failed -> Unit
+            }
+        }, "Miauterm-ReleaseCheck").apply { isDaemon = true }.start()
     }
 
     override fun onStop() {

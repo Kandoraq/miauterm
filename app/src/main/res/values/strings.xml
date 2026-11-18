@@ -183,7 +183,7 @@
     <string name="pref_about_title">About Miauterm</string>
     <string name="pref_about_summary" translatable="false">Project details, links and open-source notices</string>
     <string name="pref_check_updates_title" translatable="false">Check for updates</string>
-    <string name="pref_check_updates_summary" translatable="false">Check GitHub Releases and notify when a newer APK is available.</string>
+    <string name="pref_check_updates_summary" translatable="false">Check now, or let Miauterm check GitHub Releases daily and notify when a newer version is available.</string>
     <string name="pref_check_updates_checking" translatable="false">Checking GitHub Releases…</string>
     <string name="pref_check_updates_current" translatable="false">Miauterm is up to date.</string>
     <string name="pref_check_updates_available" translatable="false">Update %1$s is available. Open the Miauterm update notification to view its release.</string>

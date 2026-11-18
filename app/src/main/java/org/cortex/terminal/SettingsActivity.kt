@@ -140,22 +140,6 @@ class SettingsActivity : AppCompatActivity() {
         ).show()
     }
 
-    internal fun confirmRemove() {
-        org.cortex.terminal.view.ChromeDialog.style(
-            AlertDialog.Builder(this)
-                .setTitle(getString(R.string.rootfs_remove_confirm_title, DebianRuntime.systemName(this) ?: "Debian"))
-                .setMessage(R.string.rootfs_remove_confirm_message)
-                .setNegativeButton(R.string.cancel, null)
-                .setPositiveButton(R.string.rootfs_remove_title) { _, _ ->
-                    runDebianOperation(getString(R.string.rootfs_remove_done), closeSettings = true) { context ->
-                        stopSessionsAndForget(context)
-                        DebianRuntime.removeDebian(context)
-                    }
-                }
-                .create()
-        ).show()
-    }
-
     private fun confirmRestore(uri: Uri) {
         org.cortex.terminal.view.ChromeDialog.style(
             AlertDialog.Builder(this)
@@ -298,6 +282,27 @@ class SettingsActivity : AppCompatActivity() {
             .setPositiveButton(R.string.save, null)
             .create()
         org.cortex.terminal.view.ChromeDialog.style(dialog) {
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL)?.setOnClickListener {
+                try {
+                    extraKeysExecutor.execute {
+                        val reset = runCatching {
+                            ExtraKeysConfig.writeLayout(file, ExtraKeysLayout.DEFAULT_TEXT)
+                            check(ExtraKeysLayout.parse(file.readText()).error == null) { "Default key layout could not be read back" }
+                        }
+                        runOnUiThread {
+                            if (isFinishing || isDestroyed) return@runOnUiThread
+                            reset.onSuccess {
+                                MainActivity.instance?.reloadExtraKeys()
+                                dialog.dismiss()
+                                android.widget.Toast.makeText(this, R.string.extra_keys_saved, android.widget.Toast.LENGTH_SHORT).show()
+                            }.onFailure {
+                                android.widget.Toast.makeText(this, getString(R.string.extra_keys_invalid, it.message ?: "write failed"), android.widget.Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
+                } catch (_: java.util.concurrent.RejectedExecutionException) {
+                }
+            }
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val enabled = (0 until grid.childCount).associate { index ->
                     val child = grid.getChildAt(index) as android.widget.CheckBox
@@ -324,7 +329,10 @@ class SettingsActivity : AppCompatActivity() {
                     }
                 }
                 extraKeysExecutor.execute {
-                    val saved = runCatching { ExtraKeysConfig.writeLayout(file, text) }
+                    val saved = runCatching {
+                        ExtraKeysConfig.writeLayout(file, text)
+                        check(ExtraKeysLayout.parse(file.readText()).error == null) { "Saved key layout could not be read back" }
+                    }
                     runOnUiThread {
                         if (isFinishing || isDestroyed) return@runOnUiThread
                         saved.onSuccess {
@@ -340,21 +348,6 @@ class SettingsActivity : AppCompatActivity() {
                         }
                     }
                 }
-            }
-        }
-        org.cortex.terminal.view.ChromeDialog.style(dialog)
-        dialog.getButton(AlertDialog.BUTTON_NEUTRAL)?.setOnClickListener {
-            try {
-                extraKeysExecutor.execute {
-                    runCatching { ExtraKeysConfig.writeLayout(file, ExtraKeysLayout.DEFAULT_TEXT) }
-                    runOnUiThread {
-                        if (isFinishing || isDestroyed) return@runOnUiThread
-                        MainActivity.instance?.reloadExtraKeys()
-                        dialog.dismiss()
-                        android.widget.Toast.makeText(this, R.string.extra_keys_saved, android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                }
-            } catch (_: java.util.concurrent.RejectedExecutionException) {
             }
         }
         dialog.show()
@@ -699,7 +692,6 @@ class SettingsActivity : AppCompatActivity() {
                 "backup_debian" to R.drawable.ic_backup,
                 "restore_debian" to R.drawable.ic_restore,
                 "reset_debian" to R.drawable.ic_restart,
-                "remove_debian" to R.drawable.ic_delete,
                 "edit_extra_keys" to R.drawable.ic_keyboard,
                 "about_miauterm" to R.drawable.ic_info,
                 "check_updates" to R.drawable.ic_update,
@@ -826,10 +818,6 @@ class SettingsActivity : AppCompatActivity() {
             }
             findPreference<Preference>("reset_debian")?.setOnPreferenceClickListener {
                 (requireActivity() as SettingsActivity).confirmReset()
-                true
-            }
-            findPreference<Preference>("remove_debian")?.setOnPreferenceClickListener {
-                (requireActivity() as SettingsActivity).confirmRemove()
                 true
             }
             findPreference<androidx.preference.EditTextPreference>(DebianRuntime.PREF_LINUX_USER)?.let { pref ->

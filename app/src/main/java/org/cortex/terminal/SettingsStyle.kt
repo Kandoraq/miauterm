@@ -50,9 +50,9 @@ internal class SettingsStyle(private val fragment: PreferenceFragmentCompat) {
         }
 
         val padding = (14 * density).toInt()
-        view.setPadding(padding, (12 * density).toInt(), padding, (12 * density).toInt())
+        view.setPadding(padding, (7 * density).toInt(), padding, (7 * density).toInt())
         view.elevation = 0f
-        view.background = Chrome.flatPressable(p.bg, p.raised)
+        view.background = Chrome.flatPressable(p.raised, p.raisedHigh)
 
         title?.setTextColor(forState(p.text))
         title?.textSize = 15f
