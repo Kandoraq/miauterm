@@ -161,6 +161,7 @@ android {
 
 dependencies {
     implementation(project(":core:terminal-engine"))
+    implementation("androidx.annotation:annotation:1.7.1")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
