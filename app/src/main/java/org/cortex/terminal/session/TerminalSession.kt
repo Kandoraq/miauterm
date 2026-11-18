@@ -351,7 +351,7 @@ class TerminalSession(
     }
 
     fun destroy() {
-        destroyed.set(true)
+        runCatching { destroyed.set(true) }
         isRunning = false
         writeExecutor.shutdownNow()
         ptyProcess?.destroy()
