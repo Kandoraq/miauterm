@@ -50,7 +50,7 @@ internal class SettingsStyle(private val fragment: PreferenceFragmentCompat) {
         }
 
         val padding = (14 * density).toInt()
-        view.setPadding(padding, (12 * density).toInt(), padding, (12 * density).toInt())
+        view.setPadding(padding, (9 * density).toInt(), padding, (9 * density).toInt())
         view.elevation = 0f
         view.background = Chrome.flatPressable(p.bg, p.raised)
 
