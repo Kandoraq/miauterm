@@ -28,7 +28,7 @@ internal class SettingsStyle(private val fragment: PreferenceFragmentCompat) {
 
     private fun forState(color: Int): ColorStateList = ColorStateList(
         arrayOf(intArrayOf(-android.R.attr.state_enabled), intArrayOf()),
-        intArrayOf(Chrome.withAlpha(color, 110), color)
+        intArrayOf(Chrome.withAlpha(color, 190), color)
     )
 
     private fun style(view: View) {

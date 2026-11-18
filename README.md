@@ -19,7 +19,7 @@
 </table>
 
 > **Project status: Experimental**<br>
-> The published APK is a test release for ARM64 Android devices. Runtime behavior and package compatibility can vary by device and Android version. The next release codename is **Miauterm Coral**; it does not change the app version number.
+> The current app version is **0.1.2-coral** (codename **Coral**). The experimental APK targets ARM64 Android devices; runtime behavior and package compatibility can vary by device and Android version.
 
 Miauterm is an unofficial fork of [Cortex Terminal](https://github.com/ssfuisu/cortex). It retains upstream terminal and Android application code while replacing Cortex's native Ubuntu runtime with a Debian 13 (Trixie) ARM64 root filesystem launched through PRoot. Miauterm is an independent project and is not affiliated with or endorsed by the Cortex maintainers.
 
@@ -88,7 +88,7 @@ These features are implemented across Miauterm changes and retained Cortex compo
 | Target SDK | 28 |
 | CPU architecture | `arm64-v8a` |
 | Linux distribution | Bundled Debian 13 (Trixie) ARM64 root filesystem |
-| App version | 0.1.1 |
+| App version | 0.1.2-coral |
 
 Miauterm stores Debian inside its app-private files directory and extracts the bundled root filesystem on first start. Leave enough device storage for the extracted system and any packages you install. `apt update` and package installation require network access.
 
@@ -137,11 +137,11 @@ This is a manual recovery path, not a supported distribution importer. The bundl
 
 ## Download
 
-Download the signed ARM64 APK from the [Miauterm v0.1.1 release](https://github.com/Kandoraq/miauterm/releases/tag/v0.1.1):
+Download the signed ARM64 APK from the [Miauterm 0.1.2-coral release](https://github.com/Kandoraq/miauterm/releases/tag/v0.1.2-coral):
 
-- [Installable release APK](https://github.com/Kandoraq/miauterm/releases/download/v0.1.1/Miauterm-v0.1.1-arm64.apk)
-- [Release APK SHA-256](https://github.com/Kandoraq/miauterm/releases/download/v0.1.1/Miauterm-v0.1.1-arm64.apk.sha256)
-- [Debug APK](https://github.com/Kandoraq/miauterm/releases/download/v0.1.1/Miauterm-arm64-debug.apk)
+- [Installable release APK](https://github.com/Kandoraq/miauterm/releases/download/v0.1.2-coral/Miauterm-v0.1.2-coral-arm64.apk)
+- [Release APK SHA-256](https://github.com/Kandoraq/miauterm/releases/download/v0.1.2-coral/Miauterm-v0.1.2-coral-arm64.apk.sha256)
+- [Debug APK](https://github.com/Kandoraq/miauterm/releases/download/v0.1.2-coral/Miauterm-arm64-debug.apk)
 
 The [Releases page](https://github.com/Kandoraq/miauterm/releases) contains the current APKs and their checksums. The [Build APK workflow](https://github.com/Kandoraq/miauterm/actions/workflows/build-apk.yml) validates the Debian rootfs, builds the ARM64 port mapping library and APK, and verifies the release package before publishing it. Use the Settings update check to receive a notification when GitHub has a newer release; it opens the release in your browser so the APK can be downloaded manually.
 
@@ -190,7 +190,7 @@ miauterm/
 ├── .github/
 │   ├── dependabot.yml
 │   ├── release-notes/
-│   │   └── v0.1.1.md
+│   │   └── v0.1.2-coral.md
 │   └── workflows/
 │       └── build-apk.yml
 ├── app/

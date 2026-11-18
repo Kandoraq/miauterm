@@ -202,7 +202,7 @@
     <string name="github_updates_channel_description" translatable="false">Notifications when a newer Miauterm release is found.</string>
     <string name="about_description" translatable="false">Debian 13 ARM64 runs in an Android app sandbox through PRoot.</string>
     <string name="about_fork" translatable="false">Miauterm is an independent fork of Cortex Terminal. It replaces the upstream Ubuntu runtime with Debian and PRoot.</string>
-    <string name="about_codename" translatable="false">Next release codename: Miauterm Coral. It does not change the app version number.</string>
+    <string name="about_codename" translatable="false">Release codename: Coral.</string>
     <string name="about_repository_link" translatable="false">Miauterm on GitHub</string>
     <string name="about_releases_link" translatable="false">Releases and APK downloads</string>
     <string name="extra_keys_invalid">Key layout error: %1$s</string>
