@@ -1,6 +1,6 @@
 package org.cortex.terminal
 
-import androidx.annotation.SuppressLint
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
