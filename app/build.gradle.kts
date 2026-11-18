@@ -1,10 +1,16 @@
+import java.io.DataInputStream
+import java.io.File as JavaFile
+import java.security.MessageDigest
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
 }
 
-fun detectKeystoreType(file: java.io.File): String {
-    val magic = java.io.DataInputStream(file.inputStream()).use { runCatching { it.readInt() }.getOrNull() }
+fun detectKeystoreType(file: JavaFile): String {
+    val stream = DataInputStream(file.inputStream())
+    val magic = try { stream.readInt() } catch (_: Exception) { 0 }
+    stream.close()
     return if (magic == 0xFEEDFEED.toInt()) "JKS" else "PKCS12"
 }
 
@@ -22,7 +28,7 @@ android {
         versionCode = 30005
         versionName = "0.1.1"
 
-        val rootfsDigest = java.security.MessageDigest.getInstance("SHA-256")
+        val rootfsDigest = MessageDigest.getInstance("SHA-256")
             .digest(file("src/main/assets/debian-arm64.tar.zst").readBytes())
             .joinToString("") { "%02x".format(it) }
         buildConfigField("String", "ROOTFS_SHA256", "\"$rootfsDigest\"")
