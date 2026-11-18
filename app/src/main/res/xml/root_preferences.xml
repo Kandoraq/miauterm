@@ -145,6 +145,10 @@
 
     <PreferenceCategory app:title="@string/pref_cat_support">
         <Preference
+            app:key="check_updates"
+            app:summary="@string/pref_check_updates_summary"
+            app:title="@string/pref_check_updates_title" />
+        <Preference
             app:key="about_miauterm"
             app:summary="@string/pref_about_summary"
             app:title="@string/pref_about_title" />

@@ -1,5 +1,7 @@
 package org.cortex.terminal
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -57,6 +59,20 @@ internal object GitHubUpdateChecker {
 
     fun postNotification(context: Context, release: Release): Boolean {
         val manager = NotificationManagerCompat.from(context)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val platformManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            platformManager.createNotificationChannel(
+                NotificationChannel(
+                    CHANNEL_ID,
+                    context.getString(R.string.github_updates_channel_name),
+                    NotificationManager.IMPORTANCE_DEFAULT
+                ).apply {
+                    description = context.getString(R.string.github_updates_channel_description)
+                    setShowBadge(false)
+                }
+            )
+            if (platformManager.getNotificationChannel(CHANNEL_ID)?.importance == NotificationManager.IMPORTANCE_NONE) return false
+        }
         if (!manager.areNotificationsEnabled()) return false
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(release.url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         val pending = PendingIntent.getActivity(
@@ -81,21 +97,21 @@ internal object GitHubUpdateChecker {
     }
 
     private fun compareVersions(left: String, right: String): Int {
-        val leftParts = left.split('.', '-', '+')
-        val rightParts = right.split('.', '-', '+')
-        for (index in 0 until maxOf(leftParts.size, rightParts.size)) {
-            val a = leftParts.getOrNull(index).orEmpty()
-            val b = rightParts.getOrNull(index).orEmpty()
-            val numericA = a.toLongOrNull()
-            val numericB = b.toLongOrNull()
-            val comparison = when {
-                numericA != null && numericB != null -> numericA.compareTo(numericB)
-                numericA != null -> 1
-                numericB != null -> -1
-                else -> a.compareTo(b, ignoreCase = true)
-            }
+        fun core(version: String): List<Long> = version.substringBefore('-').substringBefore('+')
+            .split('.')
+            .map { it.toLongOrNull() ?: 0L }
+        val leftCore = core(left)
+        val rightCore = core(right)
+        for (index in 0 until maxOf(leftCore.size, rightCore.size)) {
+            val comparison = (leftCore.getOrNull(index) ?: 0L).compareTo(rightCore.getOrNull(index) ?: 0L)
             if (comparison != 0) return comparison
         }
-        return 0
+        val leftPre = left.substringAfter('-', "").substringBefore('+')
+        val rightPre = right.substringAfter('-', "").substringBefore('+')
+        return when {
+            leftPre.isEmpty() && rightPre.isNotEmpty() -> 1
+            leftPre.isNotEmpty() && rightPre.isEmpty() -> -1
+            else -> leftPre.compareTo(rightPre, ignoreCase = true)
+        }
     }
 }

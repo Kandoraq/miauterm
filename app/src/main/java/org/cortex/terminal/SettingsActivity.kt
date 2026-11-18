@@ -360,50 +360,138 @@ class SettingsActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    internal fun checkForUpdates(preference: Preference) {
+        preference.isEnabled = false
+        preference.summary = getString(R.string.pref_check_updates_checking)
+        try {
+            extraKeysExecutor.execute {
+                val result = GitHubUpdateChecker.check()
+                runOnUiThread {
+                    if (isFinishing || isDestroyed) return@runOnUiThread
+                    preference.isEnabled = true
+                    preference.summary = getString(R.string.pref_check_updates_summary)
+                    when (result) {
+                        is GitHubUpdateChecker.Result.Available -> {
+                            if (GitHubUpdateChecker.postNotification(this, result.release)) {
+                                preference.summary = getString(R.string.pref_check_updates_available, result.release.version)
+                                android.widget.Toast.makeText(
+                                    this,
+                                    getString(R.string.pref_check_updates_available, result.release.version),
+                                    android.widget.Toast.LENGTH_LONG
+                                ).show()
+                            } else {
+                                showUpdateNotificationSettings()
+                            }
+                        }
+                        GitHubUpdateChecker.Result.Current -> android.widget.Toast.makeText(
+                            this, R.string.pref_check_updates_current, android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                        is GitHubUpdateChecker.Result.Failed -> android.widget.Toast.makeText(
+                            this,
+                            getString(R.string.pref_check_updates_failed, result.message),
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            }
+        } catch (_: java.util.concurrent.RejectedExecutionException) {
+            preference.isEnabled = true
+            preference.summary = getString(R.string.pref_check_updates_summary)
+        }
+    }
+
+    private fun showUpdateNotificationSettings() {
+        org.cortex.terminal.view.ChromeDialog.style(
+            AlertDialog.Builder(this)
+                .setTitle(R.string.update_available_title)
+                .setMessage(R.string.pref_check_updates_notifications_off)
+                .setNegativeButton(R.string.later, null)
+                .setPositiveButton(R.string.pref_check_updates_open_settings) { _, _ ->
+                    val appSettings = Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                        .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, packageName)
+                    runCatching { startActivity(appSettings) }.onFailure {
+                        runCatching {
+                            startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+                        }.onFailure {
+                            android.widget.Toast.makeText(this, R.string.pref_check_updates_open_settings_failed, android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                .create()
+        ).show()
+    }
+
     internal fun showAbout() {
         val version = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull().orEmpty()
         val palette = org.cortex.terminal.view.Chrome.palette
+        val density = resources.displayMetrics.density
         val content = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(24, 12, 24, 8)
-            val iconSize = (72 * resources.displayMetrics.density).toInt()
-            addView(android.widget.ImageView(this@SettingsActivity).apply {
-                setImageResource(R.mipmap.ic_launcher)
-                contentDescription = getString(R.string.app_name)
-                scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
-            }, android.widget.LinearLayout.LayoutParams(iconSize, iconSize).apply {
-                gravity = android.view.Gravity.CENTER_HORIZONTAL
-            })
+            setPadding((22 * density).toInt(), (20 * density).toInt(), (22 * density).toInt(), (4 * density).toInt())
+            setBackgroundColor(palette.bg)
+            addView(android.widget.LinearLayout(this@SettingsActivity).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                val iconSize = (56 * density).toInt()
+                addView(android.widget.ImageView(this@SettingsActivity).apply {
+                    setImageResource(R.mipmap.ic_launcher)
+                    contentDescription = getString(R.string.app_name)
+                    scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+                }, android.widget.LinearLayout.LayoutParams(iconSize, iconSize))
+                addView(android.widget.LinearLayout(this@SettingsActivity).apply {
+                    orientation = android.widget.LinearLayout.VERTICAL
+                    setPadding((16 * density).toInt(), 0, 0, 0)
+                    addView(android.widget.TextView(this@SettingsActivity).apply {
+                        text = getString(R.string.app_name)
+                        setTextColor(palette.text)
+                        textSize = 20f
+                        setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    })
+                    addView(android.widget.TextView(this@SettingsActivity).apply {
+                        text = getString(R.string.about_version, version)
+                        setTextColor(palette.textDim)
+                        textSize = 13f
+                        setPadding(0, (4 * density).toInt(), 0, 0)
+                    })
+                })
+            }, android.widget.LinearLayout.LayoutParams(-1, -2))
             addView(android.widget.TextView(this@SettingsActivity).apply {
-                text = getString(R.string.about_description) + "\n" + getString(R.string.about_version, version)
-                setTextColor(palette.text)
-                textSize = 15f
-                gravity = android.view.Gravity.CENTER
-                setPadding(0, 14, 0, 14)
-            })
-            addView(android.widget.TextView(this@SettingsActivity).apply {
-                text = getString(R.string.about_fork)
+                text = getString(R.string.about_description) + "\n\n" + getString(R.string.about_fork) + "\n\n" + getString(R.string.about_codename)
                 setTextColor(palette.textDim)
-                textSize = 13f
-                gravity = android.view.Gravity.CENTER
-            })
-            addView(android.widget.TextView(this@SettingsActivity).apply {
-                text = getString(R.string.about_open_source_notices)
-                setTextColor(palette.accent)
                 textSize = 14f
-                gravity = android.view.Gravity.CENTER
-                setPadding(0, 18, 0, 8)
-                isClickable = true
-                setOnClickListener { showOpenSourceNotices() }
+                setLineSpacing((2 * density), 1f)
+                setPadding(0, (18 * density).toInt(), 0, (12 * density).toInt())
             })
+            addAboutLink(this, getString(R.string.about_repository_link), "https://github.com/Kandoraq/miauterm", palette.accent, density)
+            addAboutLink(this, getString(R.string.about_releases_link), "https://github.com/Kandoraq/miauterm/releases", palette.accent, density)
         }
         org.cortex.terminal.view.ChromeDialog.style(
             AlertDialog.Builder(this)
-                .setTitle(R.string.pref_about_title)
                 .setView(content)
-                .setPositiveButton(R.string.ok, null)
+                .setNeutralButton(R.string.about_open_source_notices) { _, _ -> showOpenSourceNotices() }
+                .setPositiveButton(R.string.close, null)
                 .create()
         ).show()
+    }
+
+    private fun addAboutLink(
+        parent: android.widget.LinearLayout,
+        label: String,
+        url: String,
+        color: Int,
+        density: Float
+    ) {
+        parent.addView(android.widget.TextView(this).apply {
+            text = label
+            setTextColor(color)
+            textSize = 14f
+            isClickable = true
+            isFocusable = true
+            setPadding(0, (9 * density).toInt(), 0, (9 * density).toInt())
+            setOnClickListener {
+                runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+            }
+        }, android.widget.LinearLayout.LayoutParams(-1, -2))
     }
 
     private fun showOpenSourceNotices() {
@@ -614,6 +702,7 @@ class SettingsActivity : AppCompatActivity() {
                 "remove_debian" to R.drawable.ic_delete,
                 "edit_extra_keys" to R.drawable.ic_keyboard,
                 "about_miauterm" to R.drawable.ic_info,
+                "check_updates" to R.drawable.ic_update,
                 "bug_report" to R.drawable.ic_bug_report
             )
             preferenceIcons.forEach { (key, icon) -> findPreference<Preference>(key)?.setIcon(icon) }
@@ -770,6 +859,10 @@ class SettingsActivity : AppCompatActivity() {
             }
             findPreference<Preference>("edit_extra_keys")?.setOnPreferenceClickListener {
                 (requireActivity() as SettingsActivity).editExtraKeys()
+                true
+            }
+            findPreference<Preference>("check_updates")?.setOnPreferenceClickListener { preference ->
+                (requireActivity() as SettingsActivity).checkForUpdates(preference)
                 true
             }
             findPreference<Preference>("about_miauterm")?.setOnPreferenceClickListener {

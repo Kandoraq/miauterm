@@ -92,7 +92,7 @@
     <string name="update_no_asset">No compatible APK asset found in release</string>
     <string name="update_connect_failed">Failed to connect to GitHub</string>
     <string name="update_allow_unknown_sources">Please allow Miauterm to install unknown apps</string>
-    <string name="update_available_title">Update Available</string>
+    <string name="update_available_title" translatable="false">Miauterm update available</string>
     <string name="update_available_message">A new version of Miauterm is available.\n\nCurrent version: %1$s\nLatest version: %2$s\n\n</string>
     <string name="update_whats_new">What\'s New:\n</string>
     <string name="update_button_update">Update</string>
@@ -181,7 +181,24 @@
     <string name="pref_extra_keys_title">Customize extra keys</string>
     <string name="pref_extra_keys_summary">Choose visible buttons. Edit custom layouts in the Debian terminal.</string>
     <string name="pref_about_title">About Miauterm</string>
-    <string name="pref_about_summary">Version, project credits and open-source notices</string>
+    <string name="pref_about_summary" translatable="false">Project details, links and open-source notices</string>
+    <string name="pref_check_updates_title" translatable="false">Check for updates</string>
+    <string name="pref_check_updates_summary" translatable="false">Check GitHub Releases and notify when a newer APK is available.</string>
+    <string name="pref_check_updates_checking" translatable="false">Checking GitHub Releases…</string>
+    <string name="pref_check_updates_current" translatable="false">Miauterm is up to date.</string>
+    <string name="pref_check_updates_available" translatable="false">Update %1$s is available. Open the Miauterm update notification to view its release.</string>
+    <string name="pref_check_updates_notifications_off" translatable="false">An update is available, but Miauterm notifications are disabled.</string>
+    <string name="pref_check_updates_open_settings" translatable="false">Notification settings</string>
+    <string name="pref_check_updates_failed" translatable="false">Could not check GitHub Releases: %1$s</string>
+    <string name="pref_check_updates_open_settings_failed" translatable="false">Could not open notification settings.</string>
+    <string name="update_notification_text" translatable="false">Miauterm %1$s is available. Tap to view the release and download it in your browser.</string>
+    <string name="github_updates_channel_name" translatable="false">GitHub updates</string>
+    <string name="github_updates_channel_description" translatable="false">Notifications when a newer Miauterm release is found.</string>
+    <string name="about_description" translatable="false">Debian 13 ARM64 runs in an Android app sandbox through PRoot.</string>
+    <string name="about_fork" translatable="false">Miauterm is an independent fork of Cortex Terminal. It replaces the upstream Ubuntu runtime with Debian and PRoot.</string>
+    <string name="about_codename" translatable="false">Next release codename: Miauterm Coral. It does not change the app version number.</string>
+    <string name="about_repository_link" translatable="false">Miauterm on GitHub</string>
+    <string name="about_releases_link" translatable="false">Releases and APK downloads</string>
     <string name="extra_keys_invalid">Key layout error: %1$s</string>
     <string name="extra_keys_saved">Extra keys saved</string>
     <string name="extra_keys_guest_config">Choose the buttons shown below the terminal. Edit custom layouts in Debian at ~/.config/miauterm/keys.</string>
@@ -209,11 +226,9 @@
     <string name="debian_backup_done">Debian backup saved.</string>
     <string name="debian_restore_done">Debian backup restored.</string>
     <string name="debian_backup_filename">miauterm-debian-backup.zip</string>
-    <string name="about_description">A Debian terminal running through PRoot.</string>
-    <string name="about_open_source_notices">Open-source notices</string>
-    <string name="about_notices_unavailable">Could not load the bundled license notices.</string>
-    <string name="about_fork">Miauterm is a fork of Cortex Terminal. The app runs Linux ARM64 root filesystems through PRoot.</string>
-    <string name="about_version">Version %1$s</string>
+    <string name="about_open_source_notices" translatable="false">Open-source notices</string>
+    <string name="about_notices_unavailable" translatable="false">Could not load the bundled license notices.</string>
+    <string name="about_version" translatable="false">Version %1$s</string>
     <string name="files_title">Linux files</string>
     <string name="files_locations">Locations</string>
     <string name="files_locations_summary">Browse the Debian filesystem and, when allowed, shared Android folders.</string>
@@ -254,7 +269,7 @@
     <string name="files_path_copied">Copied Debian path: %1$s</string>
     <string name="debian_storage_error">Not enough storage space to complete this operation.</string>
 
-    <string name="pref_cat_support">Community &amp; Support</string>
+    <string name="pref_cat_support" translatable="false">Updates &amp; Support</string>
     <string name="pref_bug_report_title">Send a bug report</string>
 
     <string name="bug_report_chooser">Send the bug report with</string>

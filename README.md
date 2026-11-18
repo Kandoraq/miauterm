@@ -9,19 +9,19 @@
 <table align="center">
   <tbody>
     <tr>
-      <td align="center"><a href="https://github.com/synccatcode/miauterm/releases/latest"><img alt="Latest release version" src="https://img.shields.io/github/v/release/synccatcode/miauterm?style=for-the-badge&amp;label=Latest%20release"></a></td>
+      <td align="center"><a href="https://github.com/Kandoraq/miauterm/releases/latest"><img alt="Latest release version" src="https://img.shields.io/github/v/release/Kandoraq/miauterm?style=for-the-badge&amp;label=Latest%20release"></a></td>
       <td align="center"><img alt="Android ARM64" src="https://img.shields.io/badge/Android-arm64--v8a-3c7d5b?style=for-the-badge&amp;logo=android&amp;logoColor=white"></td>
     </tr>
     <tr>
-      <td align="center" colspan="2"><a href="https://github.com/synccatcode/miauterm/actions/workflows/build-apk.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/synccatcode/miauterm/build-apk.yml?event=workflow_dispatch&amp;style=for-the-badge&amp;label=Build%20status"></a></td>
+      <td align="center" colspan="2"><a href="https://github.com/Kandoraq/miauterm/actions/workflows/build-apk.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/Kandoraq/miauterm/build-apk.yml?event=workflow_dispatch&amp;style=for-the-badge&amp;label=Build%20status"></a></td>
     </tr>
   </tbody>
 </table>
 
 > **Project status: Experimental**<br>
-> The published APK is a test release for ARM64 Android devices. Runtime behavior and package compatibility can vary by device and Android version.
+> The published APK is a test release for ARM64 Android devices. Runtime behavior and package compatibility can vary by device and Android version. The next release codename is **Miauterm Coral**; it does not change the app version number.
 
-Miauterm is an unofficial, experimental fork of [Cortex Terminal](https://github.com/ssfuisu/cortex). It retains upstream terminal and Android application code while replacing Cortex's native Ubuntu runtime with a Debian 13 (Trixie) ARM64 root filesystem launched through PRoot. Miauterm is an independent project and is not affiliated with or endorsed by the Cortex maintainers.
+Miauterm is an unofficial fork of [Cortex Terminal](https://github.com/ssfuisu/cortex). It retains upstream terminal and Android application code while replacing Cortex's native Ubuntu runtime with a Debian 13 (Trixie) ARM64 root filesystem launched through PRoot. Miauterm is an independent project and is not affiliated with or endorsed by the Cortex maintainers.
 
 ## Why PRoot
 
@@ -39,7 +39,18 @@ PRoot lets Miauterm use Debian's own root filesystem, including `/etc/passwd`, t
 | Android root required | No | No |
 | Android security boundary | Android application sandbox | Android application sandbox |
 
-### Compatibility trade-offs
+#
+## Android mounts and network ports
+
+Miauterm keeps the Debian root filesystem in the app's private files directory. A PRoot session binds only Android's `/dev`, `/proc`, and `/sys` pseudo-filesystems for terminal devices, process information, and hardware reporting. Download and Documents are separate, optional shared-folder binds that require the user to enable access in Settings. Android `/system`, `/data`, and general shared storage are not bound into Debian.
+
+PRoot does not provide Android root privileges or a separate kernel mount namespace. This project does not offer a real `chroot` mode: starting one with device-wide root and shared mounts would cross the app's sandbox boundary. The Debian `root` account remains a PRoot-simulated identity.
+
+Rootless Android cannot reliably translate arbitrary guest `bind()` calls from privileged ports to other ports. Configure a server to listen directly on a high port, such as `2080` for an HTTP service that would normally use `80`, or `2443` for an HTTPS service that would normally use `443`. Miauterm does not currently rewrite those socket calls or create an automatic port forward.
+
+When a session exits, PRoot's `--kill-on-exit` option and Miauterm's PTY process-group cleanup stop session children. Android can still retain a detached process that deliberately creates a new session of its own; PRoot cannot control processes that escape its process group.
+
+## Compatibility trade-offs
 
 PRoot does not boot a second Linux kernel. It uses `ptrace` to present a guest filesystem and translate guest process requests to the Android host kernel. This model brings the following compatibility limits; see the [PRoot overview](https://proot-me.github.io/) and [PRoot manual](https://github.com/proot-me/proot/blob/master/doc/proot/manual.rst).
 
@@ -124,13 +135,13 @@ This is a manual recovery path, not a supported distribution importer. The bundl
 
 ## Download
 
-Download the signed ARM64 APK from the [Miauterm v0.1.1 release](https://github.com/synccatcode/miauterm/releases/tag/v0.1.1):
+Download the signed ARM64 APK from the [Miauterm v0.1.1 release](https://github.com/Kandoraq/miauterm/releases/tag/v0.1.1):
 
-- [Installable release APK](https://github.com/synccatcode/miauterm/releases/download/v0.1.1/Miauterm-v0.1.1-arm64.apk)
-- [Release APK SHA-256](https://github.com/synccatcode/miauterm/releases/download/v0.1.1/Miauterm-v0.1.1-arm64.apk.sha256)
-- [Debug APK](https://github.com/synccatcode/miauterm/releases/download/v0.1.1/Miauterm-arm64-debug.apk)
+- [Installable release APK](https://github.com/Kandoraq/miauterm/releases/download/v0.1.1/Miauterm-v0.1.1-arm64.apk)
+- [Release APK SHA-256](https://github.com/Kandoraq/miauterm/releases/download/v0.1.1/Miauterm-v0.1.1-arm64.apk.sha256)
+- [Debug APK](https://github.com/Kandoraq/miauterm/releases/download/v0.1.1/Miauterm-arm64-debug.apk)
 
-The [Releases page](https://github.com/synccatcode/miauterm/releases) contains the current APKs and their checksums. The [Build APK workflow](https://github.com/synccatcode/miauterm/actions/workflows/build-apk.yml) runs rootfs validation and selected tests, builds ARM64 APKs, and verifies the release package before publishing it.
+The [Releases page](https://github.com/Kandoraq/miauterm/releases) contains the current APKs and their checksums. The [Build APK workflow](https://github.com/Kandoraq/miauterm/actions/workflows/build-apk.yml) runs rootfs validation and selected tests, builds ARM64 APKs, and verifies the release package before publishing it.
 
 ## Terminal commands and fonts
 
@@ -166,7 +177,7 @@ On a development computer with those tools installed, build a debug APK with:
 
 The APK is written under `app/build/outputs/apk/debug/`. The release variant requires the signing environment variables configured in `app/build.gradle.kts`; do not commit signing keys or passwords.
 
-To inspect CI build results, open [Actions](https://github.com/synccatcode/miauterm/actions/workflows/build-apk.yml). The workflow also validates the bundled Debian root filesystem before building.
+To inspect CI build results, open [Actions](https://github.com/Kandoraq/miauterm/actions/workflows/build-apk.yml). The workflow also validates the bundled Debian root filesystem before building.
 
 ## Project structure
 
