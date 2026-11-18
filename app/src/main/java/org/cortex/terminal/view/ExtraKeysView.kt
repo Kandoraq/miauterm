@@ -1,6 +1,6 @@
 package org.cortex.terminal.view
 
-import androidx.annotation.SuppressLint
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Typeface
 import android.os.Handler
