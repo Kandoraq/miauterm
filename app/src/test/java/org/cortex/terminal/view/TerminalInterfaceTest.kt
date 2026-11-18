@@ -201,7 +201,7 @@ class TerminalInterfaceTest {
         assertEquals(p.textDim, dialog.findViewById<TextView>(android.R.id.message)!!.currentTextColor)
         assertEquals(p.text, dialog.findViewById<TextView>(androidx.appcompat.R.id.alertTitle)!!.currentTextColor)
         assertEquals(p.onAccent, dialog.getButton(DialogInterface.BUTTON_POSITIVE).currentTextColor)
-        assertEquals(p.accent, dialog.getButton(DialogInterface.BUTTON_NEGATIVE).currentTextColor)
+        assertEquals(p.text, dialog.getButton(DialogInterface.BUTTON_NEGATIVE).currentTextColor)
         dialog.dismiss()
     }
 
