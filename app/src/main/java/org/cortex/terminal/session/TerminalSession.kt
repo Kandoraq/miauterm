@@ -53,6 +53,7 @@ class TerminalSession(
 
     @Volatile
     private var guestWorkingDirectory: String? = null
+    var onWorkingDirectoryChanged: (() -> Unit)? = null
 
     var restoredOutput: String? = null
 
@@ -207,7 +208,12 @@ class TerminalSession(
             val startTime = System.currentTimeMillis()
             DebianRuntime.recordRuntimeEvent(context, "PTY created; pid=${process.pid}; launching PRoot")
             emulator.onTitleChange = { newTitle -> this.title = newTitle }
-            emulator.onWorkingDirectory = { path -> guestWorkingDirectory = path }
+            emulator.onWorkingDirectory = { path ->
+                if (guestWorkingDirectory != path) {
+                    guestWorkingDirectory = path
+                    onWorkingDirectoryChanged?.invoke()
+                }
+            }
             emulator.onClipboardSet = { text -> TerminalBridge.onClipboardRequest(context, text) }
             emulator.onCommandFinished = { durationMs, exitCode ->
                 guestWorkingDirectory = null

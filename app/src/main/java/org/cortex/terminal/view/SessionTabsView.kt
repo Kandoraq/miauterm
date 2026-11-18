@@ -23,6 +23,7 @@ class SessionTabsView @JvmOverloads constructor(
     var onSelect: ((Int) -> Unit)? = null
     var onClose: ((Int) -> Unit)? = null
     var onNew: (() -> Unit)? = null
+    var onRename: ((Int) -> Unit)? = null
 
     private val density = resources.displayMetrics.density
     private val scroll = HorizontalScrollView(context)
@@ -120,6 +121,11 @@ class SessionTabsView @JvmOverloads constructor(
             setOnClickListener {
                 if (index != active) it.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                 onSelect?.invoke(index)
+            }
+            setOnLongClickListener {
+                it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                onRename?.invoke(index)
+                true
             }
         }
         row.addView(text(tab.title, 12f, if (isActive) p.accent else p.textDim, false))

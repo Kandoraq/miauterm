@@ -141,6 +141,7 @@ class SessionManager(private val context: Context) {
         session.startDirectory = startDirectory
         session.restoredOutput = restoredOutput
         session.numberProvider = { synchronized(sessions) { sessions.indexOf(session) + 1 }.coerceAtLeast(1) }
+        session.onWorkingDirectoryChanged = { notifySessionChanged(session) }
         val startTime = System.currentTimeMillis()
         session.onSessionFinished = { exitCode ->
             val duration = System.currentTimeMillis() - startTime

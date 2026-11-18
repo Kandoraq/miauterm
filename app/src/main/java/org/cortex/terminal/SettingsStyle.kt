@@ -2,8 +2,6 @@ package org.cortex.terminal
 
 import android.content.res.ColorStateList
 import android.graphics.Typeface
-import android.graphics.drawable.ColorDrawable
-import android.graphics.drawable.StateListDrawable
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -69,15 +67,11 @@ internal class SettingsStyle(private val fragment: PreferenceFragmentCompat) {
         }
         if (switch != null) {
             val checked = intArrayOf(android.R.attr.state_checked)
-            val off = intArrayOf()
-            switch.thumbDrawable = StateListDrawable().apply {
-                addState(checked, ColorDrawable(p.accent))
-                addState(off, ColorDrawable(p.textFaint))
-            }
-            switch.trackDrawable = StateListDrawable().apply {
-                addState(checked, ColorDrawable(p.accentSoft))
-                addState(off, ColorDrawable(p.outline))
-            }
+            switch.thumbTintList = ColorStateList(arrayOf(checked, intArrayOf()), intArrayOf(p.accent, p.textFaint))
+            switch.trackTintList = ColorStateList(
+                arrayOf(checked, intArrayOf()),
+                intArrayOf(p.accentSoft, p.outline)
+            )
         }
     }
 }

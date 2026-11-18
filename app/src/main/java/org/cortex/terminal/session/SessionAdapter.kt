@@ -10,7 +10,8 @@ import org.cortex.terminal.view.Chrome
 class SessionAdapter(
     private val sessionManager: SessionManager,
     private val onSelect: (Int) -> Unit,
-    private val onClose: (Int) -> Unit
+    private val onClose: (Int) -> Unit,
+    private val onRename: (Int) -> Unit
 ) : RecyclerView.Adapter<SessionAdapter.ViewHolder>() {
 
     class ViewHolder(val binding: ItemSessionBinding) : RecyclerView.ViewHolder(binding.root)
@@ -53,6 +54,11 @@ class SessionAdapter(
             if (pos != RecyclerView.NO_POSITION) {
                 onSelect(pos)
             }
+        }
+        binding.sessionItemRoot.setOnLongClickListener {
+            val pos = holder.bindingAdapterPosition
+            if (pos != RecyclerView.NO_POSITION) onRename(pos)
+            true
         }
     }
 

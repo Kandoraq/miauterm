@@ -275,7 +275,7 @@ class SettingsActivity : AppCompatActivity() {
             val check = android.widget.CheckBox(this).apply {
                 text = if (special.name == special.label) special.name else "${special.name}  ${special.label}"
                 isChecked = selected[index]
-                minHeight = (48 * density).toInt()
+                minHeight = (40 * density).toInt()
                 setTextColor(org.cortex.terminal.view.Chrome.palette.text)
                 buttonTintList = android.content.res.ColorStateList.valueOf(org.cortex.terminal.view.Chrome.palette.accent)
                 tag = index
@@ -289,7 +289,7 @@ class SettingsActivity : AppCompatActivity() {
             })
         }
         scroll.addView(grid)
-        content.addView(scroll, android.widget.LinearLayout.LayoutParams(-1, (360 * density).toInt()))
+        content.addView(scroll, android.widget.LinearLayout.LayoutParams(-1, (280 * density).toInt()))
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.pref_extra_keys_title)
             .setView(content)

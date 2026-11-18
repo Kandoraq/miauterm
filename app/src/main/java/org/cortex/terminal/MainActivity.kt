@@ -211,7 +211,8 @@ class MainActivity : AppCompatActivity() {
                 sessionManager.switchTo(index)
                 drawerLayout.closeDrawer(GravityCompat.START)
             },
-            onClose = { index -> closeSession(index) }
+            onClose = { index -> closeSession(index) },
+            onRename = { index -> showRenameSessionDialog(index) }
         )
 
         sessionRecyclerView.layoutManager = LinearLayoutManager(this)
@@ -220,6 +221,7 @@ class MainActivity : AppCompatActivity() {
         binding.sessionTabs.onSelect = { index -> sessionManager.switchTo(index) }
         binding.sessionTabs.onClose = { index -> closeSession(index) }
         binding.sessionTabs.onNew = { createNewSession() }
+        binding.sessionTabs.onRename = { index -> showRenameSessionDialog(index) }
 
         drawerLayout.addDrawerListener(object : DrawerLayout.SimpleDrawerListener() {
             private var shown = false
@@ -666,16 +668,43 @@ class MainActivity : AppCompatActivity() {
             .setTitle(R.string.drawer_new_session)
             .setView(content)
             .setNegativeButton(R.string.cancel, null)
-            .setPositiveButton(R.string.create, null)
-            .create()
-        ChromeDialog.style(dialog) {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val name = nameInput.text?.toString()?.trim()?.take(48).orEmpty().ifBlank { null }
+            .setPositiveButton(R.string.create) { _, _ ->
+                val name = nameInput.text?.toString()?.trim()?.take(48)?.ifBlank { null }
                 createNewSession(failsafeMode = failsafe.isChecked, sessionName = name)
-                dialog.dismiss()
             }
-        }.show()
+            .create()
+        ChromeDialog.style(dialog).show()
         nameInput.requestFocus()
+    }
+
+    private fun showRenameSessionDialog(index: Int) {
+        val session = sessionManager.sessionAt(index) ?: return
+        val p = Chrome.palette
+        val density = resources.displayMetrics.density
+        val input = android.widget.EditText(this).apply {
+            setSingleLine(true)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+            setText(session.sessionName.orEmpty())
+            hint = getString(R.string.new_session_name_hint)
+            setTextColor(p.text)
+            setHintTextColor(p.textFaint)
+            setPadding((12 * density).toInt(), (10 * density).toInt(), (12 * density).toInt(), (10 * density).toInt())
+            background = Chrome.flatPressable(p.raised, p.raisedHigh)
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.session_rename_title)
+            .setView(input)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.save) { _, _ ->
+                val name = input.text?.toString()?.trim()?.take(48)?.ifBlank { null }
+                session.sessionName = name
+                sessionAdapter.notifyDataSetChanged()
+                refreshTabs()
+                CortexService.updateNotification(this)
+            }
+            .create()
+        ChromeDialog.style(dialog).show()
+        input.requestFocus()
     }
 
     private fun createNewSession(failsafeMode: Boolean = false, sessionName: String? = null): TerminalSession {
