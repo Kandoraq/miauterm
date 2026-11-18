@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="new_session"
+        android:enabled="true"
+        android:icon="@drawable/ic_add"
+        android:shortcutShortLabel="@string/shortcut_new_session"
+        android:shortcutLongLabel="@string/shortcut_new_session_long">
+        <intent
+            android:action="org.cortex.terminal.shortcut.NEW_SESSION"
+            android:targetClass="org.cortex.terminal.MainActivity">
+            <extra android:name="org.cortex.terminal.extra.SHORTCUT_ACTION" android:value="new_session" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="failsafe"
+        android:enabled="true"
+        android:icon="@drawable/ic_build"
+        android:shortcutShortLabel="@string/shortcut_failsafe"
+        android:shortcutLongLabel="@string/shortcut_failsafe_long">
+        <intent
+            android:action="org.cortex.terminal.shortcut.FAILSAFE"
+            android:targetClass="org.cortex.terminal.MainActivity">
+            <extra android:name="org.cortex.terminal.extra.SHORTCUT_ACTION" android:value="failsafe" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="settings"
+        android:enabled="true"
+        android:icon="@drawable/ic_settings"
+        android:shortcutShortLabel="@string/shortcut_settings"
+        android:shortcutLongLabel="@string/shortcut_settings_long">
+        <intent
+            android:action="org.cortex.terminal.shortcut.SETTINGS"
+            android:targetClass="org.cortex.terminal.MainActivity">
+            <extra android:name="org.cortex.terminal.extra.SHORTCUT_ACTION" android:value="settings" />
+        </intent>
+    </shortcut>
+</shortcuts>

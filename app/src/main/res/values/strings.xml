@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">Miauterm</string>
+    <string name="shortcut_new_session" translatable="false">New session</string>
+    <string name="shortcut_new_session_long" translatable="false">Start a Debian session</string>
+    <string name="shortcut_failsafe" translatable="false">Failsafe</string>
+    <string name="shortcut_failsafe_long" translatable="false">Open a failsafe shell</string>
+    <string name="shortcut_settings" translatable="false">Settings</string>
+    <string name="shortcut_settings_long" translatable="false">Open Miauterm settings</string>
     <string name="settings_title">Miauterm Settings</string>
 
     <!-- Generic buttons -->
@@ -28,6 +34,7 @@
     <string name="drawer_new_session">New session</string>
     <string name="new_session_name_hint" translatable="false">Session name (optional)</string>
     <string name="session_rename_title" translatable="false">Rename session</string>
+    <string name="session_created" translatable="false">Session created: %1$s</string>
     <string name="new_session_failsafe" translatable="false">Start in failsafe mode</string>
     <string name="create" translatable="false">Create</string>
     <string name="files_root_label" translatable="false">proot (%1$s)</string>

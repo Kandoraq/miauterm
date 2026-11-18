@@ -57,10 +57,19 @@ class PtyProcess private constructor(
     }
 
     fun destroy() {
-        synchronized(processLock) {
-            if (!reaped && alive.compareAndSet(true, false)) {
-                PtyNative.killProcess(pid, 1)
-            }
+        val terminate = synchronized(processLock) {
+            !reaped && alive.compareAndSet(true, false)
+        }
+        if (terminate) {
+            PtyNative.killProcess(pid, 15)
+            Thread({
+                try {
+                    Thread.sleep(750)
+                    PtyNative.killProcess(pid, 9)
+                } catch (_: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                }
+            }, "Miauterm-PtyReaper").apply { isDaemon = true }.start()
         }
         closeMasterFdOnce()
     }

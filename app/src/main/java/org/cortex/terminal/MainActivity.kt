@@ -51,6 +51,10 @@ class MainActivity : AppCompatActivity() {
         private val bootstrapLock = Any()
         private var bootstrapInProgress = false
         private const val REQUEST_POST_NOTIFICATIONS = 1001
+        private const val EXTRA_SHORTCUT_ACTION = "org.cortex.terminal.extra.SHORTCUT_ACTION"
+        private const val SHORTCUT_NEW_SESSION = "new_session"
+        private const val SHORTCUT_FAILSAFE = "failsafe"
+        private const val SHORTCUT_SETTINGS = "settings"
 
     }
 
@@ -78,9 +82,16 @@ class MainActivity : AppCompatActivity() {
     @Volatile
     private var bootstrapCancelled = false
     private var removedRootfsNoticeShown = false
+    private var shortcutNewSession = false
+    private var shortcutSettings = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        when (intent?.getStringExtra(EXTRA_SHORTCUT_ACTION)) {
+            SHORTCUT_SETTINGS -> shortcutSettings = true
+            SHORTCUT_NEW_SESSION -> shortcutNewSession = true
+            SHORTCUT_FAILSAFE -> pendingFailsafeSession = true
+        }
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         DebianRuntime.reinstallConfirmation = { confirmRootfsReinstall() }
@@ -262,11 +273,16 @@ class MainActivity : AppCompatActivity() {
             drawerLayout.closeDrawer(GravityCompat.START)
         }
         btnDrawerNewSession.setOnLongClickListener {
-            drawerLayout.closeDrawer(GravityCompat.START)
             showNewSessionDialog()
+            drawerLayout.closeDrawer(GravityCompat.START)
             true
         }
 
+        if (shortcutSettings) {
+            startActivity(Intent(this, SettingsActivity::class.java))
+            finish()
+            return
+        }
         applyPreferences()
         val systemReady = !pendingFailsafeSession && DebianRuntime.isInstalled(this)
         if (pendingFailsafeSession) {
@@ -326,7 +342,10 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         } else {
-            if (sessionManager.sessionCount() == 0) {
+            if (shortcutNewSession) {
+                shortcutNewSession = false
+                createNewSession()
+            } else if (sessionManager.sessionCount() == 0) {
                 startInitialSession()
             } else {
                 val current = sessionManager.currentSession ?: sessionManager.sessionAt(0)
@@ -670,10 +689,19 @@ class MainActivity : AppCompatActivity() {
             .setNegativeButton(R.string.cancel, null)
             .setPositiveButton(R.string.create) { _, _ ->
                 val name = nameInput.text?.toString()?.trim()?.take(48)?.ifBlank { null }
-                createNewSession(failsafeMode = failsafe.isChecked, sessionName = name)
+                val session = createNewSession(failsafeMode = failsafe.isChecked, sessionName = name)
+                session.sessionName = name
+                sessionAdapter.notifyDataSetChanged()
+                refreshTabs()
+                android.widget.Toast.makeText(
+                    this,
+                    getString(R.string.session_created, name ?: getString(R.string.drawer_new_session)),
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
             }
             .create()
-        ChromeDialog.style(dialog).show()
+        dialog.show()
+        ChromeDialog.style(dialog)
         nameInput.requestFocus()
     }
 
@@ -747,7 +775,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun startInitialSession() {
         applyExtraKeys()
-        openInitialSession()
+        if (shortcutNewSession) {
+            shortcutNewSession = false
+            createNewSession()
+            terminalView.post { terminalView.showKeyboard() }
+        } else {
+            openInitialSession()
+        }
     }
 
     private fun openInitialSession() {
