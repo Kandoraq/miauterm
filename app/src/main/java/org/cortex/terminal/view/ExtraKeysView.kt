@@ -223,24 +223,31 @@ class ExtraKeysView @JvmOverloads constructor(
 
     private fun specialOf(key: ExtraKeysLayout.Key) = (key as? ExtraKeysLayout.SpecialKey)?.special
 
-    private fun actionFor(key: ExtraKeysLayout.Key): () -> Any? = when (key) {
-        is ExtraKeysLayout.TextKey -> {
-            val text = key.text
-
-            if (text.length == 1) { { terminalView?.sendChar(text[0]) } } else { { terminalView?.sendText(text) } }
-        }
-        is ExtraKeysLayout.SpecialKey -> when (key.special) {
-            ExtraKeysLayout.Special.CTRL -> { { toggleCtrl() } }
-            ExtraKeysLayout.Special.ALT -> { { toggleAlt() } }
-            ExtraKeysLayout.Special.SHIFT -> { { toggleShift() } }
-            ExtraKeysLayout.Special.MENU -> { { onMenuClick?.invoke() } }
-            ExtraKeysLayout.Special.FIND -> { {} }
-            ExtraKeysLayout.Special.PASTE -> { { terminalView?.pasteFromClipboard() } }
-            ExtraKeysLayout.Special.KEYBOARD -> { { terminalView?.toggleKeyboard() } }
-            ExtraKeysLayout.Special.SPACE -> { { terminalView?.sendChar(' ') } }
-            else -> {
-                val keyCode = keyCodeOf(key.special)
-                { terminalView?.sendKeySequence(keyCode) }
+    private fun actionFor(key: ExtraKeysLayout.Key): () -> Any? {
+        return when (key) {
+            is ExtraKeysLayout.TextKey -> {
+                val text = key.text
+                if (text.length == 1) {
+                    { terminalView?.sendChar(text[0]) }
+                } else {
+                    { terminalView?.sendText(text) }
+                }
+            }
+            is ExtraKeysLayout.SpecialKey -> {
+                when (key.special) {
+                    ExtraKeysLayout.Special.CTRL -> { { toggleCtrl() } }
+                    ExtraKeysLayout.Special.ALT -> { { toggleAlt() } }
+                    ExtraKeysLayout.Special.SHIFT -> { { toggleShift() } }
+                    ExtraKeysLayout.Special.MENU -> { { onMenuClick?.invoke() } }
+                    ExtraKeysLayout.Special.FIND -> { {} }
+                    ExtraKeysLayout.Special.PASTE -> { { terminalView?.pasteFromClipboard() } }
+                    ExtraKeysLayout.Special.KEYBOARD -> { { terminalView?.toggleKeyboard() } }
+                    ExtraKeysLayout.Special.SPACE -> { { terminalView?.sendChar(' ') } }
+                    else -> {
+                        val keyCode = keyCodeOf(key.special)
+                        { terminalView?.sendKeySequence(keyCode) }
+                    }
+                }
             }
         }
     }

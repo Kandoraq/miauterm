@@ -1,29 +1,38 @@
 package org.cortex.terminal.view
 
 import android.content.DialogInterface
-import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.InsetDrawable
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 
 object ChromeDialog {
 
-    private val BUTTONS = intArrayOf(
-        DialogInterface.BUTTON_POSITIVE,
-        DialogInterface.BUTTON_NEGATIVE,
-        DialogInterface.BUTTON_NEUTRAL
-    )
-
     fun style(dialog: AlertDialog, onShow: () -> Unit = {}): AlertDialog {
         val p = Chrome.palette
         val density = dialog.context.resources.displayMetrics.density
         dialog.window?.setBackgroundDrawable(
-            InsetDrawable(ColorDrawable(p.bar), (16 * density).toInt())
+            InsetDrawable(Chrome.rounded(p.bar, 14 * density), (12 * density).toInt())
         )
         val applyColors = {
-            dialog.findViewById<TextView>(androidx.appcompat.R.id.alertTitle)?.setTextColor(p.text)
+            dialog.findViewById<TextView>(androidx.appcompat.R.id.alertTitle)?.apply {
+                setTextColor(p.text)
+                setTypeface(null, android.graphics.Typeface.BOLD)
+                textSize = 17f
+            }
             dialog.findViewById<TextView>(android.R.id.message)?.setTextColor(p.textDim)
-            for (which in BUTTONS) dialog.getButton(which)?.setTextColor(p.accent)
+            val pad = (10 * density).toInt()
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE)?.apply {
+                background = Chrome.buttonBackground(p, 8 * density, 1, filled = true)
+                setTextColor(p.onAccent)
+                setPadding(pad * 2, pad, pad * 2, pad)
+            }
+            for (which in intArrayOf(DialogInterface.BUTTON_NEGATIVE, DialogInterface.BUTTON_NEUTRAL)) {
+                dialog.getButton(which)?.apply {
+                    background = Chrome.buttonBackground(p, 8 * density, 1, filled = false)
+                    setTextColor(p.accent)
+                    setPadding(pad * 2, pad, pad * 2, pad)
+                }
+            }
         }
         if (dialog.isShowing) {
             applyColors()

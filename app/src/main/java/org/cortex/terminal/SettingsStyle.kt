@@ -1,6 +1,7 @@
 package org.cortex.terminal
 
 import android.content.res.ColorStateList
+import android.graphics.Typeface
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -32,7 +33,7 @@ internal class SettingsStyle(private val fragment: PreferenceFragmentCompat) {
 
     private fun style(view: View) {
         val p = Chrome.palette
-        view.background = Chrome.flatPressable(p.bg, p.raisedHigh)
+        val density = view.resources.displayMetrics.density
         val title = view.findViewById<TextView>(android.R.id.title)
         val summary = view.findViewById<TextView>(android.R.id.summary)
         val switch = view.findViewById<View>(androidx.preference.R.id.switchWidget) as? SwitchCompat
@@ -40,13 +41,39 @@ internal class SettingsStyle(private val fragment: PreferenceFragmentCompat) {
         val isCategory = summary == null && (icon == null || icon.visibility != View.VISIBLE)
 
         if (isCategory) {
-            title?.setTextColor(p.textFaint)
-            title?.textSize = 12f
+            view.background = Chrome.flatPressable(p.bg, p.bg)
+            title?.setTextColor(p.accent)
+            title?.textSize = 13f
+            title?.setTypeface(null, Typeface.BOLD)
+            title?.setPadding(0, (10 * density).toInt(), 0, (6 * density).toInt())
             return
         }
+
+        val radius = 10 * density
+        val padding = (14 * density).toInt()
+        view.setPadding(padding, (12 * density).toInt(), padding, (12 * density).toInt())
+        view.background = Chrome.pressable(
+            Chrome.rounded(p.raised, radius, p.outline, 1),
+            Chrome.rounded(p.raisedHigh, radius, p.outline, 1)
+        )
+        (view.layoutParams as? RecyclerView.LayoutParams)?.let { params ->
+            params.setMargins(
+                (10 * density).toInt(), 0, (10 * density).toInt(), (8 * density).toInt()
+            )
+            view.layoutParams = params
+        }
+
         title?.setTextColor(forState(p.text))
+        title?.textSize = 15f
+        title?.setTypeface(null, Typeface.BOLD)
         summary?.setTextColor(forState(p.textDim))
-        icon?.imageTintList = ColorStateList.valueOf(p.textDim)
+        summary?.textSize = 13f
+        icon?.imageTintList = ColorStateList.valueOf(p.accent)
+        icon?.layoutParams?.let { params ->
+            params.width = (24 * density).toInt()
+            params.height = (24 * density).toInt()
+            icon.layoutParams = params
+        }
         if (switch != null) {
             val checked = intArrayOf(android.R.attr.state_checked)
             switch.thumbTintList = ColorStateList(arrayOf(checked, intArrayOf()), intArrayOf(p.accent, p.textFaint))

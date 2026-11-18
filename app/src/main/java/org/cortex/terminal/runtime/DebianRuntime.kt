@@ -819,6 +819,7 @@ object DebianRuntime {
         if (account.uid == 0) args += "--root-id" else args += "--change-id=${account.uid}:${account.gid}"
         args += "--pwd=${guestDirectory ?: account.home}"
         appendPseudoFilesystemBinds(args, rootfs)
+        recordRuntimeEvent(context, "Mounted Android pseudo filesystems: ${PSEUDO_FILESYSTEMS.joinToString()}")
         if (ApiServer.connectionFile(context).isFile) {
             val connection = ApiServer.connectionDirectory(context)
             val target = File(rootfs, "run/miauterm-cmd")
@@ -874,6 +875,7 @@ object DebianRuntime {
             check(guest.isDirectory || guest.mkdirs()) {
                 "Could not prepare Debian $mountPath mount point"
             }
+            Log.i(TAG, "Binding Android pseudo filesystem $mountPath")
             args += "--bind=${host.absolutePath}:$mountPath"
         }
     }
