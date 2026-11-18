@@ -1,6 +1,7 @@
 package org.cortex.terminal.view
 
 import android.content.DialogInterface
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.InsetDrawable
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
@@ -11,7 +12,7 @@ object ChromeDialog {
         val p = Chrome.palette
         val density = dialog.context.resources.displayMetrics.density
         dialog.window?.setBackgroundDrawable(
-            InsetDrawable(Chrome.rounded(p.bar, 14 * density), (12 * density).toInt())
+            InsetDrawable(ColorDrawable(p.bar), 0)
         )
         val applyColors = {
             dialog.findViewById<TextView>(androidx.appcompat.R.id.alertTitle)?.apply {
@@ -22,13 +23,13 @@ object ChromeDialog {
             dialog.findViewById<TextView>(android.R.id.message)?.setTextColor(p.textDim)
             val pad = (10 * density).toInt()
             dialog.getButton(DialogInterface.BUTTON_POSITIVE)?.apply {
-                background = Chrome.buttonBackground(p, 8 * density, 1, filled = true)
+                background = Chrome.buttonBackground(p, 2 * density, 0, filled = true)
                 setTextColor(p.onAccent)
                 setPadding(pad * 2, pad, pad * 2, pad)
             }
             for (which in intArrayOf(DialogInterface.BUTTON_NEGATIVE, DialogInterface.BUTTON_NEUTRAL)) {
                 dialog.getButton(which)?.apply {
-                    background = Chrome.buttonBackground(p, 8 * density, 1, filled = false)
+                    background = Chrome.buttonBackground(p, 2 * density, 0, filled = false)
                     setTextColor(p.accent)
                     setPadding(pad * 2, pad, pad * 2, pad)
                 }

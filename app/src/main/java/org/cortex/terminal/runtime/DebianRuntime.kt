@@ -169,14 +169,9 @@ object DebianRuntime {
                     onProgress?.invoke(100)
                     return true
                 }
-                if (!force && reinstallConfirmation?.invoke() != true) {
-                    val reason = if (existingRootWorks) {
-                        "Debian rootfs is from an older bundled version; confirm the upgrade to replace it."
-                    } else {
-                        "Debian rootfs verification failed; confirm reinstall to replace it."
-                    }
-                    lastInstallError = reason
-                    Log.w(TAG, reason)
+                if (!force && existingRootWorks && reinstallConfirmation?.invoke() != true) {
+                    lastInstallError = "Debian rootfs is from an older bundled version; confirm the upgrade to replace it."
+                    Log.w(TAG, lastInstallError.orEmpty())
                     return false
                 }
             }

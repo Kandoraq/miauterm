@@ -49,19 +49,9 @@ internal class SettingsStyle(private val fragment: PreferenceFragmentCompat) {
             return
         }
 
-        val radius = 10 * density
         val padding = (14 * density).toInt()
         view.setPadding(padding, (12 * density).toInt(), padding, (12 * density).toInt())
-        view.background = Chrome.pressable(
-            Chrome.rounded(p.raised, radius, p.outline, 1),
-            Chrome.rounded(p.raisedHigh, radius, p.outline, 1)
-        )
-        (view.layoutParams as? RecyclerView.LayoutParams)?.let { params ->
-            params.setMargins(
-                (10 * density).toInt(), 0, (10 * density).toInt(), (8 * density).toInt()
-            )
-            view.layoutParams = params
-        }
+        view.background = Chrome.flatPressable(p.raised, p.raisedHigh)
 
         title?.setTextColor(forState(p.text))
         title?.textSize = 15f
@@ -79,7 +69,7 @@ internal class SettingsStyle(private val fragment: PreferenceFragmentCompat) {
             switch.thumbTintList = ColorStateList(arrayOf(checked, intArrayOf()), intArrayOf(p.accent, p.textFaint))
             switch.trackTintList = ColorStateList(
                 arrayOf(checked, intArrayOf()),
-                intArrayOf(Chrome.withAlpha(p.accent, 100), p.raisedHigh)
+                intArrayOf(p.accentSoft, p.outline)
             )
         }
     }
