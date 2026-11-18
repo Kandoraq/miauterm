@@ -104,7 +104,7 @@ object DebianRuntime {
         val installLock = FileLocks.tryLock(listOf(File(context.filesDir, ".debian-install.lock")))
         if (installLock == null) {
             lastInstallError = "Another Debian installation is already in progress"
-            Log.w(TAG, lastInstallError)
+            Log.w(TAG, lastInstallError.orEmpty())
             return false
         }
         return installLock.use { installRootfs(context, onProgress, force) }
@@ -170,12 +170,13 @@ object DebianRuntime {
                     return true
                 }
                 if (!force && reinstallConfirmation?.invoke() != true) {
-                    lastInstallError = if (existingRootWorks) {
+                    val reason = if (existingRootWorks) {
                         "Debian rootfs is from an older bundled version; confirm the upgrade to replace it."
                     } else {
                         "Debian rootfs verification failed; confirm reinstall to replace it."
                     }
-                    Log.w(TAG, lastInstallError)
+                    lastInstallError = reason
+                    Log.w(TAG, reason)
                     return false
                 }
             }
@@ -318,7 +319,6 @@ object DebianRuntime {
             "Dpkg::Use-Pty \"0\";\nDpkg::Progress-Fancy \"0\";\n",
             420
         )
-        enforceRepositoryHttps(root)
         val loginDefs = File(root, "etc/login.defs")
         check(!ElfLinkerPatcher.isSymlink(loginDefs)) { "Debian /etc/login.defs must not be a symlink" }
         val loginDefsText = if (loginDefs.isFile) loginDefs.readText() else ""
@@ -585,6 +585,8 @@ object DebianRuntime {
     internal fun repairUsrMergeLinks(root: File) {
         validateDebianRootfsIdentity(root)
         repairDebianUsrMergeLinks(root)
+        runCatching { ElfLinkerPatcher.fixAbsoluteSymlinks(root) }
+            .onFailure { Log.w(TAG, "Could not repair absolute symlinks", it) }
     }
 
     private fun validateDebianRootfsIdentity(root: File) {
@@ -1213,13 +1215,25 @@ object DebianRuntime {
                 "-o", "Acquire::https::Timeout=30",
                 "-o", "Acquire::Retries=1"
             )
-            runRootfsCommand(context, root, listOf("/usr/bin/apt-get") + aptOptions + "update")
-            runRootfsCommand(
-                context,
-                root,
-                listOf("/usr/bin/apt-get") + aptOptions +
-                    listOf("install", "-y", "--no-install-recommends") + networkPackages
-            )
+            try {
+                runRootfsCommand(context, root, listOf("/usr/bin/apt-get") + aptOptions + "update")
+                runRootfsCommand(
+                    context,
+                    root,
+                    listOf("/usr/bin/apt-get") + aptOptions +
+                        listOf("install", "-y", "--no-install-recommends") + networkPackages
+                )
+            } catch (httpError: Exception) {
+                Log.w(TAG, "Debian HTTP repository access failed; retrying with HTTPS", httpError)
+                enforceRepositoryHttps(root)
+                runRootfsCommand(context, root, listOf("/usr/bin/apt-get") + aptOptions + "update")
+                runRootfsCommand(
+                    context,
+                    root,
+                    listOf("/usr/bin/apt-get") + aptOptions +
+                        listOf("install", "-y", "--no-install-recommends") + networkPackages
+                )
+            }
             verifyNetworkCommands(root)
             ensureSshClient(context, root)
         } catch (error: Exception) {

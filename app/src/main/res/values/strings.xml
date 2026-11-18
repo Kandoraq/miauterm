@@ -29,6 +29,7 @@
     <string name="new_session_name_hint" translatable="false">Session name (optional)</string>
     <string name="new_session_failsafe" translatable="false">Start in failsafe mode</string>
     <string name="create" translatable="false">Create</string>
+    <string name="reset" translatable="false">Reset</string>
     <string name="pref_cat_network" translatable="false">Network</string>
     <string name="pref_network_settings_toggle" translatable="false">Custom DNS and hostname</string>
     <string name="pref_network_settings_closed" translatable="false">Tap to configure Debian network identity.</string>
@@ -41,6 +42,8 @@
     <string name="pref_custom_hostname_summary" translatable="false">Used for the shell prompt and $HOSTNAME. Empty uses localhost.</string>
     <string name="pref_custom_hostname_dialog" translatable="false">Hostname</string>
     <string name="pref_custom_hostname_invalid" translatable="false">Use a valid hostname with letters, numbers, dots, or hyphens.</string>
+    <string name="pref_reset_network_title" translatable="false">Reset DNS and hostname</string>
+    <string name="pref_reset_network_summary" translatable="false">Restore the default DNS servers and hostname.</string>
     <string name="session_label">Session %1$d</string>
     <string name="close_session">Close session</string>
     <string name="exit_confirm_title">Exit Session</string>
@@ -190,6 +193,7 @@
     <string name="debian_reinstall_confirm_message">The installed Debian system could not be verified or does not match the bundled version. Replacing it removes packages and files added since installation. Export a backup first if you need to keep them.</string>
     <string name="debian_operation_running">Working with Debian…</string>
     <string name="debian_operation_failed">Debian operation failed: %1$s</string>
+    <string name="debian_operation_success">Operation finished</string>
     <string name="operation_failed_unknown">unknown error</string>
     <string name="debian_reset_done">Debian reset.</string>
     <string name="debian_backup_done">Debian backup saved.</string>

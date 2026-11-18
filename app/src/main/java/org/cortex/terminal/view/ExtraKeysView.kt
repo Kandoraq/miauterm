@@ -64,6 +64,7 @@ class ExtraKeysView @JvmOverloads constructor(
 
     private var ctrlButton: Button? = null
     private var altButton: Button? = null
+    private var shiftButton: Button? = null
 
     private val keyButtons = mutableListOf<Button>()
 
@@ -97,6 +98,7 @@ class ExtraKeysView @JvmOverloads constructor(
         keyRows.clear()
         ctrlButton = null
         altButton = null
+        shiftButton = null
         latchedKey = null
         for (row in rows) {
             val visibleKeys = row.filterNot {
@@ -216,7 +218,7 @@ class ExtraKeysView @JvmOverloads constructor(
 
     private fun modifierOf(key: ExtraKeysLayout.Key) =
         (key as? ExtraKeysLayout.SpecialKey)?.special?.takeIf {
-            it == ExtraKeysLayout.Special.CTRL || it == ExtraKeysLayout.Special.ALT
+            it == ExtraKeysLayout.Special.CTRL || it == ExtraKeysLayout.Special.ALT || it == ExtraKeysLayout.Special.SHIFT
         }
 
     private fun specialOf(key: ExtraKeysLayout.Key) = (key as? ExtraKeysLayout.SpecialKey)?.special
@@ -230,6 +232,7 @@ class ExtraKeysView @JvmOverloads constructor(
         is ExtraKeysLayout.SpecialKey -> when (key.special) {
             ExtraKeysLayout.Special.CTRL -> { { toggleCtrl() } }
             ExtraKeysLayout.Special.ALT -> { { toggleAlt() } }
+            ExtraKeysLayout.Special.SHIFT -> { { toggleShift() } }
             ExtraKeysLayout.Special.MENU -> { { onMenuClick?.invoke() } }
             ExtraKeysLayout.Special.FIND -> { {} }
             ExtraKeysLayout.Special.PASTE -> { { terminalView?.pasteFromClipboard() } }
@@ -335,6 +338,12 @@ class ExtraKeysView @JvmOverloads constructor(
                 }
                 layoutParams = params
 
+                val latchSpecial = key.special?.takeIf { special ->
+                    special != ExtraKeysLayout.Special.CTRL && special != ExtraKeysLayout.Special.ALT &&
+                        special != ExtraKeysLayout.Special.MENU && special != ExtraKeysLayout.Special.FIND &&
+                        special != ExtraKeysLayout.Special.PASTE && special != ExtraKeysLayout.Special.KEYBOARD &&
+                        special != ExtraKeysLayout.Special.SPACE && !special.repeats
+                }
                 if (latchSpecial != null) {
                     val keyReference = this
                     setOnClickListener {
@@ -447,6 +456,7 @@ class ExtraKeysView @JvmOverloads constructor(
 
             if (key.modifier == ExtraKeysLayout.Special.CTRL) ctrlButton = btn
             if (key.modifier == ExtraKeysLayout.Special.ALT) altButton = btn
+            if (key.modifier == ExtraKeysLayout.Special.SHIFT) shiftButton = btn
 
             keyButtons.add(btn)
             buttons.add(btn)
@@ -511,6 +521,12 @@ class ExtraKeysView @JvmOverloads constructor(
         updateModifierStyles()
     }
 
+    private fun toggleShift() {
+        val view = terminalView ?: return
+        view.isShiftPressed = !view.isShiftPressed
+        updateModifierStyles()
+    }
+
     private fun styleKey(btn: Button, on: Boolean) {
         val p = Chrome.palette
         btn.background = Chrome.flatPressable(
@@ -534,12 +550,14 @@ class ExtraKeysView @JvmOverloads constructor(
         val view = terminalView ?: return
         ctrlButton?.let { btn -> styleKey(btn, view.isCtrlPressed) }
         altButton?.let { btn -> styleKey(btn, view.isAltPressed) }
+        shiftButton?.let { btn -> styleKey(btn, view.isShiftPressed) }
     }
 
     fun clearLatch() {
         latchedKey?.let { styleKey(it.first, false) }
         latchedKey = null
         cancelPendingLatches()
+        terminalView?.isShiftPressed = false
         updateModifierStyles()
     }
 

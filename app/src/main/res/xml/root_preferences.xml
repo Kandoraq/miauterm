@@ -114,6 +114,10 @@
             app:title="@string/pref_custom_hostname_title"
             app:summary="@string/pref_custom_hostname_summary"
             android:inputType="textNoSuggestions" />
+        <Preference
+            app:key="reset_network_settings"
+            app:title="@string/pref_reset_network_title"
+            app:summary="@string/pref_reset_network_summary" />
     </PreferenceCategory>
 
     <PreferenceCategory app:key="linux_system_category" app:title="@string/pref_cat_debian">

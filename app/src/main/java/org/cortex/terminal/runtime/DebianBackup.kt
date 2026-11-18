@@ -24,7 +24,13 @@ object DebianBackup {
     fun export(context: Context, uri: Uri) {
         val root = Environment.getCortexRoot(context)
         require(isDebian(root)) { "Debian is not installed" }
-        val temp = File(context.cacheDir, "miauterm-backup.zip")
+        val lock = FileLocks.tryLock(listOf(File(context.filesDir, ".debian-install.lock")))
+            ?: error("Another Debian operation is already in progress")
+        val rootSize = runCatching { root.walkTopDown().sumOf { if (it.isFile) it.length() else 0L } }.getOrDefault(0L)
+        val stat = android.os.StatFs(context.cacheDir.path)
+        require(stat.availableBytes >= rootSize + 64L * 1024 * 1024) { "Not enough free space for the backup" }
+        val temp = File(context.cacheDir, "miauterm-backup-${System.currentTimeMillis()}.zip")
+        lock.use {
         try {
             val entries = JSONArray()
             ZipOutputStream(BufferedOutputStream(temp.outputStream())).use { zip ->
@@ -82,6 +88,7 @@ object DebianBackup {
         } finally {
             temp.delete()
         }
+        }
     }
 
     private fun verifyExport(archive: File) {
@@ -115,7 +122,7 @@ object DebianBackup {
 
     fun import(context: Context, uri: Uri) {
         val input = context.contentResolver.openInputStream(uri) ?: error("Cannot open backup file")
-        val archive = File(context.cacheDir, "miauterm-restore.zip")
+        val archive = File(context.cacheDir, "miauterm-restore-${System.currentTimeMillis()}.zip")
         try {
             input.use { source ->
                 archive.outputStream().buffered().use { sink ->
@@ -253,6 +260,8 @@ object DebianBackup {
             }
             SafeDelete.deleteRecursively(previous)
             SafeDelete.deleteRecursively(failed)
+            androidx.preference.PreferenceManager.getDefaultSharedPreferences(context).edit()
+                .remove(DebianRuntime.PREF_ROOTFS_REMOVED).apply()
         } finally {
             SafeDelete.deleteRecursively(staging)
         }

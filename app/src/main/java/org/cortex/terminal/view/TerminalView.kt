@@ -397,6 +397,14 @@ class TerminalView @JvmOverloads constructor(
             }
         }
 
+    var isShiftPressed = false
+        set(value) {
+            if (field != value) {
+                field = value
+                onModifiersChanged?.invoke()
+            }
+        }
+
     private val scroller = OverScroller(context)
     private var scrollRemainder = 0f
     private var lastFlingY = 0
@@ -2018,12 +2026,14 @@ class TerminalView @JvmOverloads constructor(
         }
         clearSelection()
         scrollOffset = 0
-        val targetChar = if (ch == '\n') '\r' else ch
+        val baseChar = if (ch == '\n') '\r' else ch
+        val targetChar = if (isShiftPressed && baseChar.isLetter()) baseChar.uppercaseChar() else baseChar
         val bytes = KeyMapper.getCharBytes(targetChar, isCtrlPressed, isAltPressed)
         sess.write(bytes)
         restartCursorBlink()
         isCtrlPressed = false
         isAltPressed = false
+        isShiftPressed = false
     }
 
     fun sendText(text: String) {
@@ -2031,13 +2041,15 @@ class TerminalView @JvmOverloads constructor(
         if (!sess.isRunning) return
         clearSelection()
         scrollOffset = 0
-        sess.write(KeyMapper.getTextBytes(text, isCtrlPressed, isAltPressed))
+        val payload = if (isShiftPressed) text.map { if (it.isLetter()) it.uppercaseChar() else it }.joinToString("") else text
+        sess.write(KeyMapper.getTextBytes(payload, isCtrlPressed, isAltPressed))
         restartCursorBlink()
         isCtrlPressed = false
         isAltPressed = false
+        isShiftPressed = false
     }
 
-    fun sendKeySequence(keyCode: Int, isShiftPressed: Boolean = false): Boolean {
+    fun sendKeySequence(keyCode: Int, shiftPressed: Boolean = false): Boolean {
         val sess = session ?: return false
         if (!sess.isRunning) {
             if (keyCode == KeyEvent.KEYCODE_ENTER) {
@@ -2048,13 +2060,15 @@ class TerminalView @JvmOverloads constructor(
         }
         clearSelection()
         scrollOffset = 0
+        val useShift = isShiftPressed || shiftPressed
         val isAppCursor = sess.emulator.isApplicationCursorKeys
-        val bytes = KeyMapper.getEscapeSequence(keyCode, isCtrlPressed, isAltPressed, isAppCursor, isShiftPressed)
+        val bytes = KeyMapper.getEscapeSequence(keyCode, isCtrlPressed, isAltPressed, isAppCursor, useShift)
         return if (bytes != null) {
             sess.write(bytes)
             restartCursorBlink()
             isCtrlPressed = false
             isAltPressed = false
+            isShiftPressed = false
             true
         } else {
             false

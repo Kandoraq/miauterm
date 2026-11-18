@@ -195,9 +195,19 @@ class SettingsActivity : AppCompatActivity() {
                 operationDialog?.dismiss()
                 operationDialog = null
                 if (state.success) {
-                    android.widget.Toast.makeText(this, state.message.orEmpty(), android.widget.Toast.LENGTH_LONG).show()
-                    if (state.closeSettings) finish()
-                    else if (DebianRuntime.isRemoved(this)) recreate()
+                    org.cortex.terminal.view.ChromeDialog.style(
+                        AlertDialog.Builder(this)
+                            .setTitle(R.string.debian_operation_success)
+                            .setMessage(state.message.orEmpty())
+                            .setPositiveButton(android.R.string.ok) { _, _ ->
+                                if (state.closeSettings) {
+                                    finish()
+                                } else if (DebianRuntime.isRemoved(this)) {
+                                    recreate()
+                                }
+                            }
+                            .create()
+                    ).show()
                 } else {
                     android.widget.Toast.makeText(
                         this,
@@ -284,6 +294,7 @@ class SettingsActivity : AppCompatActivity() {
             .setTitle(R.string.pref_extra_keys_title)
             .setView(content)
             .setNegativeButton(R.string.cancel, null)
+            .setNeutralButton(R.string.reset, null)
             .setPositiveButton(R.string.save, null)
             .create()
         org.cortex.terminal.view.ChromeDialog.style(dialog) {
@@ -330,7 +341,23 @@ class SettingsActivity : AppCompatActivity() {
                     }
                 }
             }
-        }.show()
+        }
+        org.cortex.terminal.view.ChromeDialog.style(dialog)
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL)?.setOnClickListener {
+            try {
+                extraKeysExecutor.execute {
+                    runCatching { ExtraKeysConfig.writeLayout(file, ExtraKeysLayout.DEFAULT_TEXT) }
+                    runOnUiThread {
+                        if (isFinishing || isDestroyed) return@runOnUiThread
+                        MainActivity.instance?.reloadExtraKeys()
+                        dialog.dismiss()
+                        android.widget.Toast.makeText(this, R.string.extra_keys_saved, android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (_: java.util.concurrent.RejectedExecutionException) {
+            }
+        }
+        dialog.show()
     }
 
     internal fun showAbout() {
@@ -626,6 +653,17 @@ class SettingsActivity : AppCompatActivity() {
                 if (!valid) android.widget.Toast.makeText(requireContext(), R.string.pref_custom_hostname_invalid, android.widget.Toast.LENGTH_LONG).show()
                 valid
             }
+            findPreference<androidx.preference.Preference>("reset_network_settings")?.setOnPreferenceClickListener {
+                androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
+                    .edit()
+                    .remove(DebianRuntime.PREF_CUSTOM_DNS_SERVERS)
+                    .remove(DebianRuntime.PREF_CUSTOM_HOSTNAME)
+                    .apply()
+                dnsPreference?.text = ""
+                hostnamePreference?.text = ""
+                android.widget.Toast.makeText(requireContext(), R.string.pref_reset_network_summary, android.widget.Toast.LENGTH_SHORT).show()
+                true
+            }
 
             findPreference<SwitchPreferenceCompat>("shared_folder_access")?.apply {
                 isPersistent = false
@@ -742,7 +780,7 @@ class SettingsActivity : AppCompatActivity() {
             findPreference<Preference>("bug_report")?.setOnPreferenceClickListener {
                 runCatching {
                     val report = BugReport.write(requireContext())
-                    BugReport.share(this, report)
+                    BugReport.share(requireActivity(), report)
                 }.onFailure {
                     android.widget.Toast.makeText(requireContext(), R.string.update_connect_failed, android.widget.Toast.LENGTH_LONG).show()
                 }

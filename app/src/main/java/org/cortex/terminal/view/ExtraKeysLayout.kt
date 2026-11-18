@@ -5,7 +5,7 @@ object ExtraKeysLayout {
     const val MAX_KEYS = 48
 
     enum class Special(val label: String) {
-        ESC("ESC"), TAB("⇆"), CTRL("CTRL"), ALT("ALT"),
+        ESC("ESC"), TAB("⇆"), CTRL("CTRL"), ALT("ALT"), SHIFT("SHIFT"),
         UP("↑"), DOWN("↓"), LEFT("←"), RIGHT("→"),
         HOME("HOME"), END("END"), PGUP("PGUP"), PGDN("PGDN"),
         INS("INS"), DEL("DEL"), BKSP("⌫"), ENTER("↵"), SPACE("␣"),
@@ -28,7 +28,7 @@ object ExtraKeysLayout {
 
     val DEFAULT_TEXT = """
         |[
-        |  ["ESC", "/", "-", "HOME", "UP", "END", "PGUP"],
+        |  ["ESC", "/", "SHIFT", "HOME", "UP", "END", "PGUP"],
         |  ["TAB", "CTRL", "ALT", "LEFT", "DOWN", "RIGHT", "PGDN"]
         |]
         |""".trimMargin()
