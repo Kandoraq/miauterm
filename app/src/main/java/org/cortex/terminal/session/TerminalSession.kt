@@ -295,7 +295,7 @@ class TerminalSession(
         emulator.processInput(bytes, 0, bytes.size)
     }
 
-    private val writeExecutor = java.util.concurrent.ThreadPoolExecutor(
+    private val writeExecutor: java.util.concurrent.ExecutorService = java.util.concurrent.ThreadPoolExecutor(
         1, 1, 0L, java.util.concurrent.TimeUnit.MILLISECONDS,
         java.util.concurrent.LinkedBlockingQueue<Runnable>(1024),
         { runnable -> Thread(runnable, "Cortex-PtyWriter").apply { isDaemon = true } },

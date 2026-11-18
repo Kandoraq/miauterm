@@ -48,7 +48,10 @@ class SessionStoreTest {
         file.writeText("cortex-sessions 2\ncurrent 0\nsession\noutput x\n")
         assertNull(SessionStore(file).load())
         file.writeText("cortex-sessions 1\ncurrent 0\nsession\nsomething new\n")
-        assertNull(SessionStore(file).load())
+        assertEquals(
+            SessionStore.State(listOf(SessionStore.Saved(null, "", null)), 0),
+            SessionStore(file).load()
+        )
     }
 
     @Test

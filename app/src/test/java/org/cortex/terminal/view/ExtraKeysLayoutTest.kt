@@ -15,7 +15,7 @@ class ExtraKeysLayoutTest {
         val result = ExtraKeysLayout.parse(ExtraKeysLayout.DEFAULT_TEXT)
         assertNull(result.error)
         assertEquals(
-            listOf(listOf("ESC", "/", "-", "HOME", "↑", "END", "PGUP"), listOf("⇆", "CTRL", "ALT", "←", "↓", "→", "PGDN")),
+            listOf(listOf("ESC", "/", "SHIFT", "HOME", "↑", "END", "PGUP"), listOf("⇆", "CTRL", "ALT", "←", "↓", "→", "PGDN")),
             result.rows.map { row -> row.map { it.label } }
         )
         assertTrue(ExtraKeysLayout.isNestedArrayFormat(ExtraKeysLayout.DEFAULT_TEXT))
