@@ -902,10 +902,9 @@ class SettingsActivity : AppCompatActivity() {
 
             findPreference<Preference>("bug_report")?.setOnPreferenceClickListener {
                 runCatching {
-                    val report = BugReport.write(requireContext())
-                    BugReport.share(requireActivity(), report)
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Kandoraq/miauterm/issues/new")))
                 }.onFailure {
-                    android.widget.Toast.makeText(requireContext(), R.string.update_connect_failed, android.widget.Toast.LENGTH_LONG).show()
+                    android.widget.Toast.makeText(requireContext(), R.string.bug_report_open_failed, android.widget.Toast.LENGTH_LONG).show()
                 }
                 true
             }
