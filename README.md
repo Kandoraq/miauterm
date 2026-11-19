@@ -145,6 +145,13 @@ Download the signed ARM64 APK from the [Miauterm 0.1.2-coral release](https://gi
 
 The [Releases page](https://github.com/Kandoraq/miauterm/releases) contains the current APKs and their checksums. The [Build APK workflow](https://github.com/Kandoraq/miauterm/actions/workflows/build-apk.yml) validates the Debian rootfs, builds the ARM64 port mapping library and APK, and verifies the release package before publishing it. Use the Settings update check to receive a notification when GitHub has a newer release; it opens the release in your browser so the APK can be downloaded manually.
 
+### Changes in 0.1.2-coral
+
+- Confirmation actions keep a flat orange surface with white, readable text.
+- Default terminal labels use `session 0` through `session 7`; up to eight sessions can be open at once. User-assigned session names remain available.
+- Launcher long-press shortcuts use the Miauterm app icon.
+- Settings spacing and dialog contrast are refined, and the support action opens the GitHub issue form.
+
 ## Terminal commands and fonts
 
 Show the available app commands from a Debian shell:

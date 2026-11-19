@@ -25,7 +25,7 @@ android {
         minSdk = 24
 
         targetSdk = 28
-        versionCode = 30006
+        versionCode = 30007
         versionName = "0.1.2-coral"
 
         val rootfsDigest = MessageDigest.getInstance("SHA-256")

@@ -54,7 +54,8 @@
     <string name="pref_custom_hostname_invalid" translatable="false">Use a valid hostname with letters, numbers, dots, or hyphens.</string>
     <string name="pref_reset_network_title" translatable="false">Reset DNS and hostname</string>
     <string name="pref_reset_network_summary" translatable="false">Restore the default DNS servers and hostname.</string>
-    <string name="session_label">Session %1$d</string>
+    <string name="session_label">session %1$d</string>
+    <string name="max_sessions_reached" translatable="false">Miauterm supports up to 8 sessions.</string>
     <string name="close_session">Close session</string>
     <string name="exit_confirm_title">Exit Session</string>
     <string name="exit_confirm_message">Do you want to close this terminal session?</string>

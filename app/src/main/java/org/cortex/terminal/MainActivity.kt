@@ -390,9 +390,15 @@ class MainActivity : AppCompatActivity() {
     private fun refreshTabs() {
         if (!::sessionManager.isInitialized) return
         val sessions = sessionManager.snapshot()
-        val tabs = sessions.map { s -> SessionTabsView.Tab(s.promptLabel()) }
+        val tabs = sessions.mapIndexed { index, session ->
+            SessionTabsView.Tab(
+                session.sessionName?.takeIf { it.isNotBlank() }
+                    ?: getString(R.string.session_label, index)
+            )
+        }
         val active = sessionManager.currentSessionIndex
-        binding.sessionTabs.update(tabs, active)
+        binding.sessionTabs.update(tabs, active, canAdd = sessions.size < SessionManager.MAX_SESSIONS)
+        btnDrawerNewSession.isEnabled = sessions.size < SessionManager.MAX_SESSIONS
     }
 
     override fun onResume() {
@@ -682,6 +688,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showNewSessionDialog() {
+        if (!sessionManager.canCreateSession()) {
+            Toast.makeText(this, R.string.max_sessions_reached, Toast.LENGTH_SHORT).show()
+            return
+        }
         val p = Chrome.palette
         val density = resources.displayMetrics.density
         val nameInput = android.widget.EditText(this).apply {
@@ -759,6 +769,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun createNewSession(failsafeMode: Boolean = false, sessionName: String? = null): TerminalSession {
+        if (!sessionManager.canCreateSession()) {
+            Toast.makeText(this, R.string.max_sessions_reached, Toast.LENGTH_SHORT).show()
+            return sessionManager.currentSession
+                ?: throw IllegalStateException("No current session is available at the session limit.")
+        }
         val session = sessionManager.newSession(
             rows = terminalView.rows,
             cols = terminalView.cols,

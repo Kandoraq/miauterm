@@ -11,6 +11,10 @@ import java.util.concurrent.Executors
 
 class SessionManager(private val context: Context) {
 
+    companion object {
+        const val MAX_SESSIONS = 8
+    }
+
     fun interface SessionListener {
         fun onSessionChanged(session: TerminalSession?)
     }
@@ -70,7 +74,7 @@ class SessionManager(private val context: Context) {
         val started = ArrayList<Pair<Int, TerminalSession>>()
         restoring = true
         try {
-            state.sessions.forEachIndexed { index, saved ->
+            state.sessions.take(MAX_SESSIONS).forEachIndexed { index, saved ->
                 val session = newSession(
                     rows, cols, widthPx, heightPx,
                     startDirectory = saved.directory,
@@ -105,6 +109,8 @@ class SessionManager(private val context: Context) {
     fun snapshot(): List<TerminalSession> = synchronized(sessions) { ArrayList(sessions) }
 
     fun sessionCount(): Int = synchronized(sessions) { sessions.size }
+
+    fun canCreateSession(): Boolean = synchronized(sessions) { sessions.size < MAX_SESSIONS }
 
     fun sessionAt(index: Int): TerminalSession? = synchronized(sessions) { sessions.getOrNull(index) }
 
@@ -157,6 +163,7 @@ class SessionManager(private val context: Context) {
             removeSession(session)
         }
         synchronized(sessions) {
+            check(sessions.size < MAX_SESSIONS) { "Miauterm supports up to $MAX_SESSIONS sessions." }
             sessions.add(session)
             currentSessionIndex = sessions.size - 1
         }

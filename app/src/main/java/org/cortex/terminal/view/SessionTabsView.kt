@@ -31,6 +31,7 @@ class SessionTabsView @JvmOverloads constructor(
     private val newButton = TextView(context)
     private var tabs: List<Tab> = emptyList()
     private var active = -1
+    private var canAddSessions = true
 
     private fun dp(v: Int): Int = (v * density + 0.5f).toInt()
 
@@ -59,13 +60,15 @@ class SessionTabsView @JvmOverloads constructor(
         applyPalette()
     }
 
-    fun update(newTabs: List<Tab>, activeIndex: Int) {
+    fun update(newTabs: List<Tab>, activeIndex: Int, canAdd: Boolean = true) {
         val unchanged = activeIndex == active && newTabs.size == tabs.size &&
-            newTabs.indices.all { newTabs[it].title == tabs[it].title }
+            canAdd == canAddSessions && newTabs.indices.all { newTabs[it].title == tabs[it].title }
         tabs = newTabs
+        canAddSessions = canAdd
         val activeChanged = activeIndex != active
         active = activeIndex
         if (unchanged) return
+        newButton.visibility = if (canAddSessions) View.VISIBLE else View.GONE
         rebuild()
         if (activeChanged) scrollToActive()
     }

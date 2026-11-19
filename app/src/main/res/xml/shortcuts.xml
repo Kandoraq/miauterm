@@ -3,7 +3,7 @@
     <shortcut
         android:shortcutId="new_session"
         android:enabled="true"
-        android:icon="@drawable/ic_add"
+        android:icon="@mipmap/ic_launcher"
         android:shortcutShortLabel="@string/shortcut_new_session"
         android:shortcutLongLabel="@string/shortcut_new_session_long">
         <intent
@@ -15,7 +15,7 @@
     <shortcut
         android:shortcutId="failsafe"
         android:enabled="true"
-        android:icon="@drawable/ic_build"
+        android:icon="@mipmap/ic_launcher"
         android:shortcutShortLabel="@string/shortcut_failsafe"
         android:shortcutLongLabel="@string/shortcut_failsafe_long">
         <intent
@@ -27,7 +27,7 @@
     <shortcut
         android:shortcutId="settings"
         android:enabled="true"
-        android:icon="@drawable/ic_settings"
+        android:icon="@mipmap/ic_launcher"
         android:shortcutShortLabel="@string/shortcut_settings"
         android:shortcutLongLabel="@string/shortcut_settings_long">
         <intent
