@@ -11,10 +11,6 @@ import java.util.concurrent.Executors
 
 class SessionManager(private val context: Context) {
 
-    companion object {
-        const val MAX_SESSIONS = 8
-    }
-
     fun interface SessionListener {
         fun onSessionChanged(session: TerminalSession?)
     }
@@ -248,6 +244,7 @@ class SessionManager(private val context: Context) {
 
     companion object {
         private const val TAG = "SessionManager"
+        const val MAX_SESSIONS = 8
         const val PREF_RESTORE_SESSIONS = "restore_sessions"
         const val SESSION_START_GRACE_MS = 1500L
     }
