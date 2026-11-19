@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Founder-approved release tag (for example v0.1.1). Leave empty to build without publishing.'
+        description: 'Release tag matching the app version (for example v0.1.3-coral). Leave empty to build without publishing.'
         required: false
         default: ''
         type: string
