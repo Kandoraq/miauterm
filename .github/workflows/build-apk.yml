@@ -170,7 +170,11 @@ jobs:
           BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner -print | sort -V | tail -n 1 | xargs dirname)"
           "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$OUT"
           EXPECTED_SIGNER_SHA256="677DAD7CFB5AF27A62815D6BC109CE7BC085D94657629944B544FD7D847ED95A"
+<<<<<<< HEAD
           ACTUAL_SIGNER_SHA256="$("$BUILD_TOOLS/apksigner" verify --print-certs "$OUT" | sed -n 's/^V2 Signer: certificate SHA-256 digest: //p' | tr '[:lower:]' '[:upper:]')"
+=======
+          ACTUAL_SIGNER_SHA256="$("$BUILD_TOOLS/apksigner" verify --print-certs "$OUT" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr '[:lower:]' '[:upper:]')"
+>>>>>>> origin/main
           test "$ACTUAL_SIGNER_SHA256" = "$EXPECTED_SIGNER_SHA256"
           "$BUILD_TOOLS/zipalign" -c -v 4 "$OUT"
           "$BUILD_TOOLS/aapt" dump badging "$OUT" | grep -F "package: name='com.miauterm.terminal'"
