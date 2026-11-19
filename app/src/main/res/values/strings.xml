@@ -142,9 +142,6 @@
     <string name="pref_secure_screen_title">Secure Screen</string>
     <string name="pref_secure_screen_summary">Block screenshots and hide app content in recent tasks (FLAG_SECURE)</string>
 
-    <string name="pref_cat_language">Language</string>
-    <string name="pref_language_title">App language</string>
-    <string name="pref_language_system">System default</string>
 
     <string name="pref_cat_notifications">Notifications &amp; Clipboard</string>
     <string name="pref_notify_title">Long command notifications</string>
@@ -174,10 +171,7 @@
     <string name="pref_restore_debian_summary">Replace the current Debian system from a Miauterm backup</string>
     <string name="pref_reset_debian_title">Reset system</string>
     <string name="rootfs_reset_title">Reset %1$s</string>
-    <string name="rootfs_remove_named_title">Delete %1$s</string>
     <string name="pref_reset_debian_summary">Restore the bundled Debian system to its original state.</string>
-    <string name="rootfs_remove_title">Delete Debian</string>
-    <string name="pref_remove_debian_summary">Permanently delete Debian and its files</string>
     <string name="pref_cat_terminal">Terminal</string>
     <string name="pref_extra_keys_title">Customize extra keys</string>
     <string name="pref_extra_keys_summary">Choose visible buttons. Edit custom layouts in the Debian terminal.</string>
@@ -220,7 +214,7 @@
     <string name="rootfs_removed_title">Debian is not installed</string>
     <string name="rootfs_removed_message">Debian was deleted. Clear Miauterm app data in Android settings to install the bundled Debian system again.</string>
     <string name="debian_reset_confirm_title">Reset %1$s?</string>
-    <string name="debian_reset_confirm_message">This replaces the current Debian system with the bundled original and removes packages and files added since installation. Export a backup first if you need to keep them.</string>
+    <string name="debian_reset_confirm_message">Reset replaces Debian with the bundled original and removes packages and files added since installation. The selected Linux user and Debian hostname return to defaults; custom DNS and other Miauterm settings stay unchanged. Export a backup first if you need to keep Debian files.</string>
     <string name="debian_restore_confirm_title">Replace Debian?</string>
     <string name="debian_restore_confirm_message">The selected backup replaces the current Debian system. Create a backup first if you need to keep it.</string>
     <string name="debian_reinstall_confirm_title">Replace Debian system?</string>

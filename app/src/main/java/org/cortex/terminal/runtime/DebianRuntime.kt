@@ -101,6 +101,32 @@ object DebianRuntime {
         }.getOrDefault(false)
     }
 
+    internal fun shouldReuseRootfs(force: Boolean, rootfsWorks: Boolean, versionMatches: Boolean): Boolean =
+        !force && rootfsWorks && versionMatches
+
+    fun resetBundledDebian(context: Context): Boolean {
+        val preferences = PreferenceManager.getDefaultSharedPreferences(context)
+        val previousLinuxUser = preferences.getString(PREF_LINUX_USER, null)
+        val previousHostname = preferences.getString(PREF_CUSTOM_HOSTNAME, null)
+        if (!preferences.edit()
+                .remove(PREF_LINUX_USER)
+                .remove(PREF_CUSTOM_HOSTNAME)
+                .commit()
+        ) {
+            lastInstallError = "Could not reset Debian user and hostname settings"
+            return false
+        }
+
+        if (install(context, force = true)) return true
+
+        val restored = preferences.edit().apply {
+            if (previousLinuxUser == null) remove(PREF_LINUX_USER) else putString(PREF_LINUX_USER, previousLinuxUser)
+            if (previousHostname == null) remove(PREF_CUSTOM_HOSTNAME) else putString(PREF_CUSTOM_HOSTNAME, previousHostname)
+        }.commit()
+        if (!restored) Log.e(TAG, "Could not restore Debian settings after reset failed")
+        return false
+    }
+
     @Synchronized
     fun install(context: Context, onProgress: ((Int) -> Unit)? = null, force: Boolean = false): Boolean {
         val installLock = FileLocks.tryLock(listOf(File(context.filesDir, ".debian-install.lock")))
@@ -154,7 +180,7 @@ object DebianRuntime {
                     MiautermCommandInstaller.install(context, root)
                     verifyProotStartsBash(context, root)
                 }.isSuccess
-                if (existingRootWorks && existingMarker == expectedVersionMarker().trim()) {
+                if (shouldReuseRootfs(force, existingRootWorks, existingMarker == expectedVersionMarker().trim())) {
                     onProgress?.invoke(92)
                     updateResolvConf(root, networkDnsServers(context), customDnsServers(context))
                     Thread {
@@ -434,12 +460,12 @@ object DebianRuntime {
             "Select extra-key buttons in Miauterm Settings. Edit the Termux-style nested-array layout from Debian at `~/.config/miauterm/keys` with a text editor, then run `miauterm-cmd run keysreload`.\n\n" +
             "Use Debian's `su` command to switch accounts inside the current shell. It is provided by Debian's `util-linux` package and follows Debian's normal account and password rules. The `root` identity remains simulated by PRoot and does not grant Android root access.\n\n" +
             "Miauterm checks Debian usr-merge links before startup: `/bin -> usr/bin`, `/sbin -> usr/sbin`, and `/lib -> usr/lib`. Matching files are merged; conflicting files stop repair without being overwritten. The bundled and validated rootfs is Debian ARM64. Other distributions are not supported by Debian startup checks.\n\n" +
-            "Use Miauterm Settings to view or clear PRoot diagnostics, open a failsafe session, read the rootfs and symlink guide, back up or restore files, or reset the bundled Debian system. Export a backup before replacing files if you need to keep them.\n\n" +
+            "Use Miauterm Settings to view or clear PRoot diagnostics, open a failsafe session, read the rootfs and symlink guide, back up or restore files, or reset the bundled Debian system. Reset replaces the complete Debian root filesystem and restores the Debian user and hostname settings to defaults. Custom DNS and other Miauterm settings stay unchanged. Export a backup first if you need to keep files or packages.\n\n" +
             "## Network settings\n\n" +
             "Set custom DNS servers and a Debian hostname from Miauterm Settings > Network. DNS accepts up to three IPv4 or IPv6 addresses separated by commas. Leave it blank to use Android-provided DNS with public fallbacks. The hostname sets the shell prompt, `\$HOSTNAME`, `\$MIAUTERM_HOSTNAME`, `/etc/hostname`, and the guest results of `gethostname()` and `uname()` used by Fastfetch. Android's kernel hostname is unchanged. Debian process and hardware reporting use the bound `/proc` and `/sys` views.\n\n" +
             "Miauterm maps guest server binds from port 80 to 2080 and 443 to 2443. Loopback clients use the same mapping; connections to remote hosts keep their original ports. Guest services listen on the mapped high ports, which are also shown in local server notifications. For outgoing SSH, Miauterm attempts to install Debian's `openssh-client` during rootfs setup when network access is available. If `ssh` is still missing, run `apt install openssh-client`, then connect with `ssh user@host`. Miauterm does not start an SSH server.\n\n" +
             "Miauterm checks GitHub Releases only when you tap Settings > Updates & Support > Check for updates. If a newer release exists, Android shows a notification that opens the release page in your browser; APK download and installation remain manual.\n\n" +
-            "This Miauterm version is 0.1.3-coral, with Coral as its release codename.\n\n" +
+            "This Miauterm version is 0.1.4-coral, with Coral as its release codename.\n\n" +
             "The `root` shell identity is simulated by PRoot; it is not Android root. Linux account names do not create separate Android security identities. Miauterm does not start a privileged chroot session.\n"
 
     internal fun prepareRestoredRootfs(context: Context, root: File) {

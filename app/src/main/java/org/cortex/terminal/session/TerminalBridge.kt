@@ -15,7 +15,6 @@ import android.util.Log
 import android.widget.Toast
 import androidx.preference.PreferenceManager
 import org.cortex.terminal.CortexApp
-import org.cortex.terminal.LocaleHelper
 import org.cortex.terminal.MainActivity
 import org.cortex.terminal.R
 import java.util.concurrent.atomic.AtomicInteger
@@ -45,7 +44,7 @@ object TerminalBridge {
             try {
                 val cm = app.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return@post
                 cm.setPrimaryClip(ClipData.newPlainText("Miauterm", text))
-                Toast.makeText(app, LocaleHelper.wrap(app).getString(R.string.clipboard_set_by_program), Toast.LENGTH_SHORT).show()
+                Toast.makeText(app, app.getString(R.string.clipboard_set_by_program), Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Log.w(TAG, "Could not set clipboard", e)
             }
@@ -72,7 +71,7 @@ object TerminalBridge {
     }
 
     private fun postNotification(app: Context, sessionNumber: Int, durationMs: Long, exitCode: Int?) {
-        val lc = LocaleHelper.wrap(app)
+        val lc = app
         val nm = app.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

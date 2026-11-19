@@ -11,6 +11,8 @@ import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
@@ -88,6 +90,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val preferences = PreferenceManager.getDefaultSharedPreferences(this)
+        if (preferences.contains("app_language")) preferences.edit().remove("app_language").apply()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            AppCompatDelegate.getApplicationLocales().toLanguageTags() != "en"
+        ) {
+            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("en"))
+        }
         when (intent?.getStringExtra(EXTRA_SHORTCUT_ACTION)) {
             SHORTCUT_SETTINGS -> shortcutSettings = true
             SHORTCUT_NEW_SESSION -> shortcutNewSession = true

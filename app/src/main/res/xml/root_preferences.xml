@@ -53,16 +53,6 @@
             app:title="@string/pref_restore_sessions_title" />
     </PreferenceCategory>
 
-    <PreferenceCategory app:title="@string/pref_cat_language">
-        <ListPreference
-            app:defaultValue="system"
-            app:entries="@array/language_entries"
-            app:entryValues="@array/language_values"
-            app:key="app_language"
-            app:title="@string/pref_language_title"
-            app:useSimpleSummaryProvider="true" />
-    </PreferenceCategory>
-
     <PreferenceCategory app:title="@string/pref_cat_notifications">
         <SwitchPreferenceCompat
             app:defaultValue="true"

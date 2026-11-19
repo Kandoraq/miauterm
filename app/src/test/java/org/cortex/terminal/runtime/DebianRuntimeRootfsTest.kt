@@ -1,12 +1,25 @@
 package org.cortex.terminal.runtime
 
-import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
 import java.io.File
 
 class DebianRuntimeRootfsTest {
+    @Test
+    fun forcedResetDoesNotReuseAHealthyMatchingRootfs() {
+        assertFalse(DebianRuntime.shouldReuseRootfs(force = true, rootfsWorks = true, versionMatches = true))
+    }
+
+    @Test
+    fun matchingHealthyRootfsIsReusedOnlyWhenResetWasNotRequested() {
+        assertTrue(DebianRuntime.shouldReuseRootfs(force = false, rootfsWorks = true, versionMatches = true))
+        assertFalse(DebianRuntime.shouldReuseRootfs(force = false, rootfsWorks = false, versionMatches = true))
+        assertFalse(DebianRuntime.shouldReuseRootfs(force = false, rootfsWorks = true, versionMatches = false))
+    }
+
     @Test
     fun rejectsTruncatedAccountAndPackageCommands() {
         val root = createValidRootfs()

@@ -131,8 +131,8 @@ class SettingsActivity : AppCompatActivity() {
                 .setPositiveButton(R.string.pref_reset_debian_title) { _, _ ->
                     runDebianOperation(getString(R.string.debian_reset_done), closeSettings = true) { context ->
                         stopSessionsAndForget(context)
-                        check(DebianRuntime.install(context, force = true)) {
-                            context.getString(R.string.debian_install_failed)
+                        check(DebianRuntime.resetBundledDebian(context)) {
+                            DebianRuntime.lastInstallError ?: context.getString(R.string.debian_install_failed)
                         }
                     }
                 }
@@ -701,7 +701,6 @@ class SettingsActivity : AppCompatActivity() {
                 "keep_screen_on" to R.drawable.ic_lightbulb,
                 "secure_screen" to R.drawable.ic_shield,
                 "restore_sessions" to R.drawable.ic_history,
-                LocaleHelper.PREF_KEY to R.drawable.ic_language,
                 "notify_long_commands" to R.drawable.ic_notifications,
                 "long_command_threshold" to R.drawable.ic_schedule,
                 "allow_osc52_explicit_opt_in" to R.drawable.ic_clipboard,
@@ -805,16 +804,6 @@ class SettingsActivity : AppCompatActivity() {
                         }
                     }
                     false
-                }
-            }
-
-            findPreference<ListPreference>(LocaleHelper.PREF_KEY)?.let { pref ->
-
-                val available = resources.getStringArray(R.array.language_values).toList()
-                pref.value = LocaleHelper.currentSelection(available)
-                pref.setOnPreferenceChangeListener { _, newValue ->
-                    LocaleHelper.setLanguage(newValue as String)
-                    true
                 }
             }
 

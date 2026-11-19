@@ -13,7 +13,6 @@ import android.os.Process
 import android.os.SystemClock
 import android.util.Log
 import androidx.preference.PreferenceManager
-import org.cortex.terminal.LocaleHelper
 import org.cortex.terminal.R
 import org.cortex.terminal.api.ApiServer
 import java.io.File
@@ -315,7 +314,7 @@ class LocalServers(private val context: Context, private val root: File) {
         synchronized(stateLock) {
             if (stopped) return
             val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            val lc = LocaleHelper.wrap(context)
+            val lc = context
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 nm.createNotificationChannel(
                     NotificationChannel(CHANNEL_ID, lc.getString(R.string.servers_channel_name), NotificationManager.IMPORTANCE_LOW).apply {

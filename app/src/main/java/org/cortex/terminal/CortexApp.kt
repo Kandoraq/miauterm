@@ -9,7 +9,6 @@ class CortexApp : Application() {
     override fun onCreate() {
         super.onCreate()
         org.cortex.terminal.api.ApiServer.start(this)
-        LocaleHelper.applySaved(this)
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityStarted(activity: Activity) {
                 startedActivities.incrementAndGet()

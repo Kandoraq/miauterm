@@ -26,7 +26,6 @@ import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import org.cortex.terminal.CortexApp
-import org.cortex.terminal.LocaleHelper
 import org.cortex.terminal.MainActivity
 import org.cortex.terminal.R
 import org.cortex.terminal.runtime.Environment
@@ -225,7 +224,7 @@ object ApiCommands {
             return fail("notifications are turned off for Miauterm in Android's settings")
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val lc = LocaleHelper.wrap(context)
+            val lc = context
             nm.createNotificationChannel(
                 NotificationChannel(CHANNEL_ID, lc.getString(R.string.api_channel_name), NotificationManager.IMPORTANCE_DEFAULT)
                     .apply { description = lc.getString(R.string.api_channel_description) }

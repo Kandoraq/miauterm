@@ -12,7 +12,6 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
 import java.io.File
-import org.cortex.terminal.LocaleHelper
 import org.cortex.terminal.MainActivity
 import org.cortex.terminal.R
 import org.cortex.terminal.session.SessionManager
@@ -249,7 +248,7 @@ class CortexService : Service() {
                         try {
                             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
                             clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("URL", link))
-                            android.widget.Toast.makeText(this, LocaleHelper.wrap(this).getString(R.string.copied_url, link), android.widget.Toast.LENGTH_SHORT).show()
+                            android.widget.Toast.makeText(this, this.getString(R.string.copied_url, link), android.widget.Toast.LENGTH_SHORT).show()
                         } catch (e: Exception) {
                             Log.w("CortexService", "Copying the link failed", e)
                         }
@@ -334,7 +333,7 @@ class CortexService : Service() {
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            val lc = LocaleHelper.wrap(this)
+            val lc = this
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 lc.getString(R.string.notif_channel_name),
@@ -348,7 +347,7 @@ class CortexService : Service() {
     }
 
     private fun buildNotification(): Notification {
-        val lc = LocaleHelper.wrap(this)
+        val lc = this
         val sessionCount = _sessionManager?.sessionCount() ?: 0
         val contentText = if (isWakeLockHeld) {
             lc.getString(R.string.notif_sessions_wake_lock, sessionCount)
