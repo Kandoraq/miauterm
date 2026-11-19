@@ -8,6 +8,7 @@
         android:shortcutLongLabel="@string/shortcut_new_session_long">
         <intent
             android:action="org.cortex.terminal.shortcut.NEW_SESSION"
+            android:targetPackage="com.miauterm.terminal"
             android:targetClass="org.cortex.terminal.MainActivity">
             <extra android:name="org.cortex.terminal.extra.SHORTCUT_ACTION" android:value="new_session" />
         </intent>
@@ -20,6 +21,7 @@
         android:shortcutLongLabel="@string/shortcut_failsafe_long">
         <intent
             android:action="org.cortex.terminal.shortcut.FAILSAFE"
+            android:targetPackage="com.miauterm.terminal"
             android:targetClass="org.cortex.terminal.MainActivity">
             <extra android:name="org.cortex.terminal.extra.SHORTCUT_ACTION" android:value="failsafe" />
         </intent>
@@ -32,6 +34,7 @@
         android:shortcutLongLabel="@string/shortcut_settings_long">
         <intent
             android:action="org.cortex.terminal.shortcut.SETTINGS"
+            android:targetPackage="com.miauterm.terminal"
             android:targetClass="org.cortex.terminal.MainActivity">
             <extra android:name="org.cortex.terminal.extra.SHORTCUT_ACTION" android:value="settings" />
         </intent>

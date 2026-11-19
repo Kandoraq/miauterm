@@ -347,6 +347,7 @@ class ExtraKeysView @JvmOverloads constructor(
 
                 val latchSpecial = key.special?.takeIf { special ->
                     special != ExtraKeysLayout.Special.CTRL && special != ExtraKeysLayout.Special.ALT &&
+                        special != ExtraKeysLayout.Special.SHIFT &&
                         special != ExtraKeysLayout.Special.MENU && special != ExtraKeysLayout.Special.FIND &&
                         special != ExtraKeysLayout.Special.PASTE && special != ExtraKeysLayout.Special.KEYBOARD &&
                         special != ExtraKeysLayout.Special.SPACE && !special.repeats
