@@ -147,6 +147,13 @@ android {
             all {
                 it.maxHeapSize = "2g"
 
+                // Robolectric downloads Android SDK jars outside Gradle's repository resolver.
+                // Use Maven Central's canonical endpoint so CI can fetch the matching checksums.
+                it.systemProperty(
+                    "robolectric.dependency.repo.url",
+                    "https://repo.maven.apache.org/maven2"
+                )
+
                 it.testLogging.exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
             }
         }
