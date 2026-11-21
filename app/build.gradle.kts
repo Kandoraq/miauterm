@@ -21,7 +21,7 @@ android {
     ndkVersion = "26.1.10909125"
 
     defaultConfig {
-        applicationId = "com.miauterm.terminal"
+        applicationId = "salu.Kandoraq.Miauterm"
         minSdk = 24
 
         targetSdk = 28

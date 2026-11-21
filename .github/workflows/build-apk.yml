@@ -173,7 +173,7 @@ jobs:
           ACTUAL_SIGNER_SHA256="$("$BUILD_TOOLS/apksigner" verify --print-certs "$OUT" | sed -n 's/^V2 Signer: certificate SHA-256 digest: //p' | tr '[:lower:]' '[:upper:]')"
           test "$ACTUAL_SIGNER_SHA256" = "$EXPECTED_SIGNER_SHA256"
           "$BUILD_TOOLS/zipalign" -c -v 4 "$OUT"
-          "$BUILD_TOOLS/aapt" dump badging "$OUT" | grep -F "package: name='com.miauterm.terminal'"
+          "$BUILD_TOOLS/aapt" dump badging "$OUT" | grep -F "package: name='salu.Kandoraq.Miauterm'"
           "$BUILD_TOOLS/aapt" dump badging "$OUT" | grep -F "application-label:'Miauterm'"
           unzip -t "$OUT"
           unzip -p "$OUT" assets/libmiauterm-portmap.so > "$RUNNER_TEMP/miauterm-portmap.so"

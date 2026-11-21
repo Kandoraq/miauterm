@@ -10,12 +10,12 @@ class BugReportTest {
     fun format_writesSectionsWithKeysAndMarksMissingValues() {
         val text = BugReport.format(
             linkedMapOf(
-                "Miauterm" to listOf("version" to "1.26.37 (137)", "package" to "com.miauterm.terminal", "Debian rootfs" to null, "runtime" to "PRoot"),
+                "Miauterm" to listOf("version" to "1.26.37 (137)", "package" to "salu.Kandoraq.Miauterm", "Debian rootfs" to null, "runtime" to "PRoot"),
                 "Android" to listOf("release" to null)
             )
         )
         assertEquals(
-            "== Miauterm\nversion: 1.26.37 (137)\npackage: com.miauterm.terminal\nDebian rootfs: (unknown)\nruntime: PRoot\n\n== Android\nrelease: (unknown)\n\n",
+            "== Miauterm\nversion: 1.26.37 (137)\npackage: salu.Kandoraq.Miauterm\nDebian rootfs: (unknown)\nruntime: PRoot\n\n== Android\nrelease: (unknown)\n\n",
             text
         )
     }
