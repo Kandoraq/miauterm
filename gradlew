@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Cortex Gradle Wrapper
+# Miauterm Gradle Wrapper
 # Licensed under Apache 2.0
 
 set -e

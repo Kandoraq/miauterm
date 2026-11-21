@@ -1,28 +1,28 @@
 <resources>
-    <color name="cortex_bg">#141618</color>
-    <color name="cortex_surface">#1A1C1F</color>
-    <color name="cortex_surface_variant">#202326</color>
-    <color name="cortex_surface_container">#181A1C</color>
-    <color name="cortex_surface_elevated">#25282B</color>
-    <color name="cortex_bar">#101214</color>
+    <color name="miauterm_bg">#141618</color>
+    <color name="miauterm_surface">#1A1C1F</color>
+    <color name="miauterm_surface_variant">#202326</color>
+    <color name="miauterm_surface_container">#181A1C</color>
+    <color name="miauterm_surface_elevated">#25282B</color>
+    <color name="miauterm_bar">#101214</color>
 
-    <color name="cortex_primary">#FF9852</color>
-    <color name="cortex_primary_container">#472817</color>
-    <color name="cortex_on_primary_container">#FFE1CC</color>
-    <color name="cortex_secondary">#D5D8DB</color>
-    <color name="cortex_accent">#FF9852</color>
-    <color name="cortex_accent_bg">#402719</color>
+    <color name="miauterm_primary">#FF9852</color>
+    <color name="miauterm_primary_container">#472817</color>
+    <color name="miauterm_on_primary_container">#FFE1CC</color>
+    <color name="miauterm_secondary">#D5D8DB</color>
+    <color name="miauterm_accent">#FF9852</color>
+    <color name="miauterm_accent_bg">#402719</color>
 
-    <color name="cortex_outline">#383C40</color>
-    <color name="cortex_outline_variant">#2A2D30</color>
+    <color name="miauterm_outline">#383C40</color>
+    <color name="miauterm_outline_variant">#2A2D30</color>
 
-    <color name="cortex_key_bg">#202326</color>
-    <color name="cortex_key_pressed">#303438</color>
-    <color name="cortex_key_active">#FF9852</color>
-    <color name="cortex_key_active_text">#21140B</color>
+    <color name="miauterm_key_bg">#202326</color>
+    <color name="miauterm_key_pressed">#303438</color>
+    <color name="miauterm_key_active">#FF9852</color>
+    <color name="miauterm_key_active_text">#21140B</color>
 
-    <color name="cortex_fg">#E7E9EB</color>
-    <color name="cortex_text_primary">#F2F3F4</color>
-    <color name="cortex_text_secondary">#BEC2C6</color>
-    <color name="cortex_text_muted">#969CA1</color>
+    <color name="miauterm_fg">#E7E9EB</color>
+    <color name="miauterm_text_primary">#F2F3F4</color>
+    <color name="miauterm_text_secondary">#BEC2C6</color>
+    <color name="miauterm_text_muted">#969CA1</color>
 </resources>

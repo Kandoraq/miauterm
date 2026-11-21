@@ -1,7 +1,7 @@
 /*
  * The Zstandard decoder (https://github.com/facebook/zstd, v1.5.7, BSD license: LICENSE) in one
  * translation unit, as zstd's own build/single_file_libs/zstddeclib-in.c makes it: the bootstrap
- * archive is a .tar.zst, which the native tar extractor (cortex-pty.c) reads through it.
+ * archive is a .tar.zst, which the native tar extractor (miauterm-pty.c) reads through it.
  * Only these files of zstd's lib/ are here; they are unchanged.
  */
 #define DEBUGLEVEL 0

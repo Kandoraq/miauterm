@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "org.cortex.terminal.engine"
+    namespace = "mdr.Kandoraq.miauterm.engine"
     compileSdk = 34
     ndkVersion = "26.1.10909125"
 

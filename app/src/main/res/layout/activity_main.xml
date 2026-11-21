@@ -3,7 +3,7 @@
     android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/cortex_bg">
+    android:background="@color/miauterm_bg">
 
     <!-- Main Terminal Interface -->
     <LinearLayout
@@ -12,20 +12,20 @@
         android:orientation="vertical">
 
         <!-- One tab for each session (colors are set from the terminal's color scheme, see MainActivity.applyChrome) -->
-        <org.cortex.terminal.view.SessionTabsView
+        <mdr.Kandoraq.miauterm.view.SessionTabsView
             android:id="@+id/sessionTabs"
             android:layout_width="match_parent"
             android:layout_height="40dp"
-            android:background="@color/cortex_surface_container" />
+            android:background="@color/miauterm_surface_container" />
 
         <View
             android:id="@+id/tabsDivider"
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="@color/cortex_outline_variant" />
+            android:background="@color/miauterm_outline_variant" />
 
         <!-- Terminal Display Surface -->
-        <org.cortex.terminal.view.TerminalView
+        <mdr.Kandoraq.miauterm.view.TerminalView
             android:id="@+id/terminalView"
             android:layout_width="match_parent"
             android:layout_height="0dp"
@@ -36,17 +36,17 @@
             android:id="@+id/dockDivider"
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="@color/cortex_outline_variant" />
+            android:background="@color/miauterm_outline_variant" />
 
         <!-- Bottom Bar: horizontally scrollable terminal keys -->
         <FrameLayout
             android:id="@+id/bottomBarContainer"
             android:layout_width="match_parent"
             android:layout_height="94dp"
-            android:background="@color/cortex_surface_container">
+            android:background="@color/miauterm_surface_container">
 
             <!-- 2-Row Extra Keys Keyboard Toolbar -->
-            <org.cortex.terminal.view.ExtraKeysView
+            <mdr.Kandoraq.miauterm.view.ExtraKeysView
                 android:id="@+id/extraKeysView"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />
@@ -63,7 +63,7 @@
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:orientation="vertical"
-        android:background="@color/cortex_surface_container"
+        android:background="@color/miauterm_surface_container"
         android:paddingTop="8dp"
         android:paddingBottom="8dp">
 
@@ -82,7 +82,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="@string/app_name"
-                android:textColor="@color/cortex_text_primary"
+                android:textColor="@color/miauterm_text_primary"
                 android:textStyle="bold"
                 android:textSize="18sp" />
 
@@ -115,7 +115,7 @@
             android:layout_height="0dp"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
-            android:background="@color/cortex_outline_variant" />
+            android:background="@color/miauterm_outline_variant" />
 
         <TextView
             android:id="@+id/drawerSessionsLabel"
@@ -127,7 +127,7 @@
             android:paddingBottom="4dp"
             android:text="@string/drawer_sessions"
             android:textAllCaps="false"
-            android:textColor="@color/cortex_text_muted"
+            android:textColor="@color/miauterm_text_muted"
             android:textSize="12sp" />
 
         <!-- Active Sessions List -->
@@ -181,7 +181,7 @@
                     android:maxLines="1"
                     android:ellipsize="end"
                     android:text="@string/drawer_keyboard"
-                    android:textColor="@color/cortex_text_primary"
+                    android:textColor="@color/miauterm_text_primary"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:importantForAccessibility="no" />
@@ -217,7 +217,7 @@
                     android:maxLines="1"
                     android:ellipsize="end"
                     android:text="@string/drawer_new_session"
-                    android:textColor="@color/cortex_bg"
+                    android:textColor="@color/miauterm_bg"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:importantForAccessibility="no" />

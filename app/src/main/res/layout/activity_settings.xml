@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:id="@+id/settings_root"
     android:orientation="vertical"
-    android:background="@color/cortex_bg">
+    android:background="@color/miauterm_bg">
 
     <FrameLayout
         android:id="@+id/settings_container"

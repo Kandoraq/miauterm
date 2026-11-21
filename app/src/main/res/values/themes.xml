@@ -1,62 +1,62 @@
 <resources>
     <!-- Base Material 3 Dark Application Theme -->
-    <style name="Theme.Cortex" parent="Theme.Material3.Dark.NoActionBar">
-        <item name="colorPrimary">@color/cortex_primary</item>
-        <item name="colorAccent">@color/cortex_primary</item>
-        <item name="colorControlActivated">@color/cortex_primary</item>
-        <item name="colorOnPrimary">@color/cortex_bg</item>
-        <item name="colorPrimaryContainer">@color/cortex_primary_container</item>
-        <item name="colorOnPrimaryContainer">@color/cortex_on_primary_container</item>
+    <style name="Theme.Miauterm" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/miauterm_primary</item>
+        <item name="colorAccent">@color/miauterm_primary</item>
+        <item name="colorControlActivated">@color/miauterm_primary</item>
+        <item name="colorOnPrimary">@color/miauterm_bg</item>
+        <item name="colorPrimaryContainer">@color/miauterm_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/miauterm_on_primary_container</item>
 
-        <item name="colorSecondary">@color/cortex_secondary</item>
-        <item name="colorOnSecondary">@color/cortex_bg</item>
+        <item name="colorSecondary">@color/miauterm_secondary</item>
+        <item name="colorOnSecondary">@color/miauterm_bg</item>
 
-        <item name="colorSurface">@color/cortex_surface</item>
-        <item name="colorOnSurface">@color/cortex_text_primary</item>
-        <item name="colorSurfaceVariant">@color/cortex_surface_variant</item>
-        <item name="colorOnSurfaceVariant">@color/cortex_text_secondary</item>
+        <item name="colorSurface">@color/miauterm_surface</item>
+        <item name="colorOnSurface">@color/miauterm_text_primary</item>
+        <item name="colorSurfaceVariant">@color/miauterm_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/miauterm_text_secondary</item>
 
-        <item name="colorOutline">@color/cortex_outline</item>
-        <item name="colorOutlineVariant">@color/cortex_outline_variant</item>
+        <item name="colorOutline">@color/miauterm_outline</item>
+        <item name="colorOutlineVariant">@color/miauterm_outline_variant</item>
 
-        <item name="android:textColor">@color/cortex_text_primary</item>
-        <item name="android:textColorPrimary">@color/cortex_text_primary</item>
-        <item name="android:textColorSecondary">@color/cortex_text_secondary</item>
-        <item name="android:textColorTertiary">@color/cortex_text_muted</item>
+        <item name="android:textColor">@color/miauterm_text_primary</item>
+        <item name="android:textColorPrimary">@color/miauterm_text_primary</item>
+        <item name="android:textColorSecondary">@color/miauterm_text_secondary</item>
+        <item name="android:textColorTertiary">@color/miauterm_text_muted</item>
 
-        <item name="android:windowBackground">@color/cortex_bg</item>
-        <item name="android:statusBarColor">@color/cortex_bar</item>
-        <item name="android:navigationBarColor">@color/cortex_bar</item>
+        <item name="android:windowBackground">@color/miauterm_bg</item>
+        <item name="android:statusBarColor">@color/miauterm_bar</item>
+        <item name="android:navigationBarColor">@color/miauterm_bar</item>
 
         <!-- Material 3 Preferences Dark Theme -->
         <item name="preferenceTheme">@style/PreferenceThemeOverlay</item>
     </style>
 
     <!-- Specific theme for SettingsActivity with Toolbar -->
-    <style name="Theme.Cortex.Settings" parent="Theme.Material3.Dark">
-        <item name="colorPrimary">@color/cortex_primary</item>
-        <item name="colorAccent">@color/cortex_primary</item>
-        <item name="colorControlActivated">@color/cortex_primary</item>
-        <item name="colorOnPrimary">@color/cortex_bg</item>
-        <item name="colorSecondary">@color/cortex_primary</item>
-        <item name="colorOnSecondary">@color/cortex_bg</item>
+    <style name="Theme.Miauterm.Settings" parent="Theme.Material3.Dark">
+        <item name="colorPrimary">@color/miauterm_primary</item>
+        <item name="colorAccent">@color/miauterm_primary</item>
+        <item name="colorControlActivated">@color/miauterm_primary</item>
+        <item name="colorOnPrimary">@color/miauterm_bg</item>
+        <item name="colorSecondary">@color/miauterm_primary</item>
+        <item name="colorOnSecondary">@color/miauterm_bg</item>
         <!-- The containers of Material 3's own dark theme are purple (a switch's track) -->
-        <item name="colorPrimaryContainer">@color/cortex_primary_container</item>
-        <item name="colorOnPrimaryContainer">@color/cortex_on_primary_container</item>
-        <item name="colorSurface">@color/cortex_surface</item>
-        <item name="colorOnSurface">@color/cortex_text_primary</item>
-        <item name="colorSurfaceVariant">@color/cortex_surface_variant</item>
-        <item name="colorOnSurfaceVariant">@color/cortex_text_secondary</item>
-        <item name="colorOutline">@color/cortex_outline</item>
-        <item name="colorOutlineVariant">@color/cortex_outline_variant</item>
+        <item name="colorPrimaryContainer">@color/miauterm_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/miauterm_on_primary_container</item>
+        <item name="colorSurface">@color/miauterm_surface</item>
+        <item name="colorOnSurface">@color/miauterm_text_primary</item>
+        <item name="colorSurfaceVariant">@color/miauterm_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/miauterm_text_secondary</item>
+        <item name="colorOutline">@color/miauterm_outline</item>
+        <item name="colorOutlineVariant">@color/miauterm_outline_variant</item>
 
-        <item name="android:textColor">@color/cortex_text_primary</item>
-        <item name="android:textColorPrimary">@color/cortex_text_primary</item>
-        <item name="android:textColorSecondary">@color/cortex_text_secondary</item>
+        <item name="android:textColor">@color/miauterm_text_primary</item>
+        <item name="android:textColorPrimary">@color/miauterm_text_primary</item>
+        <item name="android:textColorSecondary">@color/miauterm_text_secondary</item>
 
-        <item name="android:windowBackground">@color/cortex_bg</item>
-        <item name="android:statusBarColor">@color/cortex_bar</item>
-        <item name="android:navigationBarColor">@color/cortex_bar</item>
+        <item name="android:windowBackground">@color/miauterm_bg</item>
+        <item name="android:statusBarColor">@color/miauterm_bar</item>
+        <item name="android:navigationBarColor">@color/miauterm_bar</item>
         <item name="preferenceTheme">@style/PreferenceThemeOverlay</item>
     </style>
 </resources>

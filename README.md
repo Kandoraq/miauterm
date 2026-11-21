@@ -225,7 +225,7 @@ miauterm/
 │       │   │   ├── licenses/
 │       │   │   ├── miauterm-cmd
 │       │   │   └── proot/arm64-v8a/
-│       │   ├── java/org/cortex/terminal/
+│       │   ├── java/mdr/Kandoraq/miauterm/
 │       │   │   ├── api/       # Android app command bridge
 │       │   │   ├── runtime/   # Debian, PRoot, backup, and file operations
 │       │   │   ├── service/   # Background terminal service
@@ -237,7 +237,7 @@ miauterm/
 │       │       ├── mipmap*/
 │       │       ├── values*/  # Strings and localized Android resources
 │       │       └── xml/
-│       └── test/java/org/cortex/terminal/
+│       └── test/java/mdr/Kandoraq/miauterm/
 │           ├── api/
 │           ├── runtime/
 │           ├── service/
@@ -248,11 +248,11 @@ miauterm/
 │       ├── build.gradle.kts
 │       └── src/
 │           ├── main/cpp/     # PTY bridge, CMake config, and Zstandard sources
-│           ├── main/java/org/cortex/terminal/
+│           ├── main/java/mdr/Kandoraq/miauterm/
 │           │   ├── emulator/
 │           │   ├── pty/
 │           │   └── view/
-│           └── test/java/org/cortex/terminal/emulator/
+│           └── test/java/mdr/Kandoraq/miauterm/emulator/
 ├── docs/
 │   ├── images/
 │   └── SECURITY.md
@@ -274,7 +274,7 @@ miauterm/
 └── THIRD_PARTY_NOTICES.md
 ```
 
-The `org.cortex.terminal` package and `core/terminal-engine` contain upstream-derived code alongside Miauterm changes. The package names do not imply that Miauterm authored the retained upstream components.
+The `mdr.Kandoraq.miauterm` package and `core/terminal-engine` contain upstream-derived code alongside Miauterm changes. The package names do not imply that Miauterm authored the retained upstream components.
 
 ## Credits
 

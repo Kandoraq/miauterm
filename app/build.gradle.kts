@@ -15,7 +15,7 @@ fun detectKeystoreType(file: JavaFile): String {
 }
 
 android {
-    namespace = "org.cortex.terminal"
+    namespace = "mdr.Kandoraq.miauterm"
     compileSdk = 34
 
     ndkVersion = "26.1.10909125"

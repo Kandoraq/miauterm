@@ -35,13 +35,13 @@
     </queries>
 
     <application
-        android:name=".CortexApp"
+        android:name=".MiautermApp"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Cortex"
+        android:theme="@style/Theme.Miauterm"
         android:hardwareAccelerated="true"
         android:extractNativeLibs="true"
         android:localeConfig="@xml/locales_config"
@@ -69,11 +69,11 @@
         <activity
             android:name=".SettingsActivity"
             android:exported="false"
-            android:theme="@style/Theme.Cortex.Settings"
+            android:theme="@style/Theme.Miauterm.Settings"
             android:label="@string/settings_title" />
 
         <service
-            android:name=".service.CortexService"
+            android:name=".service.MiautermService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="specialUse">

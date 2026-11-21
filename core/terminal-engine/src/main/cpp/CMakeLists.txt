@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.22.1)
 
-project("cortex" LANGUAGES C)
+project("miauterm" LANGUAGES C)
 
 # Main PTY JNI bridge & native tar extractor, with the Zstandard decoder for the bootstrap archive
 add_library(
-    cortex-pty
+    miauterm-pty
     SHARED
-    cortex-pty.c
+    miauterm-pty.c
     zstd/zstd_decoder.c
 )
 
@@ -16,12 +16,12 @@ find_library(
 )
 
 target_link_libraries(
-    cortex-pty
+    miauterm-pty
     ${log-lib}
 )
 
 target_link_options(
-    cortex-pty
+    miauterm-pty
     PRIVATE
     "-Wl,-z,max-page-size=16384"
 )
