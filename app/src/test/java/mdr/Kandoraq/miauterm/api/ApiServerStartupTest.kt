@@ -1,8 +1,8 @@
-package mdr.Kandoraq.miauterm.api
+package salu.Kandoraq.Miauterm.api
 
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
-import mdr.Kandoraq.miauterm.runtime.ShadowJavaFilesOs
+import salu.Kandoraq.Miauterm.runtime.ShadowJavaFilesOs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

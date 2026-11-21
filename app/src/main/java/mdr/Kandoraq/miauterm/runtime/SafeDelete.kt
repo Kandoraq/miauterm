@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.runtime
+package salu.Kandoraq.Miauterm.runtime
 
 import android.system.ErrnoException
 import android.system.Os

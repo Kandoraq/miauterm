@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.session
+package salu.Kandoraq.Miauterm.session
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -14,9 +14,9 @@ import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.preference.PreferenceManager
-import mdr.Kandoraq.miauterm.MiautermApp
-import mdr.Kandoraq.miauterm.MainActivity
-import mdr.Kandoraq.miauterm.R
+import salu.Kandoraq.Miauterm.MiautermApp
+import salu.Kandoraq.Miauterm.MainActivity
+import salu.Kandoraq.Miauterm.R
 import java.util.concurrent.atomic.AtomicInteger
 
 object TerminalBridge {

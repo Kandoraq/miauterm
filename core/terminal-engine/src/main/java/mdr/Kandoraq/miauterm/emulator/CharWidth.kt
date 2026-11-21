@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.emulator
+package salu.Kandoraq.Miauterm.emulator
 
 object CharWidth {
 

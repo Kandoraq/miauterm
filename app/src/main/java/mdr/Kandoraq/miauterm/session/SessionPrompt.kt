@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.session
+package salu.Kandoraq.Miauterm.session
 
 internal fun sessionPromptLabel(accountName: String, directory: String? = null): String {
     val label = when {

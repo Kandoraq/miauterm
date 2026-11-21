@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.runtime
+package salu.Kandoraq.Miauterm.runtime
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

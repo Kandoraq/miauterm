@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.service
+package salu.Kandoraq.Miauterm.service
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -13,8 +13,8 @@ import android.os.Process
 import android.os.SystemClock
 import android.util.Log
 import androidx.preference.PreferenceManager
-import mdr.Kandoraq.miauterm.R
-import mdr.Kandoraq.miauterm.api.ApiServer
+import salu.Kandoraq.Miauterm.R
+import salu.Kandoraq.Miauterm.api.ApiServer
 import java.io.File
 import java.net.InetAddress
 import java.net.InetSocketAddress

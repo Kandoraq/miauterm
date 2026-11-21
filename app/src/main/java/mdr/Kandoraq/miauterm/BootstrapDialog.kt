@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm
+package salu.Kandoraq.Miauterm
 
 import android.app.Activity
 import android.content.res.ColorStateList
@@ -7,7 +7,7 @@ import android.view.View
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
-import mdr.Kandoraq.miauterm.view.Chrome
+import salu.Kandoraq.Miauterm.view.Chrome
 
 class BootstrapDialog(activity: Activity) {
 

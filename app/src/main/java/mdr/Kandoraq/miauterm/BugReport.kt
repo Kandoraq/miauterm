@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm
+package salu.Kandoraq.Miauterm
 
 import android.app.Activity
 import android.content.ClipData
@@ -7,7 +7,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.StatFs
 import androidx.core.content.FileProvider
-import mdr.Kandoraq.miauterm.runtime.Environment
+import salu.Kandoraq.Miauterm.runtime.Environment
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date

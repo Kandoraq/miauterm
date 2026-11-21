@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.view
+package salu.Kandoraq.Miauterm.view
 
 import android.widget.Button
 import android.widget.HorizontalScrollView

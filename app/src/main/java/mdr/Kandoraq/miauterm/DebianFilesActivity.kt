@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm
+package salu.Kandoraq.Miauterm
 
 import android.os.Bundle
 import android.content.ClipData
@@ -21,7 +21,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
-import mdr.Kandoraq.miauterm.runtime.Environment
+import salu.Kandoraq.Miauterm.runtime.Environment
 import java.io.File
 import java.util.concurrent.Executors
 
@@ -55,9 +55,9 @@ class DebianFilesActivity : AppCompatActivity() {
         toolbar = findViewById(R.id.filesToolbar)
         toolbar.setNavigationIcon(R.drawable.ic_arrow_back)
         toolbar.setNavigationOnClickListener { if (current != null) goUp() else finish() }
-        toolbar.setNavigationIconTint(mdr.Kandoraq.miauterm.view.Chrome.palette.text)
-        toolbar.setTitleTextColor(mdr.Kandoraq.miauterm.view.Chrome.palette.text)
-        toolbar.setBackgroundColor(mdr.Kandoraq.miauterm.view.Chrome.palette.bar)
+        toolbar.setNavigationIconTint(salu.Kandoraq.Miauterm.view.Chrome.palette.text)
+        toolbar.setTitleTextColor(salu.Kandoraq.Miauterm.view.Chrome.palette.text)
+        toolbar.setBackgroundColor(salu.Kandoraq.Miauterm.view.Chrome.palette.bar)
         toolbar.menu.add(0, MENU_CREATE_FILE, 0, R.string.files_new_file)
         toolbar.menu.add(0, MENU_CREATE_DIRECTORY, 1, R.string.files_new_folder)
         toolbar.menu.add(0, MENU_UP, 2, R.string.files_go_up)
@@ -72,7 +72,7 @@ class DebianFilesActivity : AppCompatActivity() {
             }
             true
         }
-        findViewById<View>(R.id.filesRoot).setBackgroundColor(mdr.Kandoraq.miauterm.view.Chrome.palette.bg)
+        findViewById<View>(R.id.filesRoot).setBackgroundColor(salu.Kandoraq.Miauterm.view.Chrome.palette.bg)
         adapter = FileAdapter(::openItem, ::showItemActions)
         filesList.apply {
             layoutManager = LinearLayoutManager(this@DebianFilesActivity)
@@ -123,7 +123,7 @@ class DebianFilesActivity : AppCompatActivity() {
                 Entry(root, runCatching { Os.lstat(root.absolutePath).st_mode }.getOrDefault(OsConstants.S_IFDIR), shortcut = true)
             )
             val androidFolder = File(root, "root/android")
-            if (androidFolder.isDirectory && !mdr.Kandoraq.miauterm.runtime.ElfLinkerPatcher.isSymlink(androidFolder)) {
+            if (androidFolder.isDirectory && !salu.Kandoraq.Miauterm.runtime.ElfLinkerPatcher.isSymlink(androidFolder)) {
                 entries += Entry(
                     androidFolder,
                     runCatching { Os.lstat(androidFolder.absolutePath).st_mode }.getOrDefault(OsConstants.S_IFDIR),
@@ -214,7 +214,7 @@ class DebianFilesActivity : AppCompatActivity() {
             .setItems(labels.toTypedArray()) { _, which -> actions[which]() }
             .setNegativeButton(android.R.string.cancel, null)
             .create()
-        mdr.Kandoraq.miauterm.view.ChromeDialog.style(dialog).show()
+        salu.Kandoraq.Miauterm.view.ChromeDialog.style(dialog).show()
     }
 
     private fun createEntry(isDirectory: Boolean) {
@@ -272,7 +272,7 @@ class DebianFilesActivity : AppCompatActivity() {
             .setPositiveButton(R.string.files_delete) { _, _ ->
 
                 fileExecutor.execute {
-                    val deleted = mdr.Kandoraq.miauterm.runtime.SafeDelete.deleteRecursively(file)
+                    val deleted = salu.Kandoraq.Miauterm.runtime.SafeDelete.deleteRecursively(file)
                     runOnUiThread {
                         if (!isFinishing && !isDestroyed) {
                             if (deleted) showDirectory()
@@ -282,7 +282,7 @@ class DebianFilesActivity : AppCompatActivity() {
                 }
             }
             .create()
-        mdr.Kandoraq.miauterm.view.ChromeDialog.style(dialog).show()
+        salu.Kandoraq.Miauterm.view.ChromeDialog.style(dialog).show()
     }
 
     private fun editFile(file: File, mode: Int) {
@@ -328,7 +328,7 @@ class DebianFilesActivity : AppCompatActivity() {
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.save, null)
             .create()
-        mdr.Kandoraq.miauterm.view.ChromeDialog.style(dialog) {
+        salu.Kandoraq.Miauterm.view.ChromeDialog.style(dialog) {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val value = editor.text.toString()
                 if (value.toByteArray(Charsets.UTF_8).size > EDIT_LIMIT) {
@@ -369,7 +369,7 @@ class DebianFilesActivity : AppCompatActivity() {
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(android.R.string.ok, null)
             .create()
-        mdr.Kandoraq.miauterm.view.ChromeDialog.style(dialog) {
+        salu.Kandoraq.Miauterm.view.ChromeDialog.style(dialog) {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val name = input.text.toString().trim()
                 if (!validName(name)) {
@@ -433,7 +433,7 @@ class DebianFilesActivity : AppCompatActivity() {
 
     private fun showPreviewDialog(file: File, text: String) {
         val content = TextView(this).apply {
-            setTextColor(mdr.Kandoraq.miauterm.view.Chrome.palette.text)
+            setTextColor(salu.Kandoraq.Miauterm.view.Chrome.palette.text)
             textSize = 12f
             typeface = android.graphics.Typeface.MONOSPACE
             setPadding(18, 14, 18, 14)
@@ -445,7 +445,7 @@ class DebianFilesActivity : AppCompatActivity() {
             .setView(scroll)
             .setPositiveButton(android.R.string.ok, null)
             .show()
-        mdr.Kandoraq.miauterm.view.ChromeDialog.style(dialog)
+        salu.Kandoraq.Miauterm.view.ChromeDialog.style(dialog)
     }
 
     private data class Entry(val file: File, val mode: Int, val shortcut: Boolean = false, val label: String = file.name) {
@@ -479,7 +479,7 @@ class DebianFilesActivity : AppCompatActivity() {
         private val details = view.findViewById<TextView>(R.id.fileDetails)
         private val actions = view.findViewById<ImageButton>(R.id.fileActions)
         fun bind(entry: Entry, click: (Entry) -> Unit, longClick: (Entry) -> Unit) {
-            val p = mdr.Kandoraq.miauterm.view.Chrome.palette
+            val p = salu.Kandoraq.Miauterm.view.Chrome.palette
             name.text = if (entry.shortcut && entry.file == root) getString(R.string.files_root_label, "/") else entry.label
             name.setTextColor(p.text)
             details.setTextColor(p.textDim)

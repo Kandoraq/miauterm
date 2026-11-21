@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.api
+package salu.Kandoraq.Miauterm.api
 
 import android.content.Context
 import android.os.SystemClock

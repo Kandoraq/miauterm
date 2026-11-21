@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.api
+package salu.Kandoraq.Miauterm.api
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -25,11 +25,11 @@ import android.util.Log
 import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.core.content.FileProvider
-import mdr.Kandoraq.miauterm.MiautermApp
-import mdr.Kandoraq.miauterm.MainActivity
-import mdr.Kandoraq.miauterm.R
-import mdr.Kandoraq.miauterm.runtime.Environment
-import mdr.Kandoraq.miauterm.service.MiautermService
+import salu.Kandoraq.Miauterm.MiautermApp
+import salu.Kandoraq.Miauterm.MainActivity
+import salu.Kandoraq.Miauterm.R
+import salu.Kandoraq.Miauterm.runtime.Environment
+import salu.Kandoraq.Miauterm.service.MiautermService
 import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit

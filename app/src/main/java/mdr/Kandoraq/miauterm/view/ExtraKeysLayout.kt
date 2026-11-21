@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.view
+package salu.Kandoraq.Miauterm.view
 
 object ExtraKeysLayout {
     const val MAX_ROWS = 4

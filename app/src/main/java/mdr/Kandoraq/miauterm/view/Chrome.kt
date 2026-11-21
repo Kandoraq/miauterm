@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.view
+package salu.Kandoraq.Miauterm.view
 
 import android.content.res.ColorStateList
 import android.graphics.drawable.ColorDrawable
@@ -6,7 +6,7 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
 import android.graphics.drawable.StateListDrawable
-import mdr.Kandoraq.miauterm.emulator.TerminalColor
+import salu.Kandoraq.Miauterm.emulator.TerminalColor
 import kotlin.math.pow
 import kotlin.math.roundToInt
 

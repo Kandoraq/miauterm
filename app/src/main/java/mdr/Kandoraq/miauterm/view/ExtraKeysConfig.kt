@@ -1,9 +1,9 @@
-package mdr.Kandoraq.miauterm.view
+package salu.Kandoraq.Miauterm.view
 
 import android.os.FileObserver
 import android.util.Log
-import mdr.Kandoraq.miauterm.runtime.FileInstaller
-import mdr.Kandoraq.miauterm.runtime.SafeDelete
+import salu.Kandoraq.Miauterm.runtime.FileInstaller
+import salu.Kandoraq.Miauterm.runtime.SafeDelete
 import java.io.File
 
 class ExtraKeysConfig(home: File) {

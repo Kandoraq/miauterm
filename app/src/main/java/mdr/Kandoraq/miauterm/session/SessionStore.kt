@@ -1,6 +1,6 @@
-package mdr.Kandoraq.miauterm.session
+package salu.Kandoraq.Miauterm.session
 
-import mdr.Kandoraq.miauterm.runtime.FileInstaller
+import salu.Kandoraq.Miauterm.runtime.FileInstaller
 import java.io.File
 
 class SessionStore(private val file: File) {

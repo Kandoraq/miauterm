@@ -1,8 +1,8 @@
-package mdr.Kandoraq.miauterm.view
+package salu.Kandoraq.Miauterm.view
 
-import mdr.Kandoraq.miauterm.view.ExtraKeysLayout.Special
-import mdr.Kandoraq.miauterm.view.ExtraKeysLayout.SpecialKey
-import mdr.Kandoraq.miauterm.view.ExtraKeysLayout.TextKey
+import salu.Kandoraq.Miauterm.view.ExtraKeysLayout.Special
+import salu.Kandoraq.Miauterm.view.ExtraKeysLayout.SpecialKey
+import salu.Kandoraq.Miauterm.view.ExtraKeysLayout.TextKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue

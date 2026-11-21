@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.runtime
+package salu.Kandoraq.Miauterm.runtime
 
 import android.content.Context
 import android.net.ConnectivityManager
@@ -6,9 +6,9 @@ import android.os.Build
 import android.os.Environment as AndroidEnvironment
 import androidx.preference.PreferenceManager
 import android.util.Log
-import mdr.Kandoraq.miauterm.BuildConfig
-import mdr.Kandoraq.miauterm.api.ApiServer
-import mdr.Kandoraq.miauterm.pty.PtyNative
+import salu.Kandoraq.Miauterm.BuildConfig
+import salu.Kandoraq.Miauterm.api.ApiServer
+import salu.Kandoraq.Miauterm.pty.PtyNative
 import java.io.File
 import java.net.Inet4Address
 import java.net.Inet6Address

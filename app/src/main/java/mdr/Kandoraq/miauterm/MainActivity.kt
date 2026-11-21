@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm
+package salu.Kandoraq.Miauterm
 
 import android.content.Intent
 import android.content.res.ColorStateList
@@ -22,22 +22,22 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import mdr.Kandoraq.miauterm.databinding.ActivityMainBinding
-import mdr.Kandoraq.miauterm.runtime.DebianRuntime
-import mdr.Kandoraq.miauterm.runtime.Environment
-import mdr.Kandoraq.miauterm.runtime.MiautermCommandInstaller
-import mdr.Kandoraq.miauterm.service.MiautermService
-import mdr.Kandoraq.miauterm.session.SessionAdapter
-import mdr.Kandoraq.miauterm.session.SessionManager
-import mdr.Kandoraq.miauterm.session.TerminalSession
-import mdr.Kandoraq.miauterm.view.Chrome
-import mdr.Kandoraq.miauterm.view.ChromeDialog
-import mdr.Kandoraq.miauterm.view.ExtraKeysConfig
-import mdr.Kandoraq.miauterm.view.ExtraKeysLayout
-import mdr.Kandoraq.miauterm.view.ExtraKeysView
-import mdr.Kandoraq.miauterm.view.SessionTabsView
-import mdr.Kandoraq.miauterm.view.TerminalView
-import mdr.Kandoraq.miauterm.view.showInChrome
+import salu.Kandoraq.Miauterm.databinding.ActivityMainBinding
+import salu.Kandoraq.Miauterm.runtime.DebianRuntime
+import salu.Kandoraq.Miauterm.runtime.Environment
+import salu.Kandoraq.Miauterm.runtime.MiautermCommandInstaller
+import salu.Kandoraq.Miauterm.service.MiautermService
+import salu.Kandoraq.Miauterm.session.SessionAdapter
+import salu.Kandoraq.Miauterm.session.SessionManager
+import salu.Kandoraq.Miauterm.session.TerminalSession
+import salu.Kandoraq.Miauterm.view.Chrome
+import salu.Kandoraq.Miauterm.view.ChromeDialog
+import salu.Kandoraq.Miauterm.view.ExtraKeysConfig
+import salu.Kandoraq.Miauterm.view.ExtraKeysLayout
+import salu.Kandoraq.Miauterm.view.ExtraKeysView
+import salu.Kandoraq.Miauterm.view.SessionTabsView
+import salu.Kandoraq.Miauterm.view.TerminalView
+import salu.Kandoraq.Miauterm.view.showInChrome
 
 class MainActivity : AppCompatActivity() {
 
@@ -54,7 +54,7 @@ class MainActivity : AppCompatActivity() {
         private val bootstrapLock = Any()
         private var bootstrapInProgress = false
         private const val REQUEST_POST_NOTIFICATIONS = 1001
-        private const val EXTRA_SHORTCUT_ACTION = "mdr.Kandoraq.miauterm.extra.SHORTCUT_ACTION"
+        private const val EXTRA_SHORTCUT_ACTION = "salu.Kandoraq.Miauterm.extra.SHORTCUT_ACTION"
         private const val SHORTCUT_NEW_SESSION = "new_session"
         private const val SHORTCUT_FAILSAFE = "failsafe"
         private const val SHORTCUT_SETTINGS = "settings"
@@ -541,7 +541,7 @@ class MainActivity : AppCompatActivity() {
             prefs.getBoolean("show_session_tabs", true),
             prefs.getBoolean("keep_screen_on", false),
             prefs.getBoolean("secure_screen", false),
-            mdr.Kandoraq.miauterm.emulator.TerminalColor.currentThemeId
+            salu.Kandoraq.Miauterm.emulator.TerminalColor.currentThemeId
         ).joinToString("|")
         if (signature == appliedPreferencesKey) return
         appliedPreferencesKey = signature
@@ -550,14 +550,14 @@ class MainActivity : AppCompatActivity() {
         terminalView.setTerminalTextSize(fontSize)
 
         if (prefs.contains("terminal_theme")) prefs.edit().remove("terminal_theme").apply()
-        mdr.Kandoraq.miauterm.emulator.TerminalColor.applyTheme("miauterm")
+        salu.Kandoraq.Miauterm.emulator.TerminalColor.applyTheme("miauterm")
 
-        mdr.Kandoraq.miauterm.emulator.TerminalColor.takeRemap()?.let { remap ->
+        salu.Kandoraq.Miauterm.emulator.TerminalColor.takeRemap()?.let { remap ->
             if (::sessionManager.isInitialized) {
                 sessionManager.snapshot().forEach { it.emulator.remapColors(remap) }
             }
         }
-        Chrome.apply(mdr.Kandoraq.miauterm.emulator.TerminalColor.SCHEMES.getValue(mdr.Kandoraq.miauterm.emulator.TerminalColor.currentThemeId))
+        Chrome.apply(salu.Kandoraq.Miauterm.emulator.TerminalColor.SCHEMES.getValue(salu.Kandoraq.Miauterm.emulator.TerminalColor.currentThemeId))
         terminalView.applyTheme()
         applyChrome()
 

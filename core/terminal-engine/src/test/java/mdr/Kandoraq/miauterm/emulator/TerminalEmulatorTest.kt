@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.emulator
+package salu.Kandoraq.Miauterm.emulator
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

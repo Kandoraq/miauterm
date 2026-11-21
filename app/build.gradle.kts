@@ -15,7 +15,7 @@ fun detectKeystoreType(file: JavaFile): String {
 }
 
 android {
-    namespace = "mdr.Kandoraq.miauterm"
+    namespace = "salu.Kandoraq.Miauterm"
     compileSdk = 34
 
     ndkVersion = "26.1.10909125"

@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm
+package salu.Kandoraq.Miauterm
 
 import android.app.Activity
 import android.app.Application
@@ -10,14 +10,14 @@ import java.util.concurrent.atomic.AtomicInteger
 class MiautermApp : Application() {
     private val handler = Handler(Looper.getMainLooper())
     private val stopApiRunnable = Runnable {
-        if (startedActivities.get() == 0 && !mdr.Kandoraq.miauterm.service.MiautermService.isRunning) {
-            mdr.Kandoraq.miauterm.api.ApiServer.stop(applicationContext)
+        if (startedActivities.get() == 0 && !salu.Kandoraq.Miauterm.service.MiautermService.isRunning) {
+            salu.Kandoraq.Miauterm.api.ApiServer.stop(applicationContext)
         }
     }
 
     override fun onCreate() {
         super.onCreate()
-        mdr.Kandoraq.miauterm.api.ApiServer.start(this)
+        salu.Kandoraq.Miauterm.api.ApiServer.start(this)
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityStarted(activity: Activity) {
                 handler.removeCallbacks(stopApiRunnable)
@@ -26,7 +26,7 @@ class MiautermApp : Application() {
 
             override fun onActivityStopped(activity: Activity) {
                 if (startedActivities.decrementAndGet() == 0 &&
-                    !mdr.Kandoraq.miauterm.service.MiautermService.isRunning) {
+                    !salu.Kandoraq.Miauterm.service.MiautermService.isRunning) {
                     handler.removeCallbacks(stopApiRunnable)
                     handler.postDelayed(stopApiRunnable, 3000)
                 }

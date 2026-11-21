@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.pty
+package salu.Kandoraq.Miauterm.pty
 
 import android.os.ParcelFileDescriptor
 import java.io.FileInputStream

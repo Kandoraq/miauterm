@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.api
+package salu.Kandoraq.Miauterm.api
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -119,7 +119,7 @@ class ApiProtocolTest {
 
     @Test
     fun pathsInsideTheRootfsAndOnAndroid() {
-        val root = "/data/user/0/mdr.Kandoraq.miauterm/files/miauterm"
+        val root = "/data/user/0/salu.Kandoraq.Miauterm/files/miauterm"
         assertEquals("$root/home/notes.txt", ApiPaths.toAndroid(root, "/home/notes.txt"))
         assertEquals("$root/etc/hosts", ApiPaths.toAndroid("$root/", "/etc/hosts"))
         assertEquals("/sdcard/Download/a.pdf", ApiPaths.toAndroid(root, "/sdcard/Download/a.pdf"))

@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.api
+package salu.Kandoraq.Miauterm.api
 
 import java.io.ByteArrayOutputStream
 import java.io.IOException

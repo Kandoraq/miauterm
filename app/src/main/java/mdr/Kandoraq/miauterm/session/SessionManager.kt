@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.session
+package salu.Kandoraq.Miauterm.session
 
 import android.content.Context
 
@@ -147,7 +147,7 @@ class SessionManager(private val context: Context) {
         val startTime = System.currentTimeMillis()
         session.onSessionFinished = { exitCode ->
             val duration = System.currentTimeMillis() - startTime
-            mdr.Kandoraq.miauterm.runtime.DebianRuntime.recordRuntimeEvent(
+            salu.Kandoraq.Miauterm.runtime.DebianRuntime.recordRuntimeEvent(
                 context,
                 "Session finished with exit code $exitCode after ${duration}ms"
             )

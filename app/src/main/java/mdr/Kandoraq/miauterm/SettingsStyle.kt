@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm
+package salu.Kandoraq.Miauterm
 
 import android.content.res.ColorStateList
 import android.graphics.Typeface
@@ -8,7 +8,7 @@ import android.widget.TextView
 import androidx.appcompat.widget.SwitchCompat
 import androidx.preference.PreferenceFragmentCompat
 import androidx.recyclerview.widget.RecyclerView
-import mdr.Kandoraq.miauterm.view.Chrome
+import salu.Kandoraq.Miauterm.view.Chrome
 
 internal class SettingsStyle(private val fragment: PreferenceFragmentCompat) {
 

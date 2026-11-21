@@ -1,6 +1,6 @@
-package mdr.Kandoraq.miauterm.view
+package salu.Kandoraq.Miauterm.view
 
-import mdr.Kandoraq.miauterm.emulator.TerminalColor
+import salu.Kandoraq.Miauterm.emulator.TerminalColor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

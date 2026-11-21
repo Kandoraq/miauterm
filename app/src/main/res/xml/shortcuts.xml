@@ -7,10 +7,10 @@
         android:shortcutShortLabel="@string/shortcut_new_session"
         android:shortcutLongLabel="@string/shortcut_new_session_long">
         <intent
-            android:action="mdr.Kandoraq.miauterm.shortcut.NEW_SESSION"
+            android:action="salu.Kandoraq.Miauterm.shortcut.NEW_SESSION"
             android:targetPackage="com.miauterm.terminal"
-            android:targetClass="mdr.Kandoraq.miauterm.MainActivity">
-            <extra android:name="mdr.Kandoraq.miauterm.extra.SHORTCUT_ACTION" android:value="new_session" />
+            android:targetClass="salu.Kandoraq.Miauterm.MainActivity">
+            <extra android:name="salu.Kandoraq.Miauterm.extra.SHORTCUT_ACTION" android:value="new_session" />
         </intent>
     </shortcut>
     <shortcut
@@ -20,10 +20,10 @@
         android:shortcutShortLabel="@string/shortcut_failsafe"
         android:shortcutLongLabel="@string/shortcut_failsafe_long">
         <intent
-            android:action="mdr.Kandoraq.miauterm.shortcut.FAILSAFE"
+            android:action="salu.Kandoraq.Miauterm.shortcut.FAILSAFE"
             android:targetPackage="com.miauterm.terminal"
-            android:targetClass="mdr.Kandoraq.miauterm.MainActivity">
-            <extra android:name="mdr.Kandoraq.miauterm.extra.SHORTCUT_ACTION" android:value="failsafe" />
+            android:targetClass="salu.Kandoraq.Miauterm.MainActivity">
+            <extra android:name="salu.Kandoraq.Miauterm.extra.SHORTCUT_ACTION" android:value="failsafe" />
         </intent>
     </shortcut>
     <shortcut
@@ -33,10 +33,10 @@
         android:shortcutShortLabel="@string/shortcut_settings"
         android:shortcutLongLabel="@string/shortcut_settings_long">
         <intent
-            android:action="mdr.Kandoraq.miauterm.shortcut.SETTINGS"
+            android:action="salu.Kandoraq.Miauterm.shortcut.SETTINGS"
             android:targetPackage="com.miauterm.terminal"
-            android:targetClass="mdr.Kandoraq.miauterm.MainActivity">
-            <extra android:name="mdr.Kandoraq.miauterm.extra.SHORTCUT_ACTION" android:value="settings" />
+            android:targetClass="salu.Kandoraq.Miauterm.MainActivity">
+            <extra android:name="salu.Kandoraq.Miauterm.extra.SHORTCUT_ACTION" android:value="settings" />
         </intent>
     </shortcut>
 </shortcuts>

@@ -1,7 +1,7 @@
 # Miauterm ProGuard Rules
 
 # Keep native methods and class structure for PtyNative JNI bindings
--keep class mdr.Kandoraq.miauterm.pty.PtyNative {
+-keep class salu.Kandoraq.Miauterm.pty.PtyNative {
     native <methods>;
     *;
 }
@@ -14,4 +14,4 @@
     private int mEdgeSize;
 }
 
--keep interface mdr.Kandoraq.miauterm.pty.PtyNative$ExtractionProgress { *; }
+-keep interface salu.Kandoraq.Miauterm.pty.PtyNative$ExtractionProgress { *; }

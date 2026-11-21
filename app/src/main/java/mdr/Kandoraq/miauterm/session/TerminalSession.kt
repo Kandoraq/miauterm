@@ -1,12 +1,12 @@
-package mdr.Kandoraq.miauterm.session
+package salu.Kandoraq.Miauterm.session
 
 import android.content.Context
 import android.util.Log
-import mdr.Kandoraq.miauterm.R
-import mdr.Kandoraq.miauterm.emulator.TerminalEmulator
-import mdr.Kandoraq.miauterm.pty.PtyProcess
-import mdr.Kandoraq.miauterm.runtime.DebianRuntime
-import mdr.Kandoraq.miauterm.runtime.Environment
+import salu.Kandoraq.Miauterm.R
+import salu.Kandoraq.Miauterm.emulator.TerminalEmulator
+import salu.Kandoraq.Miauterm.pty.PtyProcess
+import salu.Kandoraq.Miauterm.runtime.DebianRuntime
+import salu.Kandoraq.Miauterm.runtime.Environment
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicBoolean

@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.service
+package salu.Kandoraq.Miauterm.service
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -12,10 +12,10 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
 import java.io.File
-import mdr.Kandoraq.miauterm.MainActivity
-import mdr.Kandoraq.miauterm.R
-import mdr.Kandoraq.miauterm.session.SessionManager
-import mdr.Kandoraq.miauterm.session.SessionStore
+import salu.Kandoraq.Miauterm.MainActivity
+import salu.Kandoraq.Miauterm.R
+import salu.Kandoraq.Miauterm.session.SessionManager
+import salu.Kandoraq.Miauterm.session.SessionStore
 
 class MiautermService : Service() {
 
@@ -23,16 +23,16 @@ class MiautermService : Service() {
         const val NOTIFICATION_ID = 1337
         const val CHANNEL_ID = "miauterm_terminal_channel"
 
-        const val ACTION_START = "mdr.Kandoraq.miauterm.action.START"
-        const val ACTION_STOP = "mdr.Kandoraq.miauterm.action.STOP"
-        const val ACTION_EXIT = "mdr.Kandoraq.miauterm.action.EXIT"
-        const val ACTION_TOGGLE_WAKELOCK = "mdr.Kandoraq.miauterm.action.TOGGLE_WAKELOCK"
-        const val ACTION_SET_WAKELOCK = "mdr.Kandoraq.miauterm.action.SET_WAKELOCK"
-        const val EXTRA_WAKELOCK_ENABLED = "mdr.Kandoraq.miauterm.extra.WAKELOCK_ENABLED"
-        const val ACTION_UPDATE_NOTIFICATION = "mdr.Kandoraq.miauterm.action.UPDATE_NOTIFICATION"
+        const val ACTION_START = "salu.Kandoraq.Miauterm.action.START"
+        const val ACTION_STOP = "salu.Kandoraq.Miauterm.action.STOP"
+        const val ACTION_EXIT = "salu.Kandoraq.Miauterm.action.EXIT"
+        const val ACTION_TOGGLE_WAKELOCK = "salu.Kandoraq.Miauterm.action.TOGGLE_WAKELOCK"
+        const val ACTION_SET_WAKELOCK = "salu.Kandoraq.Miauterm.action.SET_WAKELOCK"
+        const val EXTRA_WAKELOCK_ENABLED = "salu.Kandoraq.Miauterm.extra.WAKELOCK_ENABLED"
+        const val ACTION_UPDATE_NOTIFICATION = "salu.Kandoraq.Miauterm.action.UPDATE_NOTIFICATION"
 
-        const val ACTION_COPY_LINK = "mdr.Kandoraq.miauterm.action.COPY_LINK"
-        const val EXTRA_LINK = "mdr.Kandoraq.miauterm.extra.LINK"
+        const val ACTION_COPY_LINK = "salu.Kandoraq.Miauterm.action.COPY_LINK"
+        const val EXTRA_LINK = "salu.Kandoraq.Miauterm.extra.LINK"
 
         @Volatile
         var instance: MiautermService? = null
@@ -201,9 +201,9 @@ class MiautermService : Service() {
             Log.e("MiautermService", "getOrCreateSessionManager failed", e)
         }
 
-        mdr.Kandoraq.miauterm.api.ApiServer.start(this)
+        salu.Kandoraq.Miauterm.api.ApiServer.start(this)
 
-        localServers = LocalServers(applicationContext, mdr.Kandoraq.miauterm.runtime.Environment.getMiautermRoot(this)).also { it.start() }
+        localServers = LocalServers(applicationContext, salu.Kandoraq.Miauterm.runtime.Environment.getMiautermRoot(this)).also { it.start() }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -427,7 +427,7 @@ class MiautermService : Service() {
     override fun onDestroy() {
         try {
             stopForeground(Service.STOP_FOREGROUND_REMOVE)
-            mdr.Kandoraq.miauterm.api.ApiServer.stop(this)
+            salu.Kandoraq.Miauterm.api.ApiServer.stop(this)
             localServers?.stop()
             localServers = null
             releaseWakeLock()

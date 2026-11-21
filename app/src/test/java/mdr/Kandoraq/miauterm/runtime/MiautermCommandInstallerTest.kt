@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.runtime
+package salu.Kandoraq.Miauterm.runtime
 
 import androidx.test.core.app.ApplicationProvider
 import android.app.Application

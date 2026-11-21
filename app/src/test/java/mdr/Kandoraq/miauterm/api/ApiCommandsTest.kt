@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.api
+package salu.Kandoraq.Miauterm.api
 
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider

@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.view
+package salu.Kandoraq.Miauterm.view
 
 import android.content.Context
 import android.graphics.Typeface
@@ -10,7 +10,7 @@ import android.view.View
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
-import mdr.Kandoraq.miauterm.R
+import salu.Kandoraq.Miauterm.R
 
 class SessionTabsView @JvmOverloads constructor(
     context: Context,

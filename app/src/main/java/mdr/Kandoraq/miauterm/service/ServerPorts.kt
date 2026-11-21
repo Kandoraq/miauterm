@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.service
+package salu.Kandoraq.Miauterm.service
 
 object ServerPorts {
 

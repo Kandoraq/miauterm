@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.runtime
+package salu.Kandoraq.Miauterm.runtime
 
 import android.content.Context
 import android.net.Uri

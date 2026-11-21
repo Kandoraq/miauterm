@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.session
+package salu.Kandoraq.Miauterm.session
 
 import android.content.Context
 import androidx.preference.PreferenceManager

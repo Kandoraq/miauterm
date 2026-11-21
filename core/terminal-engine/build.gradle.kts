@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "mdr.Kandoraq.miauterm.engine"
+    namespace = "salu.Kandoraq.Miauterm.engine"
     compileSdk = 34
     ndkVersion = "26.1.10909125"
 

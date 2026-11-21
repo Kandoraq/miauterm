@@ -1,11 +1,11 @@
-package mdr.Kandoraq.miauterm.session
+package salu.Kandoraq.Miauterm.session
 
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import mdr.Kandoraq.miauterm.databinding.ItemSessionBinding
-import mdr.Kandoraq.miauterm.view.Chrome
+import salu.Kandoraq.Miauterm.databinding.ItemSessionBinding
+import salu.Kandoraq.Miauterm.view.Chrome
 
 class SessionAdapter(
     private val sessionManager: SessionManager,
@@ -28,7 +28,7 @@ class SessionAdapter(
 
         val session = synchronized(sessionManager.sessions) { sessionManager.sessions.getOrNull(position) }
         binding.sessionLabelText.text = session?.sessionName?.takeIf { it.isNotBlank() }
-            ?: holder.itemView.context.getString(mdr.Kandoraq.miauterm.R.string.session_label, position)
+            ?: holder.itemView.context.getString(salu.Kandoraq.Miauterm.R.string.session_label, position)
 
         binding.sessionItemRoot.background = Chrome.flatPressable(
             if (isActive) p.raised else p.bar,

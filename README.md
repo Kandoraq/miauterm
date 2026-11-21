@@ -274,7 +274,7 @@ miauterm/
 └── THIRD_PARTY_NOTICES.md
 ```
 
-The `mdr.Kandoraq.miauterm` package and `core/terminal-engine` contain upstream-derived code alongside Miauterm changes. The package names do not imply that Miauterm authored the retained upstream components.
+The `salu.Kandoraq.Miauterm` package and `core/terminal-engine` contain upstream-derived code alongside Miauterm changes. The package names do not imply that Miauterm authored the retained upstream components.
 
 ## Credits
 

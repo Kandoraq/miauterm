@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.pty
+package salu.Kandoraq.Miauterm.pty
 
 object PtyNative {
     fun interface ExtractionProgress {

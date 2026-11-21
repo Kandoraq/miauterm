@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.session
+package salu.Kandoraq.Miauterm.session
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

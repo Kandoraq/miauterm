@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.session
+package salu.Kandoraq.Miauterm.session
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -19,7 +19,7 @@ class SessionStoreTest {
         val file = File(tempFolder.root, "sessions")
         val state = SessionStore.State(
             listOf(
-                SessionStore.Saved("/data/user/0/mdr.Kandoraq.miauterm/files/cortex/home/my project", "\$ make\nok \\ done\r\n"),
+                SessionStore.Saved("/data/user/0/salu.Kandoraq.Miauterm/files/cortex/home/my project", "\$ make\nok \\ done\r\n"),
                 SessionStore.Saved(null, ""),
                 SessionStore.Saved("/odd\npath", "output\ndirectory x\nsession")
             ),

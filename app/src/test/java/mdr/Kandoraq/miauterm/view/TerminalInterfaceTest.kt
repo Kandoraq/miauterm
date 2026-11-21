@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.view
+package salu.Kandoraq.Miauterm.view
 
 import android.content.DialogInterface
 import android.os.Looper
@@ -10,12 +10,12 @@ import android.view.inputmethod.EditorInfo
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import mdr.Kandoraq.miauterm.BootstrapDialog
-import mdr.Kandoraq.miauterm.R
-import mdr.Kandoraq.miauterm.databinding.ActivityMainBinding
-import mdr.Kandoraq.miauterm.databinding.ItemDebianFileBinding
-import mdr.Kandoraq.miauterm.databinding.ItemSessionBinding
-import mdr.Kandoraq.miauterm.emulator.TerminalColor
+import salu.Kandoraq.Miauterm.BootstrapDialog
+import salu.Kandoraq.Miauterm.R
+import salu.Kandoraq.Miauterm.databinding.ActivityMainBinding
+import salu.Kandoraq.Miauterm.databinding.ItemDebianFileBinding
+import salu.Kandoraq.Miauterm.databinding.ItemSessionBinding
+import salu.Kandoraq.Miauterm.emulator.TerminalColor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull

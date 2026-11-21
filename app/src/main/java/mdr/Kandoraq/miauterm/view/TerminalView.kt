@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm.view
+package salu.Kandoraq.Miauterm.view
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -40,14 +40,14 @@ import android.widget.PopupWindow
 import android.widget.TextView
 import android.widget.Toast
 import android.system.Os
-import mdr.Kandoraq.miauterm.R
-import mdr.Kandoraq.miauterm.emulator.KeyMapper
-import mdr.Kandoraq.miauterm.emulator.TerminalBuffer
-import mdr.Kandoraq.miauterm.emulator.TerminalColor
-import mdr.Kandoraq.miauterm.emulator.TerminalEmulator
-import mdr.Kandoraq.miauterm.emulator.TerminalRow
-import mdr.Kandoraq.miauterm.emulator.TerminalSearch
-import mdr.Kandoraq.miauterm.session.TerminalSession
+import salu.Kandoraq.Miauterm.R
+import salu.Kandoraq.Miauterm.emulator.KeyMapper
+import salu.Kandoraq.Miauterm.emulator.TerminalBuffer
+import salu.Kandoraq.Miauterm.emulator.TerminalColor
+import salu.Kandoraq.Miauterm.emulator.TerminalEmulator
+import salu.Kandoraq.Miauterm.emulator.TerminalRow
+import salu.Kandoraq.Miauterm.emulator.TerminalSearch
+import salu.Kandoraq.Miauterm.session.TerminalSession
 import kotlin.concurrent.withLock
 import kotlin.math.hypot
 import kotlin.math.max
@@ -677,7 +677,7 @@ class TerminalView @JvmOverloads constructor(
                 }
             }
             "custom" -> {
-                val customFile = File(mdr.Kandoraq.miauterm.runtime.Environment.getHomeDir(context), ".config/miauterm/font.ttf")
+                val customFile = File(salu.Kandoraq.Miauterm.runtime.Environment.getHomeDir(context), ".config/miauterm/font.ttf")
                 if (customFile.exists() && customFile.canRead()) {
                     try {
                         source = customFile.absolutePath

@@ -1,6 +1,6 @@
-package mdr.Kandoraq.miauterm.emulator
+package salu.Kandoraq.Miauterm.emulator
 
-import mdr.Kandoraq.miauterm.view.Sextants
+import salu.Kandoraq.Miauterm.view.Sextants
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

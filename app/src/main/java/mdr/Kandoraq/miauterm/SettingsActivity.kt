@@ -1,4 +1,4 @@
-package mdr.Kandoraq.miauterm
+package salu.Kandoraq.Miauterm
 
 import android.os.Bundle
 import android.content.Intent
@@ -11,13 +11,13 @@ import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
-import mdr.Kandoraq.miauterm.runtime.DebianBackup
-import mdr.Kandoraq.miauterm.runtime.DebianOperationRunner
-import mdr.Kandoraq.miauterm.runtime.DebianRuntime
-import mdr.Kandoraq.miauterm.runtime.Environment
-import mdr.Kandoraq.miauterm.service.MiautermService
-import mdr.Kandoraq.miauterm.view.ExtraKeysConfig
-import mdr.Kandoraq.miauterm.view.ExtraKeysLayout
+import salu.Kandoraq.Miauterm.runtime.DebianBackup
+import salu.Kandoraq.Miauterm.runtime.DebianOperationRunner
+import salu.Kandoraq.Miauterm.runtime.DebianRuntime
+import salu.Kandoraq.Miauterm.runtime.Environment
+import salu.Kandoraq.Miauterm.service.MiautermService
+import salu.Kandoraq.Miauterm.view.ExtraKeysConfig
+import salu.Kandoraq.Miauterm.view.ExtraKeysLayout
 import java.io.File
 
 class SettingsActivity : AppCompatActivity() {
@@ -57,11 +57,11 @@ class SettingsActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = getString(R.string.settings_title)
 
-        mdr.Kandoraq.miauterm.emulator.TerminalColor.applyTheme("miauterm")
-        mdr.Kandoraq.miauterm.view.Chrome.apply(
-            mdr.Kandoraq.miauterm.emulator.TerminalColor.SCHEMES.getValue(mdr.Kandoraq.miauterm.emulator.TerminalColor.currentThemeId)
+        salu.Kandoraq.Miauterm.emulator.TerminalColor.applyTheme("miauterm")
+        salu.Kandoraq.Miauterm.view.Chrome.apply(
+            salu.Kandoraq.Miauterm.emulator.TerminalColor.SCHEMES.getValue(salu.Kandoraq.Miauterm.emulator.TerminalColor.currentThemeId)
         )
-        val p = mdr.Kandoraq.miauterm.view.Chrome.palette
+        val p = salu.Kandoraq.Miauterm.view.Chrome.palette
         window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(p.bg))
         findViewById<android.view.View>(R.id.settings_root).setBackgroundColor(p.bg)
         supportActionBar?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(p.bar))
@@ -106,14 +106,14 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun showProotLogText(text: String) {
         val body = android.widget.TextView(this).apply {
-            setTextColor(mdr.Kandoraq.miauterm.view.Chrome.palette.text)
+            setTextColor(salu.Kandoraq.Miauterm.view.Chrome.palette.text)
             textSize = 11f
             typeface = android.graphics.Typeface.MONOSPACE
             setPadding(18, 14, 18, 14)
             this.text = text.ifBlank { getString(R.string.proot_log_empty) }
         }
         val scroll = android.widget.ScrollView(this).apply { addView(body) }
-        mdr.Kandoraq.miauterm.view.ChromeDialog.style(
+        salu.Kandoraq.Miauterm.view.ChromeDialog.style(
             AlertDialog.Builder(this)
                 .setTitle(R.string.pref_view_proot_log_title)
                 .setView(scroll)
@@ -123,7 +123,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     internal fun confirmReset() {
-        mdr.Kandoraq.miauterm.view.ChromeDialog.style(
+        salu.Kandoraq.Miauterm.view.ChromeDialog.style(
             AlertDialog.Builder(this)
                 .setTitle(getString(R.string.debian_reset_confirm_title, DebianRuntime.systemName(this) ?: getString(R.string.pref_cat_debian)))
                 .setMessage(R.string.debian_reset_confirm_message)
@@ -141,7 +141,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun confirmRestore(uri: Uri) {
-        mdr.Kandoraq.miauterm.view.ChromeDialog.style(
+        salu.Kandoraq.Miauterm.view.ChromeDialog.style(
             AlertDialog.Builder(this)
                 .setTitle(R.string.debian_restore_confirm_title)
                 .setMessage(R.string.debian_restore_confirm_message)
@@ -179,7 +179,7 @@ class SettingsActivity : AppCompatActivity() {
                 operationDialog?.dismiss()
                 operationDialog = null
                 if (state.success) {
-                    mdr.Kandoraq.miauterm.view.ChromeDialog.style(
+                    salu.Kandoraq.Miauterm.view.ChromeDialog.style(
                         AlertDialog.Builder(this)
                             .setTitle(R.string.debian_operation_success)
                             .setMessage(state.message.orEmpty())
@@ -209,7 +209,7 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun showOperationDialog() {
         if (operationDialog?.isShowing == true) return
-        operationDialog = mdr.Kandoraq.miauterm.view.ChromeDialog.style(
+        operationDialog = salu.Kandoraq.Miauterm.view.ChromeDialog.style(
             AlertDialog.Builder(this)
                 .setTitle(R.string.debian_operation_running)
                 .setView(android.widget.ProgressBar(this).apply { isIndeterminate = true })
@@ -277,7 +277,7 @@ class SettingsActivity : AppCompatActivity() {
         content.addView(android.widget.TextView(this).apply {
             text = getString(R.string.extra_keys_guest_config)
             textSize = 13f
-            setTextColor(mdr.Kandoraq.miauterm.view.Chrome.palette.textDim)
+            setTextColor(salu.Kandoraq.Miauterm.view.Chrome.palette.textDim)
             setPadding(0, 0, 0, (12 * density).toInt())
         })
         val scroll = android.widget.ScrollView(this).apply { isFillViewport = true }
@@ -287,8 +287,8 @@ class SettingsActivity : AppCompatActivity() {
                 text = if (special.name == special.label) special.name else "${special.name}  ${special.label}"
                 isChecked = selected[index]
                 minHeight = (40 * density).toInt()
-                setTextColor(mdr.Kandoraq.miauterm.view.Chrome.palette.text)
-                buttonTintList = android.content.res.ColorStateList.valueOf(mdr.Kandoraq.miauterm.view.Chrome.palette.accent)
+                setTextColor(salu.Kandoraq.Miauterm.view.Chrome.palette.text)
+                buttonTintList = android.content.res.ColorStateList.valueOf(salu.Kandoraq.Miauterm.view.Chrome.palette.accent)
                 tag = index
             }
             grid.addView(check, android.widget.GridLayout.LayoutParams().apply {
@@ -308,7 +308,7 @@ class SettingsActivity : AppCompatActivity() {
             .setNeutralButton(R.string.reset, null)
             .setPositiveButton(R.string.save, null)
             .create()
-        mdr.Kandoraq.miauterm.view.ChromeDialog.style(dialog) {
+        salu.Kandoraq.Miauterm.view.ChromeDialog.style(dialog) {
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL)?.setOnClickListener {
                 try {
                     extraKeysExecutor.execute {
@@ -421,7 +421,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun showUpdateNotificationSettings() {
-        mdr.Kandoraq.miauterm.view.ChromeDialog.style(
+        salu.Kandoraq.Miauterm.view.ChromeDialog.style(
             AlertDialog.Builder(this)
                 .setTitle(R.string.update_available_title)
                 .setMessage(R.string.pref_check_updates_notifications_off)
@@ -443,7 +443,7 @@ class SettingsActivity : AppCompatActivity() {
 
     internal fun showAbout() {
         val version = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull().orEmpty()
-        val palette = mdr.Kandoraq.miauterm.view.Chrome.palette
+        val palette = salu.Kandoraq.Miauterm.view.Chrome.palette
         val density = resources.displayMetrics.density
         val content = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
@@ -485,7 +485,7 @@ class SettingsActivity : AppCompatActivity() {
             addAboutLink(this, getString(R.string.about_repository_link), "https://github.com/Kandoraq/miauterm", palette.accent, density)
             addAboutLink(this, getString(R.string.about_releases_link), "https://github.com/Kandoraq/miauterm/releases", palette.accent, density)
         }
-        mdr.Kandoraq.miauterm.view.ChromeDialog.style(
+        salu.Kandoraq.Miauterm.view.ChromeDialog.style(
             AlertDialog.Builder(this)
                 .setView(content)
                 .setNeutralButton(R.string.about_open_source_notices) { _, _ -> showOpenSourceNotices() }
@@ -520,12 +520,12 @@ class SettingsActivity : AppCompatActivity() {
         }.getOrDefault(getString(R.string.about_notices_unavailable))
         val body = android.widget.TextView(this).apply {
             text = notices
-            setTextColor(mdr.Kandoraq.miauterm.view.Chrome.palette.text)
+            setTextColor(salu.Kandoraq.Miauterm.view.Chrome.palette.text)
             textSize = 12f
             typeface = android.graphics.Typeface.MONOSPACE
             setPadding(20, 16, 20, 16)
         }
-        mdr.Kandoraq.miauterm.view.ChromeDialog.style(
+        salu.Kandoraq.Miauterm.view.ChromeDialog.style(
             AlertDialog.Builder(this)
                 .setTitle(R.string.about_open_source_notices)
                 .setView(android.widget.ScrollView(this).apply { addView(body) })
@@ -652,7 +652,7 @@ class SettingsActivity : AppCompatActivity() {
             val context = requireContext()
             val entries = pref.entries ?: return
             val values = pref.entryValues ?: return
-            val p = mdr.Kandoraq.miauterm.view.Chrome.palette
+            val p = salu.Kandoraq.Miauterm.view.Chrome.palette
             val checked = values.indexOfFirst { it.toString() == pref.value }
             val adapter = object : android.widget.ArrayAdapter<CharSequence>(
                 context, android.R.layout.simple_list_item_single_choice, entries
@@ -673,7 +673,7 @@ class SettingsActivity : AppCompatActivity() {
                 }
                 .setNegativeButton(android.R.string.cancel, null)
                 .create()
-            mdr.Kandoraq.miauterm.view.ChromeDialog.style(dialog).show()
+            salu.Kandoraq.Miauterm.view.ChromeDialog.style(dialog).show()
         }
 
         private fun showRootfsFailsafeGuide() {
@@ -688,7 +688,7 @@ class SettingsActivity : AppCompatActivity() {
                     activity?.finish()
                 }
                 .create()
-            mdr.Kandoraq.miauterm.view.ChromeDialog.style(dialog).show()
+            salu.Kandoraq.Miauterm.view.ChromeDialog.style(dialog).show()
         }
 
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
