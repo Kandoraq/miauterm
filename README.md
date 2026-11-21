@@ -19,7 +19,7 @@
 </table>
 
 > **Project status: Experimental**<br>
-> The current app version is **0.1.4-coral** (codename **Coral**). The experimental APK targets ARM64 Android devices; runtime behavior and package compatibility can vary by device and Android version.
+> The current app version is **0.1.5-coral** (codename **Coral**). The experimental APK targets ARM64 Android devices; runtime behavior and package compatibility can vary by device and Android version.
 
 Miauterm is an unofficial fork of [Cortex Terminal](https://github.com/ssfuisu/cortex). It retains upstream terminal and Android application code while replacing Cortex's native Ubuntu runtime with a Debian 13 (Trixie) ARM64 root filesystem launched through PRoot. Miauterm is an independent project and is not affiliated with or endorsed by the Cortex maintainers.
 
@@ -88,7 +88,7 @@ These features are implemented across Miauterm changes and retained Cortex compo
 | Target SDK | 28 |
 | CPU architecture | `arm64-v8a` |
 | Linux distribution | Bundled Debian 13 (Trixie) ARM64 root filesystem |
-| App version | 0.1.4-coral |
+| App version | 0.1.5-coral |
 | App language | English only |
 
 Miauterm stores Debian inside its app-private files directory and extracts the bundled root filesystem on first start. Leave enough device storage for the extracted system and any packages you install. `apt update` and package installation require network access.
@@ -138,13 +138,19 @@ This is a manual recovery path, not a supported distribution importer. The bundl
 
 ## Download
 
-Download the signed ARM64 APK from the [Miauterm 0.1.4-coral release](https://github.com/Kandoraq/miauterm/releases/tag/v0.1.4-coral):
+Download the signed ARM64 APK from the [Miauterm 0.1.5-coral release](https://github.com/Kandoraq/miauterm/releases/tag/v0.1.5-coral):
 
-- [Installable release APK](https://github.com/Kandoraq/miauterm/releases/download/v0.1.4-coral/Miauterm-v0.1.4-coral-arm64.apk)
-- [Release APK SHA-256](https://github.com/Kandoraq/miauterm/releases/download/v0.1.4-coral/Miauterm-v0.1.4-coral-arm64.apk.sha256)
-- [Debug APK](https://github.com/Kandoraq/miauterm/releases/download/v0.1.4-coral/Miauterm-arm64-debug.apk)
+- [Installable release APK](https://github.com/Kandoraq/miauterm/releases/download/v0.1.5-coral/Miauterm-v0.1.5-coral-arm64.apk)
+- [Release APK SHA-256](https://github.com/Kandoraq/miauterm/releases/download/v0.1.5-coral/Miauterm-v0.1.5-coral-arm64.apk.sha256)
+- [Debug APK](https://github.com/Kandoraq/miauterm/releases/download/v0.1.5-coral/Miauterm-arm64-debug.apk)
+
+This version uses the new Android application ID `salu.Kandoraq.Miauterm`. It installs separately from earlier Miauterm releases; their private data is not migrated.
 
 The [Releases page](https://github.com/Kandoraq/miauterm/releases) contains the current APKs and their checksums. The [Build APK workflow](https://github.com/Kandoraq/miauterm/actions/workflows/build-apk.yml) validates the Debian rootfs, builds the ARM64 port mapping library and APK, and verifies the release package before publishing it. Use the Settings update check to receive a notification when GitHub has a newer release; it opens the release in your browser so the APK can be downloaded manually.
+
+### Changes in 0.1.5-coral
+
+This release changes the Android application identity and renames the native PTY library. It also fixes PTY reaping races, protects Back handling during notification permission setup, and improves session, rootfs repair, and alternate-screen cleanup. See the [release notes](.github/release-notes/v0.1.5-coral.md) for details.
 
 ### Changes in 0.1.4-coral
 
@@ -208,7 +214,8 @@ miauterm/
 │   ├── release-notes/
 │   │   ├── v0.1.2-coral.md
 │   │   ├── v0.1.3-coral.md
-│   │   └── v0.1.4-coral.md
+│   │   ├── v0.1.4-coral.md
+│   │   └── v0.1.5-coral.md
 │   └── workflows/
 │       └── build-apk.yml
 ├── app/
@@ -225,7 +232,7 @@ miauterm/
 │       │   │   ├── licenses/
 │       │   │   ├── miauterm-cmd
 │       │   │   └── proot/arm64-v8a/
-│       │   ├── java/mdr/Kandoraq/miauterm/
+│       │   ├── java/salu/Kandoraq/Miauterm/
 │       │   │   ├── api/       # Android app command bridge
 │       │   │   ├── runtime/   # Debian, PRoot, backup, and file operations
 │       │   │   ├── service/   # Background terminal service
@@ -237,7 +244,7 @@ miauterm/
 │       │       ├── mipmap*/
 │       │       ├── values*/  # Strings and localized Android resources
 │       │       └── xml/
-│       └── test/java/mdr/Kandoraq/miauterm/
+│       └── test/java/salu/Kandoraq/Miauterm/
 │           ├── api/
 │           ├── runtime/
 │           ├── service/
@@ -248,11 +255,13 @@ miauterm/
 │       ├── build.gradle.kts
 │       └── src/
 │           ├── main/cpp/     # PTY bridge, CMake config, and Zstandard sources
-│           ├── main/java/mdr/Kandoraq/miauterm/
+│           ├── main/java/salu/Kandoraq/Miauterm/
 │           │   ├── emulator/
 │           │   ├── pty/
 │           │   └── view/
-│           └── test/java/mdr/Kandoraq/miauterm/emulator/
+│           └── test/java/salu/Kandoraq/Miauterm/
+│               ├── emulator/
+│               └── pty/
 ├── docs/
 │   ├── images/
 │   └── SECURITY.md
@@ -274,7 +283,7 @@ miauterm/
 └── THIRD_PARTY_NOTICES.md
 ```
 
-The `salu.Kandoraq.Miauterm` package and `core/terminal-engine` contain upstream-derived code alongside Miauterm changes. The package names do not imply that Miauterm authored the retained upstream components.
+The `salu.Kandoraq.Miauterm` package and `core/terminal-engine` contain upstream-derived code alongside Miauterm changes. The package names do not imply that Miauterm authored the retained upstream components. The Android application ID is `salu.Kandoraq.Miauterm`; it differs from earlier Miauterm releases and installs as a separate app without migrating their private data.
 
 ## Credits
 

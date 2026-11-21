@@ -20,6 +20,7 @@ class PtyProcess private constructor(
     private val fdClosed = AtomicBoolean(false)
     private val fdLock = Any()
     private val processLock = Any()
+    private val reapCoordinator = ProcessReapCoordinator()
     @Volatile
     private var reaped = false
     val isAlive: Boolean
@@ -68,11 +69,7 @@ class PtyProcess private constructor(
     private var lastExitCode: Int = -1
 
     private fun reapBlocking(): Int {
-        val code = try {
-            PtyNative.waitForProcess(pid)
-        } catch (_: Exception) {
-            -1
-        }
+        val code = reapCoordinator.reap { PtyNative.waitForProcess(pid) }
         synchronized(processLock) {
             reaped = true
             alive.set(false)

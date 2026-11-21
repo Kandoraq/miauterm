@@ -803,6 +803,10 @@ class MainActivity : AppCompatActivity() {
                     drawerLayout.closeDrawer(GravityCompat.START)
                     return
                 }
+                if (!::sessionManager.isInitialized) {
+                    finish()
+                    return
+                }
 
                 if (sessionManager.sessionCount() > 1) {
                     val current = sessionManager.currentSession
