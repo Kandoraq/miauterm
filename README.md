@@ -13,7 +13,7 @@
       <td align="center"><img alt="Android ARM64" src="https://img.shields.io/badge/Android-arm64--v8a-3c7d5b?style=for-the-badge&amp;logo=android&amp;logoColor=white"></td>
     </tr>
     <tr>
-      <td align="center" colspan="2"><a href="https://github.com/Kandoraq/miauterm/actions/workflows/build-apk.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/Kandoraq/miauterm/build-apk.yml?event=workflow_dispatch&amp;style=for-the-badge&amp;label=Build%20status"></a></td>
+      <td align="center" colspan="2"><a href="https://github.com/Kandoraq/miauterm/actions/workflows/build-apk.yml?query=branch%3Amain"><img alt="Build status on main" src="https://img.shields.io/github/actions/workflow/status/Kandoraq/miauterm/build-apk.yml?branch=main&amp;event=push&amp;style=for-the-badge&amp;label=Build%20status"></a></td>
     </tr>
   </tbody>
 </table>
@@ -39,12 +39,11 @@ PRoot lets Miauterm use Debian's own root filesystem, including `/etc/passwd`, t
 | Android root required | No | No |
 | Android security boundary | Android application sandbox | Android application sandbox |
 
-#
-## Android mounts and network ports
+## App isolation, Android access, and network ports
 
 Miauterm keeps the Debian root filesystem in the app's private files directory. A PRoot session binds only Android's `/dev`, `/proc`, and `/sys` pseudo-filesystems for terminal devices, process information, and hardware reporting. Download and Documents are separate, optional shared-folder binds that require the user to enable access in Settings. Android `/system`, `/data`, and general shared storage are not bound into Debian.
 
-PRoot does not provide Android root privileges or a separate kernel mount namespace. This project does not offer a real `chroot` mode: starting one with device-wide root and shared mounts would cross the app's sandbox boundary. The Debian `root` account remains a PRoot-simulated identity.
+PRoot does not provide Android root privileges or a separate kernel mount namespace. Miauterm has no real `chroot` mode. The Debian `root` account is a PRoot-simulated identity and cannot gain Android root privileges.
 
 Miauterm maps guest server binds from port `80` to `2080` and `443` to `2443` using a small ARM64 glibc interposer loaded only inside Debian processes. Guest loopback connections to `80` and `443` follow the same mapping; connections to remote hosts are unchanged. The same guest-only library returns the configured Debian hostname to `gethostname()` and `uname()`, so tools such as Fastfetch see the guest name without changing Android's kernel hostname. This lets ordinary user-space programs use familiar values without Android root. Servers actually listen on `2080` and `2443`, which Miauterm uses in local server notifications. HTTPS detection accepts a local TLS handshake for service discovery; browser certificate trust remains the server's responsibility.
 
@@ -67,18 +66,19 @@ Package compatibility depends on the program's kernel requirements, architecture
 ## Features
 
 - Bundled Debian 13 ARM64 root filesystem with first-run extraction progress.
-- PRoot terminal sessions, a failsafe shell, and Debian reset, backup, and restore tools.
+- Up to eight named terminal sessions, a failsafe shell, and Debian reset, backup, and restore tools.
 - Rootless Debian port mapping from guest ports `80`/`443` to Android-compatible `2080`/`2443`.
 - Manual GitHub release checks with an Android notification linking to the release page; APK download stays in the browser.
 - File browser for the app's Linux files, with file type and write-permission indicators.
 - Optional access to Android's Download and Documents folders. Access is off until enabled by the user.
-- Terminal themes, font selection, custom font reload, and configurable extra keys.
+- Terminal color schemes, font and text-size selection, custom font reload, and configurable extra keys.
 - OSC 52 clipboard writes from Debian programs are disabled until enabled in Settings.
 - User selection for Debian sessions. An empty selection starts a root PRoot session; configured users are selected by their exact Debian username.
-- PRoot diagnostics and optional logging controls in Settings.
+- Custom DNS servers and Debian hostname settings, plus PRoot diagnostics and optional logs.
+- An in-app release check and a GitHub issue link for bug reports.
 - `miauterm-cmd` for commands that connect a Debian shell to selected Miauterm app functions.
 
-These features are implemented across Miauterm changes and retained Cortex components. See [Credits](#credits) and [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for attribution and component notices.
+These features use Miauterm changes and retained Cortex components. See [Credits](#credits) and [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for attribution and component notices.
 
 ## Requirements and storage
 
@@ -91,9 +91,18 @@ These features are implemented across Miauterm changes and retained Cortex compo
 | App version | 0.1.5-coral |
 | App language | English only |
 
-Miauterm stores Debian inside its app-private files directory and extracts the bundled root filesystem on first start. Leave enough device storage for the extracted system and any packages you install. `apt update` and package installation require network access.
+Miauterm stores Debian inside its app-private files directory and extracts the bundled root filesystem on first start. The first launch shows extraction progress before opening the Debian shell. Leave enough device storage for the extracted system and packages you install. `apt update` and package installation require network access.
 
 If enabled in Settings, only the selected Download and Documents locations are shared with new Linux sessions under `~/android/`. Miauterm does not give Debian general access to Android storage.
+
+## Install and start Debian
+
+1. Download the signed ARM64 APK from the release page and install it on an ARM64 Android device.
+2. Open Miauterm and wait for Debian extraction to finish. Keep the app open during the first setup.
+3. The terminal opens a Debian shell when setup completes. Android notification permission controls Miauterm notifications; shared-folder permission is separate and optional.
+4. To let Debian access Android Download or Documents, enable **Download and Documents access** in Settings and grant Android permission. Start a new session to apply permission changes.
+
+Miauterm uses the selected Debian username when it exists in the rootfs. If the username field is empty, the session starts as Debian `root`. That account is virtual inside PRoot and has no Android root access.
 
 ## Replacing the Debian rootfs from Failsafe
 
@@ -148,24 +157,9 @@ This version uses the new Android application ID `salu.Kandoraq.Miauterm`. It in
 
 The [Releases page](https://github.com/Kandoraq/miauterm/releases) contains the current APKs and their checksums. The [Build APK workflow](https://github.com/Kandoraq/miauterm/actions/workflows/build-apk.yml) validates the Debian rootfs, builds the ARM64 port mapping library and APK, and verifies the release package before publishing it. Use the Settings update check to receive a notification when GitHub has a newer release; it opens the release in your browser so the APK can be downloaded manually.
 
-### Changes in 0.1.5-coral
+### Release history
 
-This release changes the Android application identity and renames the native PTY library. It also fixes PTY reaping races, protects Back handling during notification permission setup, and improves session, rootfs repair, and alternate-screen cleanup. See the [release notes](.github/release-notes/v0.1.5-coral.md) for details.
-
-### Changes in 0.1.4-coral
-
-This is a small fix release. Debian reset now replaces the root filesystem, and the app uses English only after removing the incomplete language picker.
-
-### Changes in 0.1.3-coral
-
-This is a small fix release. It repairs the app-icon long-press shortcuts and makes the extra-key `SHIFT` modifier work like `CTRL` and `ALT`.
-
-### Changes in 0.1.2-coral
-
-- Confirmation actions keep a flat orange surface with white, readable text.
-- Default terminal labels use `session 0` through `session 7`; up to eight sessions can be open at once. User-assigned session names remain available.
-- Launcher long-press shortcuts use the Miauterm app icon.
-- Settings spacing and dialog contrast are refined, and the support action opens the GitHub issue form.
+The [release notes directory](.github/release-notes/) contains changes for [0.1.0](.github/release-notes/v0.1.0.md), [0.1.1](.github/release-notes/v0.1.1.md), [0.1.2-coral](.github/release-notes/v0.1.2-coral.md), [0.1.3-coral](.github/release-notes/v0.1.3-coral.md), [0.1.4-coral](.github/release-notes/v0.1.4-coral.md), and [0.1.5-coral](.github/release-notes/v0.1.5-coral.md).
 
 ## Terminal commands and fonts
 
@@ -191,9 +185,9 @@ The app command service must be active for `miauterm-cmd` commands to reach Andr
 
 ## Build from source
 
-The GitHub Actions workflow is the project's release build path. It uses Java 17, Gradle 8.7, Android SDK platform 34, NDK 26.1.10909125, and CMake 3.22.1.
+GitHub Actions runs tests, Android lint, and the ARM64 debug build on every push to `main`. A manual workflow run with a release tag also builds and signs the release APK, verifies the package, and publishes the APK and checksums. The workflow uses Java 17, Gradle 8.7, Android SDK platform 34, NDK 26.1.10909125, and CMake 3.22.1.
 
-On a development computer with those tools installed, install the ARM64 glibc cross compiler, build the guest-only port mapping library, then run Gradle:
+Install Java 17, Android SDK platform 34, NDK 26.1.10909125, CMake 3.22.1, and an ARM64 glibc cross compiler. Build the guest-only port mapping library before assembling the APK:
 
 ```sh
 sudo apt-get install gcc-aarch64-linux-gnu
@@ -201,85 +195,306 @@ bash scripts/build-port-remap.sh
 ./gradlew :app:assembleDebug
 ```
 
-The APK is written under `app/build/outputs/apk/debug/`. The release variant requires the signing environment variables configured in `app/build.gradle.kts`; do not commit signing keys or passwords.
+The CI workflow also runs `scripts/verify-rootfs.sh`. That check needs Docker with ARM64 emulation available and validates commands in the bundled Debian archive.
 
-To inspect CI build results, open [Actions](https://github.com/Kandoraq/miauterm/actions/workflows/build-apk.yml). The workflow builds the guest port mapping library, validates the bundled Debian root filesystem, and packages the ARM64 APK.
+The debug APK is written under `app/build/outputs/apk/debug/`. To build a signed release locally, set `RELEASE_STORE_FILE`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, and `RELEASE_KEY_PASSWORD`. Keep the keystore and passwords outside the repository.
+
+To inspect CI build results, open [Actions](https://github.com/Kandoraq/miauterm/actions/workflows/build-apk.yml). The debug job builds the guest port mapping library, validates the bundled Debian root filesystem, runs tests and lint, then packages the ARM64 APK. The release job verifies the APK signature and publishes a SHA-256 checksum with the APK.
 
 ## Project structure
+
+This tree lists every tracked repository file. Generated build output and local working notes are excluded.
 
 ```text
 miauterm/
 ├── .github/
-│   ├── dependabot.yml
 │   ├── release-notes/
+│   │   ├── v0.1.0.md
+│   │   ├── v0.1.1.md
 │   │   ├── v0.1.2-coral.md
 │   │   ├── v0.1.3-coral.md
 │   │   ├── v0.1.4-coral.md
 │   │   └── v0.1.5-coral.md
-│   └── workflows/
-│       └── build-apk.yml
+│   ├── workflows/
+│   │   └── build-apk.yml
+│   └── dependabot.yml
 ├── app/
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── assets/
+│   │   │   │   ├── fonts/
+│   │   │   │   │   ├── FiraCode.ttf
+│   │   │   │   │   └── JetBrainsMono.ttf
+│   │   │   │   ├── licenses/
+│   │   │   │   │   ├── ANDROID-SHMEM-COPYRIGHT.txt
+│   │   │   │   │   ├── OFL-1.1.txt
+│   │   │   │   │   ├── PROOT-COPYING.txt
+│   │   │   │   │   ├── TALLOC-COPYING.txt
+│   │   │   │   │   └── THIRD_PARTY_NOTICES.md
+│   │   │   │   ├── proot/
+│   │   │   │   │   ├── arm64-v8a/
+│   │   │   │   │   │   ├── libandroid-shmem.so
+│   │   │   │   │   │   ├── libtalloc.so.2
+│   │   │   │   │   │   ├── loader
+│   │   │   │   │   │   └── proot
+│   │   │   │   │   ├── ANDROID-SHMEM-COPYRIGHT.txt
+│   │   │   │   │   ├── PROOT-COPYING.txt
+│   │   │   │   │   └── TALLOC-COPYING.txt
+│   │   │   │   ├── debian-arm64.tar.zst
+│   │   │   │   └── miauterm-cmd
+│   │   │   ├── cpp/
+│   │   │   │   └── miauterm-portmap.c
+│   │   │   ├── java/
+│   │   │   │   └── salu/
+│   │   │   │       └── Kandoraq/
+│   │   │   │           └── Miauterm/
+│   │   │   │               ├── api/
+│   │   │   │               │   ├── ApiCommands.kt
+│   │   │   │               │   ├── ApiProtocol.kt
+│   │   │   │               │   └── ApiServer.kt
+│   │   │   │               ├── runtime/
+│   │   │   │               │   ├── DebianBackup.kt
+│   │   │   │               │   ├── DebianOperationRunner.kt
+│   │   │   │               │   ├── DebianRuntime.kt
+│   │   │   │               │   ├── ElfLinkerPatcher.kt
+│   │   │   │               │   ├── Environment.kt
+│   │   │   │               │   ├── FileInstaller.kt
+│   │   │   │               │   ├── MiautermCommandInstaller.kt
+│   │   │   │               │   └── SafeDelete.kt
+│   │   │   │               ├── service/
+│   │   │   │               │   ├── LocalServers.kt
+│   │   │   │               │   ├── MiautermService.kt
+│   │   │   │               │   └── ServerPorts.kt
+│   │   │   │               ├── session/
+│   │   │   │               │   ├── CommandNotifications.kt
+│   │   │   │               │   ├── SessionAdapter.kt
+│   │   │   │               │   ├── SessionManager.kt
+│   │   │   │               │   ├── SessionPrompt.kt
+│   │   │   │               │   ├── SessionStore.kt
+│   │   │   │               │   ├── TerminalBridge.kt
+│   │   │   │               │   └── TerminalSession.kt
+│   │   │   │               ├── view/
+│   │   │   │               │   ├── Chrome.kt
+│   │   │   │               │   ├── ChromeDialog.kt
+│   │   │   │               │   ├── ExtraKeysConfig.kt
+│   │   │   │               │   ├── ExtraKeysLayout.kt
+│   │   │   │               │   ├── ExtraKeysView.kt
+│   │   │   │               │   ├── SessionTabsView.kt
+│   │   │   │               │   └── TerminalView.kt
+│   │   │   │               ├── BootstrapDialog.kt
+│   │   │   │               ├── BugReport.kt
+│   │   │   │               ├── DebianFilesActivity.kt
+│   │   │   │               ├── GitHubUpdateChecker.kt
+│   │   │   │               ├── MainActivity.kt
+│   │   │   │               ├── MiautermApp.kt
+│   │   │   │               ├── SettingsActivity.kt
+│   │   │   │               └── SettingsStyle.kt
+│   │   │   ├── res/
+│   │   │   │   ├── drawable/
+│   │   │   │   │   ├── badge_red_dot.xml
+│   │   │   │   │   ├── drawer_background.xml
+│   │   │   │   │   ├── ic_add.xml
+│   │   │   │   │   ├── ic_arrow_back.xml
+│   │   │   │   │   ├── ic_backup.xml
+│   │   │   │   │   ├── ic_bug_report.xml
+│   │   │   │   │   ├── ic_build.xml
+│   │   │   │   │   ├── ic_clipboard.xml
+│   │   │   │   │   ├── ic_delete.xml
+│   │   │   │   │   ├── ic_file.xml
+│   │   │   │   │   ├── ic_folder.xml
+│   │   │   │   │   ├── ic_folder_shared.xml
+│   │   │   │   │   ├── ic_history.xml
+│   │   │   │   │   ├── ic_info.xml
+│   │   │   │   │   ├── ic_keyboard.xml
+│   │   │   │   │   ├── ic_launcher_background.xml
+│   │   │   │   │   ├── ic_launcher_foreground.xml
+│   │   │   │   │   ├── ic_launcher_monochrome.xml
+│   │   │   │   │   ├── ic_layers.xml
+│   │   │   │   │   ├── ic_lightbulb.xml
+│   │   │   │   │   ├── ic_more_vert.xml
+│   │   │   │   │   ├── ic_notification.xml
+│   │   │   │   │   ├── ic_notifications.xml
+│   │   │   │   │   ├── ic_person.xml
+│   │   │   │   │   ├── ic_receipt.xml
+│   │   │   │   │   ├── ic_restart.xml
+│   │   │   │   │   ├── ic_restore.xml
+│   │   │   │   │   ├── ic_schedule.xml
+│   │   │   │   │   ├── ic_server.xml
+│   │   │   │   │   ├── ic_settings.xml
+│   │   │   │   │   ├── ic_shield.xml
+│   │   │   │   │   ├── ic_text_fields.xml
+│   │   │   │   │   ├── ic_tune.xml
+│   │   │   │   │   ├── ic_update.xml
+│   │   │   │   │   └── root_badge_bg.xml
+│   │   │   │   ├── drawable-nodpi/
+│   │   │   │   │   └── miauterm_logo.png
+│   │   │   │   ├── layout/
+│   │   │   │   │   ├── activity_debian_files.xml
+│   │   │   │   │   ├── activity_main.xml
+│   │   │   │   │   ├── activity_settings.xml
+│   │   │   │   │   ├── dialog_bootstrap.xml
+│   │   │   │   │   ├── item_debian_file.xml
+│   │   │   │   │   └── item_session.xml
+│   │   │   │   ├── mipmap-anydpi/
+│   │   │   │   │   ├── ic_launcher.xml
+│   │   │   │   │   └── ic_launcher_round.xml
+│   │   │   │   ├── mipmap-anydpi-v26/
+│   │   │   │   │   ├── ic_launcher.xml
+│   │   │   │   │   └── ic_launcher_round.xml
+│   │   │   │   ├── values/
+│   │   │   │   │   ├── arrays.xml
+│   │   │   │   │   ├── colors.xml
+│   │   │   │   │   ├── strings.xml
+│   │   │   │   │   └── themes.xml
+│   │   │   │   └── xml/
+│   │   │   │       ├── file_paths.xml
+│   │   │   │       ├── locales_config.xml
+│   │   │   │       ├── root_preferences.xml
+│   │   │   │       └── shortcuts.xml
+│   │   │   └── AndroidManifest.xml
+│   │   └── test/
+│   │       └── java/
+│   │           └── salu/
+│   │               └── Kandoraq/
+│   │                   └── Miauterm/
+│   │                       ├── api/
+│   │                       │   ├── ApiCommandsTest.kt
+│   │                       │   ├── ApiProtocolTest.kt
+│   │                       │   └── ApiServerStartupTest.kt
+│   │                       ├── runtime/
+│   │                       │   ├── Api24CompatibilityTest.kt
+│   │                       │   ├── DebianBackupSecurityTest.kt
+│   │                       │   ├── DebianRuntimeDnsTest.kt
+│   │                       │   ├── DebianRuntimeRootfsTest.kt
+│   │                       │   ├── ElfLinkerPatcherTest.kt
+│   │                       │   ├── FileInstallerTest.kt
+│   │                       │   ├── MiautermCommandInstallerTest.kt
+│   │                       │   ├── ShadowJavaFilesOs.java
+│   │                       │   └── SharedFolderAccessTest.kt
+│   │                       ├── service/
+│   │                       │   └── ServerPortsTest.kt
+│   │                       ├── session/
+│   │                       │   ├── CommandNotificationsTest.kt
+│   │                       │   ├── SessionPromptTest.kt
+│   │                       │   ├── SessionStoreTest.kt
+│   │                       │   ├── TerminalBridgeClipboardTest.kt
+│   │                       │   └── TerminalSessionTest.kt
+│   │                       ├── view/
+│   │                       │   ├── ActionPopupPositionTest.kt
+│   │                       │   ├── ChromeTest.kt
+│   │                       │   ├── ExtraKeysConfigTest.kt
+│   │                       │   ├── ExtraKeysLayoutTest.kt
+│   │                       │   ├── ExtraKeysViewTest.kt
+│   │                       │   ├── PinchTextSizeTest.kt
+│   │                       │   └── TerminalInterfaceTest.kt
+│   │                       └── BugReportTest.kt
 │   ├── build.gradle.kts
-│   ├── proguard-rules.pro
-│   └── src/
-│       ├── main/
-│       │   ├── AndroidManifest.xml
-│       │   ├── cpp/
-│       │   │   └── miauterm-portmap.c  # Guest glibc socket port remapping
-│       │   ├── assets/
-│       │   │   ├── debian-arm64.tar.zst
-│       │   │   ├── fonts/
-│       │   │   ├── licenses/
-│       │   │   ├── miauterm-cmd
-│       │   │   └── proot/arm64-v8a/
-│       │   ├── java/salu/Kandoraq/Miauterm/
-│       │   │   ├── api/       # Android app command bridge
-│       │   │   ├── runtime/   # Debian, PRoot, backup, and file operations
-│       │   │   ├── service/   # Background terminal service
-│       │   │   ├── session/   # Terminal session lifecycle
-│       │   │   └── view/      # Terminal and extra-key views
-│       │   └── res/
-│       │       ├── drawable*/
-│       │       ├── layout/
-│       │       ├── mipmap*/
-│       │       ├── values*/  # Strings and localized Android resources
-│       │       └── xml/
-│       └── test/java/salu/Kandoraq/Miauterm/
-│           ├── api/
-│           ├── runtime/
-│           ├── service/
-│           ├── session/
-│           └── view/
+│   ├── lint.xml
+│   └── proguard-rules.pro
 ├── core/
 │   └── terminal-engine/
-│       ├── build.gradle.kts
-│       └── src/
-│           ├── main/cpp/     # PTY bridge, CMake config, and Zstandard sources
-│           ├── main/java/salu/Kandoraq/Miauterm/
-│           │   ├── emulator/
-│           │   ├── pty/
-│           │   └── view/
-│           └── test/java/salu/Kandoraq/Miauterm/
-│               ├── emulator/
-│               └── pty/
+│       ├── src/
+│       │   ├── main/
+│       │   │   ├── cpp/
+│       │   │   │   ├── zstd/
+│       │   │   │   │   ├── common/
+│       │   │   │   │   │   ├── allocations.h
+│       │   │   │   │   │   ├── bits.h
+│       │   │   │   │   │   ├── bitstream.h
+│       │   │   │   │   │   ├── compiler.h
+│       │   │   │   │   │   ├── cpu.h
+│       │   │   │   │   │   ├── debug.c
+│       │   │   │   │   │   ├── debug.h
+│       │   │   │   │   │   ├── entropy_common.c
+│       │   │   │   │   │   ├── error_private.c
+│       │   │   │   │   │   ├── error_private.h
+│       │   │   │   │   │   ├── fse.h
+│       │   │   │   │   │   ├── fse_decompress.c
+│       │   │   │   │   │   ├── huf.h
+│       │   │   │   │   │   ├── mem.h
+│       │   │   │   │   │   ├── portability_macros.h
+│       │   │   │   │   │   ├── xxhash.h
+│       │   │   │   │   │   ├── zstd_common.c
+│       │   │   │   │   │   ├── zstd_deps.h
+│       │   │   │   │   │   ├── zstd_internal.h
+│       │   │   │   │   │   └── zstd_trace.h
+│       │   │   │   │   ├── decompress/
+│       │   │   │   │   │   ├── huf_decompress.c
+│       │   │   │   │   │   ├── zstd_ddict.c
+│       │   │   │   │   │   ├── zstd_ddict.h
+│       │   │   │   │   │   ├── zstd_decompress.c
+│       │   │   │   │   │   ├── zstd_decompress_block.c
+│       │   │   │   │   │   ├── zstd_decompress_block.h
+│       │   │   │   │   │   └── zstd_decompress_internal.h
+│       │   │   │   │   ├── LICENSE
+│       │   │   │   │   ├── zstd.h
+│       │   │   │   │   ├── zstd_decoder.c
+│       │   │   │   │   └── zstd_errors.h
+│       │   │   │   ├── CMakeLists.txt
+│       │   │   │   └── miauterm-pty.c
+│       │   │   └── java/
+│       │   │       └── salu/
+│       │   │           └── Kandoraq/
+│       │   │               └── Miauterm/
+│       │   │                   ├── emulator/
+│       │   │                   │   ├── Base64Lenient.kt
+│       │   │                   │   ├── CharWidth.kt
+│       │   │                   │   ├── KeyMapper.kt
+│       │   │                   │   ├── TerminalBuffer.kt
+│       │   │                   │   ├── TerminalColor.kt
+│       │   │                   │   ├── TerminalEmulator.kt
+│       │   │                   │   ├── TerminalRow.kt
+│       │   │                   │   └── TerminalSearch.kt
+│       │   │                   ├── pty/
+│       │   │                   │   ├── ProcessReapCoordinator.kt
+│       │   │                   │   ├── PtyNative.kt
+│       │   │                   │   └── PtyProcess.kt
+│       │   │                   └── view/
+│       │   │                       └── Sextants.kt
+│       │   └── test/
+│       │       └── java/
+│       │           └── salu/
+│       │               └── Kandoraq/
+│       │                   └── Miauterm/
+│       │                       ├── emulator/
+│       │                       │   ├── CharWidthTest.kt
+│       │                       │   ├── KeyMapperTest.kt
+│       │                       │   ├── TerminalAstralCharTest.kt
+│       │                       │   ├── TerminalBufferTest.kt
+│       │                       │   ├── TerminalEmulatorTest.kt
+│       │                       │   ├── TerminalEmulatorUtf8Test.kt
+│       │                       │   ├── TerminalModesTest.kt
+│       │                       │   ├── TerminalOscTest.kt
+│       │                       │   ├── TerminalReflowTest.kt
+│       │                       │   ├── TerminalSchemeChangeTest.kt
+│       │                       │   ├── TerminalScrollEquivalenceTest.kt
+│       │                       │   ├── TerminalTranscriptTest.kt
+│       │                       │   └── TerminalWideCharTest.kt
+│       │                       └── pty/
+│       │                           └── ProcessReapCoordinatorTest.kt
+│       └── build.gradle.kts
 ├── docs/
 │   ├── images/
+│   │   └── miauterm-terminal.png
 │   └── SECURITY.md
 ├── gradle/
-│   ├── libs.versions.toml
-│   └── wrapper/
+│   ├── wrapper/
+│   │   ├── gradle-wrapper.jar
+│   │   └── gradle-wrapper.properties
+│   └── libs.versions.toml
 ├── scripts/
 │   ├── build-port-remap.sh
 │   ├── package-debian-rootfs.sh
 │   ├── sanitize-rootfs-tar.py
 │   └── verify-rootfs.sh
+├── .gitignore
 ├── build.gradle.kts
 ├── gradle.properties
 ├── gradlew
 ├── gradlew.bat
-├── settings.gradle.kts
 ├── LICENSE
 ├── README.md
+├── settings.gradle.kts
 └── THIRD_PARTY_NOTICES.md
 ```
 
