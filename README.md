@@ -247,7 +247,7 @@ miauterm/
 │   │   │   ├── java/
 │   │   │   │   └── salu/
 │   │   │   │       └── Kandoraq/
-│   │   │   │           └── Miauterm/
+│   │   │   │           └── miauterm/
 │   │   │   │               ├── api/
 │   │   │   │               │   ├── ApiCommands.kt
 │   │   │   │               │   ├── ApiProtocol.kt
@@ -356,7 +356,7 @@ miauterm/
 │   │       └── java/
 │   │           └── salu/
 │   │               └── Kandoraq/
-│   │                   └── Miauterm/
+│   │                   └── miauterm/
 │   │                       ├── api/
 │   │                       │   ├── ApiCommandsTest.kt
 │   │                       │   ├── ApiProtocolTest.kt
@@ -435,7 +435,7 @@ miauterm/
 │       │   │   └── java/
 │       │   │       └── salu/
 │       │   │           └── Kandoraq/
-│       │   │               └── Miauterm/
+│       │   │               └── miauterm/
 │       │   │                   ├── emulator/
 │       │   │                   │   ├── Base64Lenient.kt
 │       │   │                   │   ├── CharWidth.kt
@@ -455,7 +455,7 @@ miauterm/
 │       │       └── java/
 │       │           └── salu/
 │       │               └── Kandoraq/
-│       │                   └── Miauterm/
+│       │                   └── miauterm/
 │       │                       ├── emulator/
 │       │                       │   ├── CharWidthTest.kt
 │       │                       │   ├── KeyMapperTest.kt
@@ -498,7 +498,7 @@ miauterm/
 └── THIRD_PARTY_NOTICES.md
 ```
 
-The `salu.Kandoraq.Miauterm` package and `core/terminal-engine` contain upstream-derived code alongside Miauterm changes. The package names do not imply that Miauterm authored the retained upstream components. The Android application ID is `salu.Kandoraq.Miauterm`; it differs from earlier Miauterm releases and installs as a separate app without migrating their private data.
+The `salu.Kandoraq.miauterm` source package and `core/terminal-engine` contain upstream-derived code alongside Miauterm changes. The package names do not imply that Miauterm authored the retained upstream components. The Android application ID is `salu.Kandoraq.Miauterm`; it differs from earlier Miauterm releases and installs as a separate app without migrating their private data.
 
 ## Credits
 

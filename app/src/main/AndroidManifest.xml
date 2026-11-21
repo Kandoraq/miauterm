@@ -35,7 +35,7 @@
     </queries>
 
     <application
-        android:name=".MiautermApp"
+        android:name="salu.Kandoraq.miauterm.MiautermApp"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -48,7 +48,7 @@
         tools:targetApi="33">
 
         <activity
-            android:name=".MainActivity"
+            android:name="salu.Kandoraq.miauterm.MainActivity"
             android:exported="true"
             android:configChanges="orientation|keyboardHidden|screenSize|screenLayout|smallestScreenSize"
             android:windowSoftInputMode="adjustResize">
@@ -62,18 +62,18 @@
         </activity>
 
         <activity
-            android:name=".DebianFilesActivity"
+            android:name="salu.Kandoraq.miauterm.DebianFilesActivity"
             android:exported="false"
             android:label="@string/files_title" />
 
         <activity
-            android:name=".SettingsActivity"
+            android:name="salu.Kandoraq.miauterm.SettingsActivity"
             android:exported="false"
             android:theme="@style/Theme.Miauterm.Settings"
             android:label="@string/settings_title" />
 
         <service
-            android:name=".service.MiautermService"
+            android:name="salu.Kandoraq.miauterm.service.MiautermService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="specialUse">

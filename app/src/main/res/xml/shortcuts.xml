@@ -9,7 +9,7 @@
         <intent
             android:action="salu.Kandoraq.Miauterm.shortcut.NEW_SESSION"
             android:targetPackage="salu.Kandoraq.Miauterm"
-            android:targetClass="salu.Kandoraq.Miauterm.MainActivity">
+            android:targetClass="salu.Kandoraq.miauterm.MainActivity">
             <extra android:name="salu.Kandoraq.Miauterm.extra.SHORTCUT_ACTION" android:value="new_session" />
         </intent>
     </shortcut>
@@ -22,7 +22,7 @@
         <intent
             android:action="salu.Kandoraq.Miauterm.shortcut.FAILSAFE"
             android:targetPackage="salu.Kandoraq.Miauterm"
-            android:targetClass="salu.Kandoraq.Miauterm.MainActivity">
+            android:targetClass="salu.Kandoraq.miauterm.MainActivity">
             <extra android:name="salu.Kandoraq.Miauterm.extra.SHORTCUT_ACTION" android:value="failsafe" />
         </intent>
     </shortcut>
@@ -35,7 +35,7 @@
         <intent
             android:action="salu.Kandoraq.Miauterm.shortcut.SETTINGS"
             android:targetPackage="salu.Kandoraq.Miauterm"
-            android:targetClass="salu.Kandoraq.Miauterm.MainActivity">
+            android:targetClass="salu.Kandoraq.miauterm.MainActivity">
             <extra android:name="salu.Kandoraq.Miauterm.extra.SHORTCUT_ACTION" android:value="settings" />
         </intent>
     </shortcut>

@@ -187,7 +187,7 @@ static pid_t spawn_in_pty(const struct pty_spawn *s) {
 #ifndef MIAUTERM_HOST_TEST
 
 JNIEXPORT jintArray JNICALL
-Java_salu_Kandoraq_Miauterm_pty_PtyNative_createPty(
+Java_salu_Kandoraq_miauterm_pty_PtyNative_createPty(
     JNIEnv *env,
     jclass clazz,
     jstring cmdStr,
@@ -336,7 +336,7 @@ Java_salu_Kandoraq_Miauterm_pty_PtyNative_createPty(
 }
 
 JNIEXPORT void JNICALL
-Java_salu_Kandoraq_Miauterm_pty_PtyNative_setPtyWindowSize(
+Java_salu_Kandoraq_miauterm_pty_PtyNative_setPtyWindowSize(
     JNIEnv *env,
     jclass clazz,
     jint masterFd,
@@ -355,7 +355,7 @@ Java_salu_Kandoraq_Miauterm_pty_PtyNative_setPtyWindowSize(
 }
 
 JNIEXPORT jint JNICALL
-Java_salu_Kandoraq_Miauterm_pty_PtyNative_waitForProcess(
+Java_salu_Kandoraq_miauterm_pty_PtyNative_waitForProcess(
     JNIEnv *env,
     jclass clazz,
     jint pid
@@ -375,7 +375,7 @@ Java_salu_Kandoraq_Miauterm_pty_PtyNative_waitForProcess(
 }
 
 JNIEXPORT void JNICALL
-Java_salu_Kandoraq_Miauterm_pty_PtyNative_killProcess(
+Java_salu_Kandoraq_miauterm_pty_PtyNative_killProcess(
     JNIEnv *env,
     jclass clazz,
     jint pid,
@@ -389,7 +389,7 @@ Java_salu_Kandoraq_Miauterm_pty_PtyNative_killProcess(
 }
 
 JNIEXPORT void JNICALL
-Java_salu_Kandoraq_Miauterm_pty_PtyNative_closeFd(
+Java_salu_Kandoraq_miauterm_pty_PtyNative_closeFd(
     JNIEnv *env,
     jclass clazz,
     jint fd
@@ -1226,7 +1226,7 @@ static int extract_tar_archive(const char *tar_path, const char *dest_dir, extra
 
 #ifndef MIAUTERM_HOST_TEST
 JNIEXPORT jint JNICALL
-Java_salu_Kandoraq_Miauterm_pty_PtyNative_extractTar(
+Java_salu_Kandoraq_miauterm_pty_PtyNative_extractTar(
     JNIEnv *env,
     jclass clazz,
     jstring tarPathStr,
@@ -1249,7 +1249,7 @@ Java_salu_Kandoraq_Miauterm_pty_PtyNative_extractTar(
 // Extracts the tar stream the app writes into a pipe (fd stays the caller's), so the archive need
 // not be copied to a file first.
 JNIEXPORT jint JNICALL
-Java_salu_Kandoraq_Miauterm_pty_PtyNative_extractTarFd(
+Java_salu_Kandoraq_miauterm_pty_PtyNative_extractTarFd(
     JNIEnv *env,
     jclass clazz,
     jint fd,
