@@ -650,7 +650,7 @@ class MainActivity : AppCompatActivity() {
                 latch.countDown()
             }
         }
-        if (!latch.await(30, java.util.concurrent.TimeUnit.SECONDS)) return false
+        if (!latch.await(10, java.util.concurrent.TimeUnit.SECONDS)) return false
         return confirmed.get()
     }
 
