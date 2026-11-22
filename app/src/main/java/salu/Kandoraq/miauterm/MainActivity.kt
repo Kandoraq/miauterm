@@ -288,6 +288,15 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 android.util.Log.e("MainActivity", "Failed to show progress dialog", e)
             }
+            val progressDone = java.util.concurrent.atomic.AtomicBoolean(false)
+            kotlin.concurrent.thread(name = "Miauterm-Progress") {
+                var tick = 12
+                while (!progressDone.get() && !cancelled.get() && tick < 90) {
+                    progress.postUpdate(tick)
+                    tick += 2
+                    try { Thread.sleep(400) } catch (_: InterruptedException) { break }
+                }
+            }
             kotlin.concurrent.thread(name = "Miauterm-Debian") {
                 val success = try {
                     runBootstrapOnce(appContext, { percent ->
@@ -299,6 +308,7 @@ class MainActivity : AppCompatActivity() {
                     android.util.Log.e("MainActivity", "Bootstrap failed", t)
                     false
                 }
+                progressDone.set(true)
                 if (success) bootstrapJustCompleted = true
                 activityRef.get()?.runOnUiThread {
                     val activity = activityRef.get() ?: return@runOnUiThread
