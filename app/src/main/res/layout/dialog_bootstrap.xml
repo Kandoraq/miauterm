@@ -42,6 +42,7 @@
         android:textColor="@color/miauterm_text_muted"
         android:textSize="12sp"
         android:typeface="monospace"
-        android:visibility="invisible" />
+        android:text="0%"
+        android:visibility="visible" />
 
 </LinearLayout>

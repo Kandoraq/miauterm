@@ -26,8 +26,6 @@ class BootstrapDialog(activity: Activity) {
         bar.progressTintList = ColorStateList.valueOf(p.accent)
         bar.progressBackgroundTintList = ColorStateList.valueOf(p.raisedHigh)
         bar.indeterminateTintList = ColorStateList.valueOf(p.accent)
-        bar.isIndeterminate = false
-        bar.progress = 0
 
         dialog = AlertDialog.Builder(activity)
             .setView(view)
@@ -53,7 +51,11 @@ class BootstrapDialog(activity: Activity) {
 
     val isShowing: Boolean get() = dialog.isShowing
 
-    fun show() = dialog.show()
+    fun show() {
+        isIndeterminate = false
+        progress = 0
+        dialog.show()
+    }
 
     fun dismiss() = dialog.dismiss()
 
