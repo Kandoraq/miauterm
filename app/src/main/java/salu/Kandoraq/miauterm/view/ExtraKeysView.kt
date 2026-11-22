@@ -538,8 +538,8 @@ class ExtraKeysView @JvmOverloads constructor(
     private fun styleKey(btn: Button, on: Boolean) {
         val p = Chrome.palette
         btn.background = Chrome.flatPressable(
-            if (on) p.accent else p.raised,
-            if (on) Chrome.mix(p.accent, p.fg, 0.18f) else p.raisedHigh
+            if (on) p.accentStrong else p.raised,
+            if (on) Chrome.mix(p.accentStrong, p.fg, 0.18f) else p.raisedHigh
         )
         btn.elevation = 0f
         btn.translationZ = 0f

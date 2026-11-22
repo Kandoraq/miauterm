@@ -28,7 +28,7 @@ class ChromeTest {
     fun fixedChromePaletteKeepsPrimaryDialogTextReadable() {
         Chrome.apply()
         val palette = Chrome.palette
-        assertTrue(Chrome.contrast(palette.onAccent, palette.accent) >= 4.5f)
+        assertTrue(Chrome.contrast(palette.onAccent, palette.accentStrong) >= 4.5f)
         assertTrue(Chrome.contrast(palette.text, palette.bg) >= 4.5f)
         assertTrue(palette.dark)
     }
