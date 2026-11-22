@@ -4,8 +4,6 @@ import salu.Kandoraq.Miauterm.R
 import android.app.Activity
 import android.content.res.ColorStateList
 import android.graphics.drawable.ColorDrawable
-import android.os.Handler
-import android.os.Looper
 import android.view.View
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -14,7 +12,6 @@ import salu.Kandoraq.miauterm.view.Chrome
 
 class BootstrapDialog(activity: Activity) {
 
-    private val mainHandler = Handler(Looper.getMainLooper())
     private val view: View = activity.layoutInflater.inflate(R.layout.dialog_bootstrap, null)
     private val bar: ProgressBar = view.findViewById(R.id.bootstrapBar)
     private val percent: TextView = view.findViewById(R.id.bootstrapPercent)
@@ -66,7 +63,7 @@ class BootstrapDialog(activity: Activity) {
     }
 
     fun postUpdate(value: Int) {
-        mainHandler.post {
+        view.post {
             bar.isIndeterminate = false
             bar.progress = value.coerceIn(0, 100)
             percent.visibility = View.VISIBLE
