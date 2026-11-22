@@ -26,6 +26,9 @@ class BootstrapDialog(activity: Activity) {
         bar.progressTintList = ColorStateList.valueOf(p.accent)
         bar.progressBackgroundTintList = ColorStateList.valueOf(p.raisedHigh)
         bar.indeterminateTintList = ColorStateList.valueOf(p.accent)
+        bar.isIndeterminate = false
+        bar.max = 100
+        bar.progress = 0
 
         dialog = AlertDialog.Builder(activity)
             .setView(view)
@@ -61,6 +64,7 @@ class BootstrapDialog(activity: Activity) {
 
     fun postUpdate(value: Int) {
         view.post {
+            bar.isIndeterminate = false
             bar.progress = value.coerceIn(0, 100)
             percent.visibility = View.VISIBLE
             percent.text = "$value%"
