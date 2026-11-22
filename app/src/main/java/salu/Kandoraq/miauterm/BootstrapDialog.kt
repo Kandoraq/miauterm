@@ -26,8 +26,8 @@ class BootstrapDialog(activity: Activity) {
         bar.progressTintList = ColorStateList.valueOf(p.accent)
         bar.progressBackgroundTintList = ColorStateList.valueOf(p.raisedHigh)
         bar.indeterminateTintList = ColorStateList.valueOf(p.accent)
-        isIndeterminate = false
-        progress = 0
+        bar.isIndeterminate = false
+        bar.progress = 0
 
         dialog = AlertDialog.Builder(activity)
             .setView(view)

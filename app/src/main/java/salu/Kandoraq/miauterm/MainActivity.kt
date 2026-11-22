@@ -50,6 +50,8 @@ class MainActivity : AppCompatActivity() {
         var pendingSessionCommand: String? = null
         @Volatile
         var pendingFailsafeSession = false
+        @Volatile
+        private var bootstrapJustCompleted = false
 
         private val bootstrapLock = Any()
         private var bootstrapInProgress = false
@@ -305,8 +307,10 @@ class MainActivity : AppCompatActivity() {
                     android.util.Log.e("MainActivity", "Bootstrap failed", t)
                     false
                 }
+                if (success) bootstrapJustCompleted = true
                 activityRef.get()?.runOnUiThread {
                     val activity = activityRef.get() ?: return@runOnUiThread
+                    bootstrapJustCompleted = false
                     try {
                         progressRef.get()?.takeIf { it.isShowing }?.dismiss()
                     } catch (_: Exception) {}
@@ -389,6 +393,11 @@ class MainActivity : AppCompatActivity() {
 
         applyExtraKeys(watch = true)
         if (!::sessionManager.isInitialized || !::sessionAdapter.isInitialized) return
+        if (bootstrapJustCompleted && !isBootstrapping && DebianRuntime.isInstalled(this)) {
+            bootstrapJustCompleted = false
+            startInitialSession()
+            return
+        }
         var current = sessionManager.currentSession
         if (current != null && current.isRunning) {
             terminalView.session = current
@@ -636,10 +645,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun restoreOrCreateSession() {
-        if (!DebianRuntime.isInstalled(this) && !pendingFailsafeSession) {
-            sessionManager.discardDeadSessions()
-            return
-        }
+        if (!DebianRuntime.isInstalled(this) && !pendingFailsafeSession) return
         if (sessionManager.restore(terminalView.rows, terminalView.cols, terminalView.width, terminalView.height)) {
             terminalView.session = sessionManager.currentSession
             sessionAdapter.notifyDataSetChanged()
@@ -796,7 +802,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        bootstrapCancelFlag?.set(true)
         if (DebianRuntime.reinstallConfirmation === reinstallConfirmationHandler) {
             DebianRuntime.reinstallConfirmation = null
         }
