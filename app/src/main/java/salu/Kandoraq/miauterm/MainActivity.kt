@@ -313,20 +313,28 @@ class MainActivity : AppCompatActivity() {
                 activityRef.get()?.runOnUiThread {
                     val activity = activityRef.get() ?: return@runOnUiThread
                     bootstrapJustCompleted = false
-                    try {
-                        progress.takeIf { it.isShowing }?.dismiss()
-                    } catch (_: Exception) {}
-                    activity.bootstrapDialog = null
-                    activity.bootstrapCancelFlag = null
-                    activity.isBootstrapping = false
-                    if (activity.isFinishing || activity.isDestroyed || cancelled.get()) return@runOnUiThread
+                    val finishBootstrap = Runnable {
+                        try {
+                            progress.takeIf { it.isShowing }?.dismiss()
+                        } catch (_: Exception) {}
+                        activity.bootstrapDialog = null
+                        activity.bootstrapCancelFlag = null
+                        activity.isBootstrapping = false
+                        if (activity.isFinishing || activity.isDestroyed || cancelled.get()) return@Runnable
+                        if (success) {
+                            activity.startInitialSession()
+                        } else {
+                            val detail = DebianRuntime.lastInstallError
+                            val message = if (detail.isNullOrBlank()) activity.getString(R.string.debian_install_failed)
+                            else activity.getString(R.string.debian_install_failed_details, detail)
+                            android.widget.Toast.makeText(activity, message, android.widget.Toast.LENGTH_LONG).show()
+                        }
+                    }
                     if (success) {
-                        activity.startInitialSession()
+                        progress.complete()
+                        activity.window?.decorView?.postDelayed(finishBootstrap, 500)
                     } else {
-                        val detail = DebianRuntime.lastInstallError
-                        val message = if (detail.isNullOrBlank()) activity.getString(R.string.debian_install_failed)
-                        else activity.getString(R.string.debian_install_failed_details, detail)
-                        android.widget.Toast.makeText(activity, message, android.widget.Toast.LENGTH_LONG).show()
+                        finishBootstrap.run()
                     }
                 }
             }

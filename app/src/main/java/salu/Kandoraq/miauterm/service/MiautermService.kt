@@ -200,13 +200,6 @@ class MiautermService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
 
-        try {
-            refreshForegroundNotification()
-        } catch (e: Exception) {
-            Log.w("MiautermService", "re-promote startForeground failed", e)
-            stopSelf()
-            return START_NOT_STICKY
-        }
         when (intent?.action) {
             ACTION_EXIT -> {
                 exitAll()

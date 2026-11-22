@@ -147,11 +147,7 @@ This is a manual recovery path, not a supported distribution importer. The bundl
 
 ## Download
 
-Download the signed ARM64 APK from the [Miauterm 0.1.7-coral release](https://github.com/Kandoraq/miauterm/releases/tag/v0.1.7-coral):
-
-- [Installable release APK](https://github.com/Kandoraq/miauterm/releases/download/v0.1.7-coral/Miauterm-v0.1.7-coral-arm64.apk)
-- [Release APK SHA-256](https://github.com/Kandoraq/miauterm/releases/download/v0.1.7-coral/Miauterm-v0.1.7-coral-arm64.apk.sha256)
-- [Debug APK](https://github.com/Kandoraq/miauterm/releases/download/v0.1.7-coral/Miauterm-arm64-debug.apk)
+Download the signed ARM64 APK from the [latest Miauterm release](https://github.com/Kandoraq/miauterm/releases/latest). Each release includes the installable signed APK, its SHA-256 checksum, the ProGuard mapping file, and a debug APK. Open the latest release to download the assets for your device.
 
 This version uses the new Android application ID `salu.Kandoraq.Miauterm`. It installs separately from earlier Miauterm releases; their private data is not migrated.
 

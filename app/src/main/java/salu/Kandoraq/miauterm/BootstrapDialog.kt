@@ -58,6 +58,7 @@ class BootstrapDialog(activity: Activity) {
     val isShowing: Boolean get() = dialog.isShowing
 
     fun show() {
+        lastValue = 0
         bar.max = 100
         bar.progress = 0
         percent.visibility = View.VISIBLE
@@ -65,12 +66,25 @@ class BootstrapDialog(activity: Activity) {
         dialog.show()
     }
 
+    private var lastValue = 0
+
     fun postUpdate(value: Int) {
         mainHandler.post {
             bar.isIndeterminate = false
-            bar.progress = value.coerceIn(0, 100)
+            lastValue = maxOf(lastValue, value.coerceIn(0, 100))
+            bar.progress = lastValue
             percent.visibility = View.VISIBLE
-            percent.text = "$value%"
+            percent.text = "$lastValue%"
+        }
+    }
+
+    fun complete() {
+        mainHandler.post {
+            bar.isIndeterminate = false
+            lastValue = 100
+            bar.progress = 100
+            percent.visibility = View.VISIBLE
+            percent.text = "100%"
         }
     }
 
