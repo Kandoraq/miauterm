@@ -390,9 +390,10 @@ class MainActivity : AppCompatActivity() {
         applyExtraKeys(watch = true)
         if (!::sessionManager.isInitialized || !::sessionAdapter.isInitialized) return
         var current = sessionManager.currentSession
-        if (current != null) {
+        if (current != null && current.isRunning) {
             terminalView.session = current
-        } else if (!isBootstrapping && DebianRuntime.isInstalled(this) && sessionManager.sessionCount() == 0 && !pendingFailsafeSession) {
+        } else if (!isBootstrapping && DebianRuntime.isInstalled(this) && !pendingFailsafeSession) {
+            if (current != null) sessionManager.discardDeadSessions()
             restoreOrCreateSession()
         }
         if (!isBootstrapping && pendingFailsafeSession) {
@@ -635,6 +636,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun restoreOrCreateSession() {
+        if (!DebianRuntime.isInstalled(this) && !pendingFailsafeSession) {
+            sessionManager.discardDeadSessions()
+            return
+        }
         if (sessionManager.restore(terminalView.rows, terminalView.cols, terminalView.width, terminalView.height)) {
             terminalView.session = sessionManager.currentSession
             sessionAdapter.notifyDataSetChanged()
@@ -775,6 +780,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun startInitialSession() {
         applyExtraKeys()
+        sessionManager.discardDeadSessions()
         if (shortcutNewSession) {
             shortcutNewSession = false
             createNewSession()

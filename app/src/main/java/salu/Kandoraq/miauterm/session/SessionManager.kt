@@ -183,6 +183,19 @@ class SessionManager(private val context: Context) {
         saveState()
     }
 
+    fun discardDeadSessions() {
+        val dead: List<TerminalSession>
+        synchronized(sessions) {
+            dead = sessions.filter { !it.isRunning }
+            if (dead.isEmpty()) return
+            sessions.removeAll(dead.toSet())
+            currentSessionIndex = if (sessions.isEmpty()) -1 else 0
+        }
+        dead.forEach { runCatching { it.destroy() } }
+        notifySessionChanged(if (sessions.isEmpty()) null else currentSession)
+        saveState()
+    }
+
     fun removeSession(session: TerminalSession) {
         val sessionToNotify: TerminalSession?
         var toDestroy: TerminalSession? = null
