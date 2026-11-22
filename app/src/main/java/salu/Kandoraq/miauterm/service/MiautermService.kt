@@ -173,31 +173,25 @@ class MiautermService : Service() {
         } catch (e: Exception) {
             Log.e("MiautermService", "createNotificationChannel failed", e)
         }
+        // Promote to foreground immediately with a minimal notification. Android kills an app
+        // that calls startForegroundService() without a prompt startForeground(), and building
+        // the full notification can be slow on first run.
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                startForeground(
-                    NOTIFICATION_ID,
-                    buildNotification(),
-                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-                )
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(
-                    NOTIFICATION_ID,
-                    buildNotification(),
-                    0
-                )
-            } else {
-                startForeground(NOTIFICATION_ID, buildNotification())
-            }
+            startForeground(NOTIFICATION_ID, buildBootNotification())
         } catch (e: Exception) {
-            Log.e("MiautermService", "startForeground failed", e)
-
+            Log.e("MiautermService", "initial startForeground failed", e)
             try {
-                startForeground(NOTIFICATION_ID, buildNotification())
+                startForeground(NOTIFICATION_ID, buildBootNotification())
             } catch (retry: Exception) {
                 Log.e("MiautermService", "Could not start foreground service after retry", retry)
                 stopSelf()
+                return
             }
+        }
+        try {
+            refreshForegroundNotification()
+        } catch (e: Exception) {
+            Log.w("MiautermService", "Could not refresh foreground notification", e)
         }
 
         try {
@@ -214,21 +208,7 @@ class MiautermService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
 
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                startForeground(
-                    NOTIFICATION_ID,
-                    buildNotification(),
-                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-                )
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(
-                    NOTIFICATION_ID,
-                    buildNotification(),
-                    0
-                )
-            } else {
-                startForeground(NOTIFICATION_ID, buildNotification())
-            }
+            refreshForegroundNotification()
         } catch (e: Exception) {
             Log.w("MiautermService", "re-promote startForeground failed", e)
             stopSelf()
@@ -352,6 +332,33 @@ class MiautermService : Service() {
                 setShowBadge(false)
             }
             nm.createNotificationChannel(channel)
+        }
+    }
+
+    private fun buildBootNotification(): Notification {
+        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder(this, CHANNEL_ID)
+        } else {
+            @Suppress("DEPRECATION")
+            Notification.Builder(this)
+        }
+        return builder.setContentTitle(getString(R.string.app_name))
+            .setSmallIcon(R.drawable.ic_notification)
+            .setOngoing(true)
+            .build()
+    }
+
+    private fun refreshForegroundNotification() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                NOTIFICATION_ID,
+                buildNotification(),
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            )
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, buildNotification(), 0)
+        } else {
+            startForeground(NOTIFICATION_ID, buildNotification())
         }
     }
 
