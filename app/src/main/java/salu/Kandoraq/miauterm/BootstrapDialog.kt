@@ -52,9 +52,19 @@ class BootstrapDialog(activity: Activity) {
     val isShowing: Boolean get() = dialog.isShowing
 
     fun show() {
-        isIndeterminate = false
-        progress = 0
+        bar.max = 100
+        bar.progress = 0
+        percent.visibility = View.VISIBLE
+        percent.text = "0%"
         dialog.show()
+    }
+
+    fun postUpdate(value: Int) {
+        view.post {
+            bar.progress = value.coerceIn(0, 100)
+            percent.visibility = View.VISIBLE
+            percent.text = "$value%"
+        }
     }
 
     fun dismiss() = dialog.dismiss()

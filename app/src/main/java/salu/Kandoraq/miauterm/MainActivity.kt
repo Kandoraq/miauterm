@@ -283,7 +283,6 @@ class MainActivity : AppCompatActivity() {
             val progress = BootstrapDialog(this)
             bootstrapDialog = progress
             progress.setOnCancel { cancelled.set(true) }
-            val progressRef = java.lang.ref.WeakReference(progress)
             try {
                 progress.show()
             } catch (e: Exception) {
@@ -293,14 +292,7 @@ class MainActivity : AppCompatActivity() {
                 val success = try {
                     runBootstrapOnce(appContext, { percent ->
                         if (!cancelled.get()) {
-                            activityRef.get()?.runOnUiThread {
-                                val activity = activityRef.get() ?: return@runOnUiThread
-                                val dialog = progressRef.get() ?: return@runOnUiThread
-                                if (!activity.isFinishing && !activity.isDestroyed && !cancelled.get() && dialog.isShowing) {
-                                    dialog.isIndeterminate = false
-                                    dialog.progress = percent
-                                }
-                            }
+                            progress.postUpdate(percent)
                         }
                     }, cancelled::get)
                 } catch (t: Throwable) {
@@ -312,7 +304,7 @@ class MainActivity : AppCompatActivity() {
                     val activity = activityRef.get() ?: return@runOnUiThread
                     bootstrapJustCompleted = false
                     try {
-                        progressRef.get()?.takeIf { it.isShowing }?.dismiss()
+                        progress.takeIf { it.isShowing }?.dismiss()
                     } catch (_: Exception) {}
                     activity.bootstrapDialog = null
                     activity.bootstrapCancelFlag = null
