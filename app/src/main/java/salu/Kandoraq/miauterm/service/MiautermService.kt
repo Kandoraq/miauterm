@@ -116,11 +116,7 @@ class MiautermService : Service() {
                 val intent = Intent(context, MiautermService::class.java).apply {
                     action = ACTION_START
                 }
-                // Use startService() instead of startForegroundService(). On some Android 16
-                // builds startForegroundService() can be deferred when the app process is still
-                // starting, so onCreate() never runs before the foreground-promotion timeout and
-                // the system kills the app with ForegroundServiceDidNotStartInTimeException.
-                // The service still promotes itself to foreground in onCreate().
+                // startForegroundService() can be deferred on Android 16, causing a timeout kill.
                 context.startService(intent)
             } catch (e: Exception) {
                 Log.e("MiautermService", "Failed to start service", e)
@@ -166,9 +162,7 @@ class MiautermService : Service() {
         } catch (e: Exception) {
             Log.e("MiautermService", "createNotificationChannel failed", e)
         }
-        // Promote to foreground immediately with a minimal notification. Android kills an app
-        // that calls startForegroundService() without a prompt startForeground(), and building
-        // the full notification can be slow on first run.
+        // Promote early; a delayed startForeground() gets the app killed on Android 16.
         try {
             startForegroundBoot()
         } catch (e: Exception) {

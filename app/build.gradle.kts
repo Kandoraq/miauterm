@@ -25,8 +25,8 @@ android {
         minSdk = 24
 
         targetSdk = 28
-        versionCode = 30013
-        versionName = "0.1.7-coral"
+        versionCode = 30014
+        versionName = "0.1.8-coral"
 
         val rootfsDigest = MessageDigest.getInstance("SHA-256")
             .digest(file("src/main/assets/debian-arm64.tar.zst").readBytes())
