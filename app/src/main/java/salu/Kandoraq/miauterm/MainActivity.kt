@@ -191,12 +191,12 @@ class MainActivity : AppCompatActivity() {
         if (runtimeInitializationStarted || isFinishing || isDestroyed) return
         runtimeInitializationStarted = true
 
+        sessionManager = MiautermService.getOrCreateSessionManager(this)
         try {
             MiautermService.start(this)
         } catch (e: Exception) {
             android.util.Log.e("MainActivity", "MiautermService.start failed", e)
         }
-        sessionManager = MiautermService.getOrCreateSessionManager(this)
 
         sessionAdapter = SessionAdapter(
             sessionManager = sessionManager,
@@ -230,8 +230,9 @@ class MainActivity : AppCompatActivity() {
 
         sessionManager.onSessionChanged = { session ->
             runOnUiThread {
+                if (isFinishing || isDestroyed || !runtimeInitializationStarted) return@runOnUiThread
                 if (session == null) {
-                    if (!isBootstrapping && !isFinishing && !isDestroyed) {
+                    if (!isBootstrapping && !pendingFailsafeSession) {
                         MiautermService.stop(this)
                         finish()
                     }

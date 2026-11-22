@@ -19,7 +19,7 @@
 </table>
 
 > **Project status: Experimental**<br>
-> The current app version is **0.1.6-coral** (codename **Coral**). The experimental APK targets ARM64 Android devices; runtime behavior and package compatibility can vary by device and Android version.
+> The current app version is **0.1.7-coral** (codename **Coral**). The experimental APK targets ARM64 Android devices; runtime behavior and package compatibility can vary by device and Android version.
 
 Miauterm is an unofficial fork of [Cortex Terminal](https://github.com/ssfuisu/cortex). It retains upstream terminal and Android application code while replacing Cortex's native Ubuntu runtime with a Debian 13 (Trixie) ARM64 root filesystem launched through PRoot. Miauterm is an independent project and is not affiliated with or endorsed by the Cortex maintainers.
 
@@ -88,7 +88,7 @@ These features use Miauterm changes and retained Cortex components. See [Credits
 | Target SDK | 28 |
 | CPU architecture | `arm64-v8a` |
 | Linux distribution | Bundled Debian 13 (Trixie) ARM64 root filesystem |
-| App version | 0.1.6-coral |
+| App version | 0.1.7-coral |
 | App language | English only |
 
 Miauterm stores Debian inside its app-private files directory and extracts the bundled root filesystem on first start. The first launch shows extraction progress before opening the Debian shell. Leave enough device storage for the extracted system and packages you install. `apt update` and package installation require network access.
@@ -147,11 +147,11 @@ This is a manual recovery path, not a supported distribution importer. The bundl
 
 ## Download
 
-Download the signed ARM64 APK from the [Miauterm 0.1.6-coral release](https://github.com/Kandoraq/miauterm/releases/tag/v0.1.6-coral):
+Download the signed ARM64 APK from the [Miauterm 0.1.7-coral release](https://github.com/Kandoraq/miauterm/releases/tag/v0.1.7-coral):
 
-- [Installable release APK](https://github.com/Kandoraq/miauterm/releases/download/v0.1.6-coral/Miauterm-v0.1.6-coral-arm64.apk)
-- [Release APK SHA-256](https://github.com/Kandoraq/miauterm/releases/download/v0.1.6-coral/Miauterm-v0.1.6-coral-arm64.apk.sha256)
-- [Debug APK](https://github.com/Kandoraq/miauterm/releases/download/v0.1.6-coral/Miauterm-arm64-debug.apk)
+- [Installable release APK](https://github.com/Kandoraq/miauterm/releases/download/v0.1.7-coral/Miauterm-v0.1.7-coral-arm64.apk)
+- [Release APK SHA-256](https://github.com/Kandoraq/miauterm/releases/download/v0.1.7-coral/Miauterm-v0.1.7-coral-arm64.apk.sha256)
+- [Debug APK](https://github.com/Kandoraq/miauterm/releases/download/v0.1.7-coral/Miauterm-arm64-debug.apk)
 
 This version uses the new Android application ID `salu.Kandoraq.Miauterm`. It installs separately from earlier Miauterm releases; their private data is not migrated.
 
@@ -159,7 +159,7 @@ The [Releases page](https://github.com/Kandoraq/miauterm/releases) contains the 
 
 ### Release history
 
-The [release notes directory](.github/release-notes/) contains changes for [0.1.0](.github/release-notes/v0.1.0.md), [0.1.1](.github/release-notes/v0.1.1.md), [0.1.2-coral](.github/release-notes/v0.1.2-coral.md), [0.1.3-coral](.github/release-notes/v0.1.3-coral.md), [0.1.4-coral](.github/release-notes/v0.1.4-coral.md), [0.1.5-coral](.github/release-notes/v0.1.5-coral.md), and [0.1.6-coral](.github/release-notes/v0.1.6-coral.md).
+The [release notes directory](.github/release-notes/) contains changes for [0.1.0](.github/release-notes/v0.1.0.md), [0.1.1](.github/release-notes/v0.1.1.md), [0.1.2-coral](.github/release-notes/v0.1.2-coral.md), [0.1.3-coral](.github/release-notes/v0.1.3-coral.md), [0.1.4-coral](.github/release-notes/v0.1.4-coral.md), [0.1.5-coral](.github/release-notes/v0.1.5-coral.md), [0.1.6-coral](.github/release-notes/v0.1.6-coral.md), and [0.1.7-coral](.github/release-notes/v0.1.7-coral.md).
 
 ## Terminal commands and fonts
 
@@ -215,7 +215,8 @@ miauterm/
 │   │   ├── v0.1.3-coral.md
 │   │   ├── v0.1.4-coral.md
 │   │   ├── v0.1.5-coral.md
-│   │   └── v0.1.6-coral.md
+│   │   ├── v0.1.6-coral.md
+│   │   └── v0.1.7-coral.md
 │   ├── workflows/
 │   │   └── build-apk.yml
 │   └── dependabot.yml

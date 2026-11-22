@@ -25,6 +25,7 @@ object Chrome {
         val textDim: Int,
         val textFaint: Int,
         val accent: Int,
+        val accentStrong: Int,
 
         val accentSoft: Int,
 
@@ -55,8 +56,9 @@ object Chrome {
         textDim = rgb(0xD6, 0xDD, 0xE2),
         textFaint = rgb(0xA8, 0xB1, 0xB8),
         accent = rgb(0xFF, 0x8C, 0x32),
+        accentStrong = rgb(0xA6, 0x51, 0x08),
         accentSoft = rgb(0x4E, 0x2A, 0x10),
-        onAccent = rgb(0x1C, 0x10, 0x06),
+        onAccent = rgb(0xFF, 0xFF, 0xFF),
         danger = rgb(0xFF, 0x6B, 0x6B),
         dangerSoft = rgb(0x3B, 0x20, 0x22),
         dark = true

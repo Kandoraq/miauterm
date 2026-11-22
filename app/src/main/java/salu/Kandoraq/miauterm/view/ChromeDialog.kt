@@ -23,7 +23,7 @@ object ChromeDialog {
             dialog.findViewById<TextView>(android.R.id.message)?.setTextColor(p.textDim)
             val pad = (10 * density).toInt()
             dialog.getButton(DialogInterface.BUTTON_POSITIVE)?.apply {
-                background = Chrome.flatPressable(p.accent, Chrome.mix(p.accent, p.fg, 0.18f))
+                background = Chrome.flatPressable(p.accentStrong, Chrome.mix(p.accentStrong, p.fg, 0.18f))
                 setTextColor(p.onAccent)
                 setPadding(pad * 2, pad, pad * 2, pad)
             }

@@ -202,7 +202,7 @@ class TerminalInterfaceTest {
         assertEquals(p.textDim, dialog.findViewById<TextView>(android.R.id.message)!!.currentTextColor)
         assertEquals(p.text, dialog.findViewById<TextView>(androidx.appcompat.R.id.alertTitle)!!.currentTextColor)
         assertEquals(p.onAccent, dialog.getButton(DialogInterface.BUTTON_POSITIVE).currentTextColor)
-        assertTrue(Chrome.contrast(p.onAccent, p.accent) >= 4.5f)
+        assertTrue(Chrome.contrast(p.onAccent, p.accentStrong) >= 4.5f)
         assertEquals(p.text, dialog.getButton(DialogInterface.BUTTON_NEGATIVE).currentTextColor)
         dialog.dismiss()
     }

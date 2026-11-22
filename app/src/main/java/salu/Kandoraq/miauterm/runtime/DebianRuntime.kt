@@ -66,7 +66,6 @@ object DebianRuntime {
         "usr/bin/curl",
         "usr/bin/wget"
     )
-    private val networkPackages = listOf("iputils-ping", "iproute2", "net-tools", "curl", "wget")
     const val PREF_PROOT_DIAGNOSTICS = "proot_diagnostics"
     @Volatile
     var lastInstallError: String? = null
@@ -135,22 +134,7 @@ object DebianRuntime {
             Log.w(TAG, lastInstallError.orEmpty())
             return false
         }
-        val installed = installLock.use { installRootfs(context, onProgress, force, isCancelled) }
-        if (installed) scheduleOptionalNetworkProvision(context.applicationContext)
-        return installed
-    }
-
-    private fun scheduleOptionalNetworkProvision(context: Context) {
-        Thread {
-            val lock = FileLocks.tryLock(listOf(File(context.filesDir, ".debian-install.lock"))) ?: return@Thread
-            lock.use {
-                val root = Environment.getMiautermRoot(context)
-                if (readVersionMarker(root) == expectedVersionMarker().trim() && root.isDirectory) {
-                    updateResolvConf(root, networkDnsServers(context), customDnsServers(context))
-                    provisionOptionalNetworkTools(context, root)
-                }
-            }
-        }.apply { isDaemon = true; name = "Miauterm-NetworkProvision"; start() }
+        return installLock.use { installRootfs(context, onProgress, force, isCancelled) }
     }
 
     private fun checkNotCancelled(isCancelled: (() -> Boolean)?) {
@@ -1248,107 +1232,6 @@ object DebianRuntime {
         val connectivity = context.getSystemService(ConnectivityManager::class.java)
         val network = connectivity?.activeNetwork ?: return emptyList()
         return connectivity.getLinkProperties(network)?.dnsServers.orEmpty()
-    }
-
-    private fun ensureNetworkTools(context: Context, root: File) {
-        updateResolvConf(root, networkDnsServers(context), customDnsServers(context))
-        provisionOptionalNetworkTools(context, root)
-    }
-
-    private fun provisionOptionalNetworkTools(context: Context, root: File) {
-        try {
-            if (invalidNetworkCommand(root) == null) {
-                ensureSshClient(context, root)
-                return
-            }
-            val aptOptions = listOf(
-                "-o", "Acquire::http::Timeout=30",
-                "-o", "Acquire::https::Timeout=30",
-                "-o", "Acquire::Retries=1"
-            )
-            try {
-                runRootfsCommand(context, root, listOf("/usr/bin/apt-get") + aptOptions + "update")
-                runRootfsCommand(
-                    context,
-                    root,
-                    listOf("/usr/bin/apt-get") + aptOptions +
-                        listOf("install", "-y", "--no-install-recommends") + networkPackages
-                )
-            } catch (httpError: Exception) {
-                Log.w(TAG, "Debian HTTP repository access failed; retrying with HTTPS", httpError)
-                enforceRepositoryHttps(root)
-                runRootfsCommand(context, root, listOf("/usr/bin/apt-get") + aptOptions + "update")
-                runRootfsCommand(
-                    context,
-                    root,
-                    listOf("/usr/bin/apt-get") + aptOptions +
-                        listOf("install", "-y", "--no-install-recommends") + networkPackages
-                )
-            }
-            verifyNetworkCommands(root)
-            ensureSshClient(context, root)
-        } catch (error: Exception) {
-            Log.w(TAG, "Could not provision optional Debian network tools; install them later with apt", error)
-            recordRuntimeEvent(context, "Optional Debian network tools skipped: ${error.message ?: error.javaClass.simpleName}")
-        }
-    }
-
-    private fun ensureSshClient(context: Context, root: File) {
-        val ssh = File(root, "usr/bin/ssh")
-        if (ssh.isFile && ssh.canExecute() && isArm64Elf(ssh)) return
-        try {
-            val aptOptions = listOf(
-                "-o", "Acquire::http::Timeout=8",
-                "-o", "Acquire::https::Timeout=8",
-                "-o", "Acquire::Retries=0"
-            )
-            runRootfsCommand(context, root, listOf("/usr/bin/apt-get") + aptOptions + "update")
-            runRootfsCommand(
-                context,
-                root,
-                listOf("/usr/bin/apt-get") + aptOptions + listOf("install", "-y", "--no-install-recommends", "openssh-client")
-            )
-            check(ssh.isFile && ssh.canExecute() && isArm64Elf(ssh)) { "Debian did not install an ARM64 OpenSSH client" }
-        } catch (error: Exception) {
-            Log.w(TAG, "Could not provision Debian openssh-client; install it later with apt", error)
-            recordRuntimeEvent(context, "Optional Debian SSH client install skipped: ${error.message ?: error.javaClass.simpleName}")
-        }
-    }
-
-    private fun runRootfsCommand(context: Context, root: File, command: List<String>) {
-        val args = mutableListOf(
-            "--link2symlink",
-            "--kill-on-exit",
-            "--rootfs=${root.absolutePath}",
-            "--root-id",
-            "--cwd=/root"
-        )
-        appendPseudoFilesystemBinds(args, root)
-        args += command
-
-        val processBuilder = ProcessBuilder(listOf(shellCommand(context)) + args)
-            .directory(File(root, "root"))
-            .redirectErrorStream(true)
-        val runtimeEnvironment = environment(context, failsafe = true, rootfs = root)
-        processBuilder.environment().apply {
-            clear()
-            runtimeEnvironment.forEach { entry ->
-                val separator = entry.indexOf("=")
-                if (separator > 0) put(entry.substring(0, separator), entry.substring(separator + 1))
-            }
-            put("HOME", "/root")
-            put("USER", "root")
-            put("LOGNAME", "root")
-            put("SHELL", "/bin/sh")
-            put("LANG", "C")
-            put("LC_ALL", "C")
-            put("DEBIAN_FRONTEND", "noninteractive")
-        }
-        val process = processBuilder.start()
-        val (output, exitCode) = runProcess(process, 600_000)
-        check(exitCode == 0) {
-            output.ifEmpty { "${command.joinToString(" ")} failed (exit $exitCode)" }
-        }
     }
 
     data class LinuxAccount(val name: String, val uid: Int, val gid: Int, val home: String, val shell: String)

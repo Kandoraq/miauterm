@@ -190,7 +190,7 @@ class ExtraKeysView @JvmOverloads constructor(
         if (availableWidth <= 0) return
 
         val marginPx = 0
-        val minKeyWidth = dp(48f).toInt()
+        val minKeyWidth = dp(40f).toInt()
         keyRows.forEach { (row, buttons) ->
             if (buttons.isEmpty()) return@forEach
             val marginsWidth = buttons.size * marginPx * 2
@@ -336,11 +336,11 @@ class ExtraKeysView @JvmOverloads constructor(
                 gravity = Gravity.CENTER
                 includeFontPadding = false
                 setPadding(dp(2f).toInt(), 0, dp(2f).toInt(), 0)
-                minWidth = dp(48f).toInt()
+                minWidth = dp(40f).toInt()
                 minHeight = dp(ROW_HEIGHT_DP.toFloat()).toInt()
                 stateListAnimator = null
 
-                val params = LayoutParams(dp(48f).toInt(), LayoutParams.MATCH_PARENT).apply {
+                val params = LayoutParams(dp(40f).toInt(), LayoutParams.MATCH_PARENT).apply {
                     setMargins(marginPx, 0, marginPx, 0)
                 }
                 layoutParams = params
