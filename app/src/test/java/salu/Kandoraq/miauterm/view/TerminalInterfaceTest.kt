@@ -12,10 +12,10 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import salu.Kandoraq.miauterm.BootstrapDialog
 import salu.Kandoraq.Miauterm.R
+import salu.Kandoraq.miauterm.emulator.TerminalColor
 import salu.Kandoraq.Miauterm.databinding.ActivityMainBinding
 import salu.Kandoraq.Miauterm.databinding.ItemDebianFileBinding
 import salu.Kandoraq.Miauterm.databinding.ItemSessionBinding
-import salu.Kandoraq.miauterm.emulator.TerminalColor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -37,7 +37,7 @@ class TerminalInterfaceTest {
     @Before
     fun setUp() {
         TerminalColor.applyTheme("catppuccin")
-        Chrome.apply(TerminalColor.SCHEMES.getValue("catppuccin"))
+        Chrome.apply()
         activity = Robolectric.buildActivity(AppCompatActivity::class.java).create().get()
         activity.setTheme(R.style.Theme_Miauterm)
     }
@@ -99,23 +99,24 @@ class TerminalInterfaceTest {
     }
 
     @Test
-    fun theTabsFollowTheSchemeWhenItChanges() {
+    fun theTabsUseTheFixedAppPaletteWhenTerminalSchemesChange() {
         val tabs = SessionTabsView(activity)
         tabs.update(listOf(SessionTabsView.Tab("a")), 0)
-        Chrome.apply(TerminalColor.SCHEMES.getValue("nord"))
+        Chrome.apply()
         tabs.applyPalette()
         assertEquals(1, tabRows(tabs).childCount)
-        Chrome.apply(TerminalColor.SCHEMES.getValue("catppuccin"))
+        Chrome.apply()
     }
 
     @Test
-    fun theKeysBarHasItsRowsAndFollowsTheScheme() {
+    fun theKeysBarUsesTheFixedAppPaletteAndMediumRows() {
         val keys = ExtraKeysView(activity)
         assertEquals(2, keys.rowCount)
-        Chrome.apply(TerminalColor.SCHEMES.getValue("monokai"))
+        assertEquals(80, ExtraKeysView.barHeightDp(2))
+        Chrome.apply()
         keys.applyPalette()
         assertEquals(2, keys.rowCount)
-        Chrome.apply(TerminalColor.SCHEMES.getValue("catppuccin"))
+        Chrome.apply()
     }
 
     @Test
@@ -200,7 +201,8 @@ class TerminalInterfaceTest {
         val p = Chrome.palette
         assertEquals(p.textDim, dialog.findViewById<TextView>(android.R.id.message)!!.currentTextColor)
         assertEquals(p.text, dialog.findViewById<TextView>(androidx.appcompat.R.id.alertTitle)!!.currentTextColor)
-        assertEquals(p.text, dialog.getButton(DialogInterface.BUTTON_POSITIVE).currentTextColor)
+        assertEquals(p.onAccent, dialog.getButton(DialogInterface.BUTTON_POSITIVE).currentTextColor)
+        assertTrue(Chrome.contrast(p.onAccent, p.accent) >= 4.5f)
         assertEquals(p.text, dialog.getButton(DialogInterface.BUTTON_NEGATIVE).currentTextColor)
         dialog.dismiss()
     }

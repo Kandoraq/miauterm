@@ -28,7 +28,7 @@ class SessionAdapter(
 
         val session = synchronized(sessionManager.sessions) { sessionManager.sessions.getOrNull(position) }
         binding.sessionLabelText.text = session?.sessionName?.takeIf { it.isNotBlank() }
-            ?: holder.itemView.context.getString(salu.Kandoraq.Miauterm.R.string.session_label, position)
+            ?: holder.itemView.context.getString(salu.Kandoraq.Miauterm.R.string.session_label, position + 1)
 
         binding.sessionItemRoot.background = Chrome.flatPressable(
             if (isActive) p.raised else p.bar,

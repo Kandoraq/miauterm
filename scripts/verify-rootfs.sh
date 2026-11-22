@@ -22,11 +22,9 @@ for command in "${commands[@]}"; do
         exit 1
     fi
 done
-ping_caps="$(getcap "$rootfs/usr/bin/ping" 2>/dev/null || true)"
-case "$ping_caps" in
-    *cap_net_raw*) ;;
-    *) echo "NOTE: bundled ping has no cap_net_raw (${ping_caps:-none}); unprivileged ping will not work" ;;
-esac
+# PRoot cannot grant Linux file capabilities on Android. This check verifies
+# the Debian package payload and command startup; ping capability behavior is
+# a runtime limitation and must not be inferred from a privileged CI chroot.
 docker run --rm --platform linux/arm64 \
     --volume "$rootfs:/mnt/debian" \
     debian:trixie-slim \
@@ -41,7 +39,6 @@ docker run --rm --platform linux/arm64 \
       chroot /mnt/debian /bin/sh -ec "
         apt update -qq
         curl -fsSI --max-time 15 https://deb.debian.org/debian/ >/dev/null
-        ping -c 1 -W 1 127.0.0.1 >/dev/null
         ip -Version >/dev/null
         ss -V >/dev/null
         ifconfig --version >/dev/null

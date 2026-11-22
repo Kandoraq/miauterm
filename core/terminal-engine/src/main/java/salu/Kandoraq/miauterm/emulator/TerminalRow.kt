@@ -174,7 +174,9 @@ class TerminalRow(val cols: Int) {
     fun setChar(col: Int, char: Char, fg: Int, bg: Int, style: Byte = 0, link: String? = null) {
         if (col in 0 until cols) {
             if (hasWide) breakWideAround(col, col + 1)
-            if (char == WIDE_TAIL || Character.isSurrogate(char)) hasWide = true
+            if (char == WIDE_TAIL || Character.isSurrogate(char) ||
+                (char.code >= CharWidth.FIRST_NOT_NARROW && CharWidth.of(char) == 2)
+            ) hasWide = true
             chars[col] = char
             fgColors[col] = fg
             bgColors[col] = bg

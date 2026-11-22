@@ -59,9 +59,7 @@ class SettingsActivity : AppCompatActivity() {
         supportActionBar?.title = getString(R.string.settings_title)
 
         salu.Kandoraq.miauterm.emulator.TerminalColor.applyTheme("miauterm")
-        salu.Kandoraq.miauterm.view.Chrome.apply(
-            salu.Kandoraq.miauterm.emulator.TerminalColor.SCHEMES.getValue(salu.Kandoraq.miauterm.emulator.TerminalColor.currentThemeId)
-        )
+        salu.Kandoraq.miauterm.view.Chrome.apply()
         val p = salu.Kandoraq.miauterm.view.Chrome.palette
         window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(p.bg))
         findViewById<android.view.View>(R.id.settings_root).setBackgroundColor(p.bg)
@@ -187,8 +185,6 @@ class SettingsActivity : AppCompatActivity() {
                             .setPositiveButton(android.R.string.ok) { _, _ ->
                                 if (state.closeSettings) {
                                     finish()
-                                } else if (DebianRuntime.isRemoved(this)) {
-                                    recreate()
                                 }
                             }
                             .create()
@@ -287,7 +283,8 @@ class SettingsActivity : AppCompatActivity() {
             val check = android.widget.CheckBox(this).apply {
                 text = if (special.name == special.label) special.name else "${special.name}  ${special.label}"
                 isChecked = selected[index]
-                minHeight = (40 * density).toInt()
+                minHeight = (48 * density).toInt()
+                minimumHeight = (48 * density).toInt()
                 setTextColor(salu.Kandoraq.miauterm.view.Chrome.palette.text)
                 buttonTintList = android.content.res.ColorStateList.valueOf(salu.Kandoraq.miauterm.view.Chrome.palette.accent)
                 tag = index
@@ -791,10 +788,14 @@ class SettingsActivity : AppCompatActivity() {
                     val currentlyAllowed = hasSharedFolderPermission()
                     if (requested && !currentlyAllowed) {
                         sharedFolderPermissionRequest.launch(
-                            arrayOf(
-                                android.Manifest.permission.READ_EXTERNAL_STORAGE,
-                                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-                            )
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                                arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+                            } else {
+                                arrayOf(
+                                    android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                                )
+                            }
                         )
                     } else {
                         androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
@@ -867,7 +868,7 @@ class SettingsActivity : AppCompatActivity() {
             val rootfsPresent = DebianRuntime.isInstalled(requireContext())
             findPreference<Preference>("backup_debian")?.isVisible = rootfsPresent
             findPreference<Preference>("restore_debian")?.isVisible = rootfsPresent
-            val systemName = DebianRuntime.systemName(requireContext()) ?: "Linux system"
+            val systemName = DebianRuntime.systemName(requireContext()) ?: getString(R.string.settings_linux_system_fallback)
             findPreference<androidx.preference.PreferenceCategory>("linux_system_category")?.title = systemName
             findPreference<Preference>("reset_debian")?.apply {
                 isVisible = rootfsPresent

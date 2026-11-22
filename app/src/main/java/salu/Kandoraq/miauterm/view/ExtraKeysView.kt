@@ -34,7 +34,7 @@ class ExtraKeysView @JvmOverloads constructor(
         private const val REPEAT_INTERVAL_MS = 60L
         private const val LATCH_HOLD_MS = 500L
 
-        const val ROW_HEIGHT_DP = 48
+        const val ROW_HEIGHT_DP = 40
 
         const val PADDING_DP = 0
 
@@ -337,7 +337,7 @@ class ExtraKeysView @JvmOverloads constructor(
                 includeFontPadding = false
                 setPadding(dp(2f).toInt(), 0, dp(2f).toInt(), 0)
                 minWidth = dp(48f).toInt()
-                minHeight = dp(48f).toInt()
+                minHeight = dp(ROW_HEIGHT_DP.toFloat()).toInt()
                 stateListAnimator = null
 
                 val params = LayoutParams(dp(48f).toInt(), LayoutParams.MATCH_PARENT).apply {

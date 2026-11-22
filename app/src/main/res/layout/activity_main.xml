@@ -42,7 +42,7 @@
         <FrameLayout
             android:id="@+id/bottomBarContainer"
             android:layout_width="match_parent"
-            android:layout_height="94dp"
+            android:layout_height="80dp"
             android:background="@color/miauterm_surface_container">
 
             <!-- 2-Row Extra Keys Keyboard Toolbar -->
@@ -108,14 +108,6 @@
                 android:focusable="true"
                 android:background="@null" />
         </LinearLayout>
-
-        <View
-            android:id="@+id/drawerDivider"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:background="@color/miauterm_outline_variant" />
 
         <TextView
             android:id="@+id/drawerSessionsLabel"

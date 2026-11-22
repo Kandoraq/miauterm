@@ -6,7 +6,6 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
 import android.graphics.drawable.StateListDrawable
-import salu.Kandoraq.miauterm.emulator.TerminalColor
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
@@ -41,7 +40,7 @@ object Chrome {
     var palette: Palette = graphitePalette()
         private set
 
-    fun apply(@Suppress("UNUSED_PARAMETER") scheme: TerminalColor.ColorScheme) {
+    fun apply() {
         palette = graphitePalette()
     }
 
@@ -62,39 +61,6 @@ object Chrome {
         dangerSoft = rgb(0x3B, 0x20, 0x22),
         dark = true
     )
-
-    fun from(scheme: TerminalColor.ColorScheme): Palette = from(scheme.bg, scheme.fg, scheme.ansi)
-
-    fun from(bg: Int, fg: Int, ansi: IntArray): Palette {
-        val dark = luminance(bg) < 0.5f
-        val bar = if (dark) mix(bg, BLACK, 0.22f) else mix(bg, BLACK, 0.05f)
-        val raised = mix(bar, fg, 0.075f)
-        val raisedHigh = mix(bar, fg, 0.17f)
-        val accentSoft = mix(bg, ansi[12], 0.20f)
-        val dangerSoft = mix(bg, ansi[9], 0.18f)
-
-        val away = if (dark) WHITE else BLACK
-        val surfaces = listOf(bg, bar, raised, raisedHigh, accentSoft, dangerSoft)
-        val worst = if (dark) (surfaces.maxByOrNull { luminance(it) } ?: bg) else (surfaces.minByOrNull { luminance(it) } ?: bg)
-        val accent = readable(ansi[12], worst, 3f, away)
-        return Palette(
-            bg = bg,
-            fg = fg,
-            bar = bar,
-            raised = raised,
-            raisedHigh = raisedHigh,
-            outline = mix(bar, fg, 0.14f),
-            text = readable(fg, worst, 4.5f, away),
-            textDim = readable(mix(bg, fg, 0.68f), worst, 4.5f, away),
-            textFaint = readable(mix(bg, fg, 0.42f), worst, 3f, away),
-            accent = accent,
-            accentSoft = accentSoft,
-            onAccent = onColor(accent),
-            danger = readable(ansi[9], worst, 3f, away),
-            dangerSoft = dangerSoft,
-            dark = dark
-        )
-    }
 
     const val BLACK = 0xFF000000.toInt()
     const val WHITE = 0xFFFFFFFF.toInt()
@@ -117,10 +83,10 @@ object Chrome {
 
     fun withAlpha(color: Int, alpha: Int): Int = (alpha.coerceIn(0, 255) shl 24) or (color and 0xffffff)
 
-    fun luminance(color: Int): Float {
-        fun channel(v: Int): Float {
-            val s = v / 255f
-            return if (s <= 0.03928f) s / 12.92f else ((s + 0.055f) / 1.055f).toDouble().pow(2.4).toFloat()
+    private fun luminance(color: Int): Float {
+        fun channel(value: Int): Float {
+            val normalized = value / 255f
+            return if (normalized <= 0.03928f) normalized / 12.92f else ((normalized + 0.055f) / 1.055f).toDouble().pow(2.4).toFloat()
         }
         return 0.2126f * channel(red(color)) + 0.7152f * channel(green(color)) + 0.0722f * channel(blue(color))
     }
@@ -130,20 +96,6 @@ object Chrome {
         val lb = luminance(b)
         return (maxOf(la, lb) + 0.05f) / (minOf(la, lb) + 0.05f)
     }
-
-    fun readable(color: Int, against: Int, minContrast: Float, toward: Int): Int {
-        if (contrast(color, against) >= minContrast) return color
-        var t = 0.05f
-        while (t < 1f) {
-            val c = mix(color, toward, t)
-            if (contrast(c, against) >= minContrast) return c
-            t += 0.05f
-        }
-        return toward
-    }
-
-    fun onColor(background: Int): Int =
-        if (contrast(background, BLACK) >= contrast(background, WHITE)) BLACK else WHITE
 
     fun rounded(color: Int, radiusPx: Float, strokeColor: Int = 0, strokePx: Int = 0): GradientDrawable =
         GradientDrawable().apply {

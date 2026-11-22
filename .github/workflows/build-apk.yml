@@ -20,9 +20,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          fetch-depth: 0
+          fetch-tags: true
           persist-credentials: false
       - name: Install rootfs test tools
-        run: sudo apt-get update && sudo apt-get install -y zstd libcap2-bin gcc-aarch64-linux-gnu
+        run: sudo apt-get update && sudo apt-get install -y zstd gcc-aarch64-linux-gnu
       - uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
@@ -61,16 +63,27 @@ jobs:
           test "$RELEASE_TAG" = "v$version" || { echo "Release tag $RELEASE_TAG does not match versionName $version" >&2; exit 1; }
           code="$(sed -n 's/^[[:space:]]*versionCode[[:space:]]*=[[:space:]]*\([0-9][0-9]*\).*/\1/p' app/build.gradle.kts | head -n 1)"
           test -n "$code" || { echo "versionCode not found in app/build.gradle.kts" >&2; exit 1; }
-          if git rev-parse "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
-            test "$(git rev-list -n 1 "$RELEASE_TAG")" = "$GITHUB_SHA" || {
-              echo "Release tag $RELEASE_TAG does not point at the checked-out commit" >&2
+          git rev-parse "refs/tags/$RELEASE_TAG" >/dev/null 2>&1 || {
+            echo "Release tag $RELEASE_TAG was not fetched" >&2
+            exit 1
+          }
+          test "$(git rev-list -n 1 "$RELEASE_TAG")" = "$GITHUB_SHA" || {
+            echo "Release tag $RELEASE_TAG does not point at the checked-out commit" >&2
+            exit 1
+          }
+          previous_tag="$(git tag --list 'v*' --sort=-version:refname | grep -Fvx "$RELEASE_TAG" | head -n 1 || true)"
+          if [ -n "$previous_tag" ]; then
+            previous_code="$(git show "$previous_tag:app/build.gradle.kts" | sed -n 's/^[[:space:]]*versionCode[[:space:]]*=[[:space:]]*\([0-9][0-9]*\).*/\1/p' | head -n 1)"
+            test -n "$previous_code" || { echo "Could not read versionCode from $previous_tag" >&2; exit 1; }
+            test "$code" -gt "$previous_code" || {
+              echo "versionCode $code must be greater than $previous_tag versionCode $previous_code" >&2
               exit 1
             }
           fi
       - name: Run all unit tests
         run: ./gradlew --no-daemon test
       - name: Run Android lint
-        run: ./gradlew --no-daemon :app:lintDebug
+        run: ./gradlew --no-daemon :app:lintDebug :core:terminal-engine:lintDebug
       - name: Build installable arm64 APK
         run: ./gradlew --no-daemon :app:assembleDebug
       - name: Name the APK artifact
@@ -108,9 +121,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          fetch-depth: 0
+          fetch-tags: true
           persist-credentials: false
       - name: Install rootfs test tools
-        run: sudo apt-get update && sudo apt-get install -y zstd libcap2-bin gcc-aarch64-linux-gnu
+        run: sudo apt-get update && sudo apt-get install -y zstd gcc-aarch64-linux-gnu
       - uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64

@@ -236,34 +236,60 @@ Java_salu_Kandoraq_miauterm_pty_PtyNative_createPty(
     ws.ws_ypixel = (unsigned short)heightPx;
     ioctl(masterFd, TIOCSWINSZ, &ws);
 
-    // Prepare command and arguments
+    // Prepare command and arguments.
     const char *cmd = (*env)->GetStringUTFChars(env, cmdStr, NULL);
+    if (!cmd) {
+        close(masterFd);
+        return NULL;
+    }
 
     int argCount = argsArray ? (*env)->GetArrayLength(env, argsArray) : 0;
-    char **argv = malloc(sizeof(char *) * (argCount + 2));
+    int envCount = 0;
+    char **argv = calloc((size_t)argCount + 2, sizeof(char *));
+    char **envp = NULL;
+    if (!argv) {
+        (*env)->ReleaseStringUTFChars(env, cmdStr, cmd);
+        close(masterFd);
+        return NULL;
+    }
     argv[0] = strdup(cmd);
+    if (!argv[0]) goto allocation_failure;
     for (int i = 0; i < argCount; i++) {
         jstring arg = (jstring)(*env)->GetObjectArrayElement(env, argsArray, i);
+        if (!arg) goto allocation_failure;
         const char *argChars = (*env)->GetStringUTFChars(env, arg, NULL);
+        if (!argChars) {
+            (*env)->DeleteLocalRef(env, arg);
+            goto allocation_failure;
+        }
         argv[i + 1] = strdup(argChars);
         (*env)->ReleaseStringUTFChars(env, arg, argChars);
         (*env)->DeleteLocalRef(env, arg);
+        if (!argv[i + 1]) goto allocation_failure;
     }
     argv[argCount + 1] = NULL;
 
-    // Prepare environment variables
-    int envCount = envArray ? (*env)->GetArrayLength(env, envArray) : 0;
-    char **envp = malloc(sizeof(char *) * (envCount + 1));
+    // Prepare environment variables.
+    envCount = envArray ? (*env)->GetArrayLength(env, envArray) : 0;
+    envp = calloc((size_t)envCount + 1, sizeof(char *));
+    if (!envp) goto allocation_failure;
     for (int i = 0; i < envCount; i++) {
         jstring envItem = (jstring)(*env)->GetObjectArrayElement(env, envArray, i);
+        if (!envItem) goto allocation_failure;
         const char *envChars = (*env)->GetStringUTFChars(env, envItem, NULL);
+        if (!envChars) {
+            (*env)->DeleteLocalRef(env, envItem);
+            goto allocation_failure;
+        }
         envp[i] = strdup(envChars);
         (*env)->ReleaseStringUTFChars(env, envItem, envChars);
         (*env)->DeleteLocalRef(env, envItem);
+        if (!envp[i]) goto allocation_failure;
     }
     envp[envCount] = NULL;
 
     const char *cwd = cwdStr ? (*env)->GetStringUTFChars(env, cwdStr, NULL) : NULL;
+    if (cwdStr && !cwd) goto allocation_failure;
 
     // Pre-calculate max_fd and pre-allocate child structures before fork()
     long max_fd = sysconf(_SC_OPEN_MAX);
@@ -294,18 +320,10 @@ Java_salu_Kandoraq_miauterm_pty_PtyNative_createPty(
         LOGE("Failed to start the session: %s", strerror(errno));
         close(masterFd);
         if (sys_env && sys_env != envp) free(sys_env);
-        if (argv) {
-            for (int i = 0; i <= argCount; i++) {
-                free(argv[i]);
-            }
-            free(argv);
-        }
-        if (envp) {
-            for (int i = 0; i < envCount; i++) {
-                free(envp[i]);
-            }
-            free(envp);
-        }
+        for (int i = 0; i <= argCount; i++) free(argv[i]);
+        free(argv);
+        for (int i = 0; i < envCount; i++) free(envp[i]);
+        free(envp);
         (*env)->ReleaseStringUTFChars(env, cmdStr, cmd);
         if (cwd) (*env)->ReleaseStringUTFChars(env, cwdStr, cwd);
         return NULL;
@@ -331,8 +349,35 @@ Java_salu_Kandoraq_miauterm_pty_PtyNative_createPty(
 
     jintArray result = (*env)->NewIntArray(env, 2);
     jint values[2] = { masterFd, pid };
+    if (!result) {
+        kill(pid, SIGKILL);
+        waitpid(pid, NULL, 0);
+        close(masterFd);
+        return NULL;
+    }
     (*env)->SetIntArrayRegion(env, result, 0, 2, values);
+    if ((*env)->ExceptionCheck(env)) {
+        (*env)->DeleteLocalRef(env, result);
+        kill(pid, SIGKILL);
+        waitpid(pid, NULL, 0);
+        close(masterFd);
+        return NULL;
+    }
     return result;
+
+allocation_failure:
+    LOGE("Could not allocate PTY command arguments or environment");
+    if (argv) {
+        for (int i = 0; i <= argCount; i++) free(argv[i]);
+        free(argv);
+    }
+    if (envp) {
+        for (int i = 0; i < envCount; i++) free(envp[i]);
+        free(envp);
+    }
+    (*env)->ReleaseStringUTFChars(env, cmdStr, cmd);
+    close(masterFd);
+    return NULL;
 }
 
 JNIEXPORT void JNICALL

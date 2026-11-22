@@ -129,7 +129,7 @@ class DebianFilesActivity : AppCompatActivity() {
                     androidFolder,
                     runCatching { Os.lstat(androidFolder.absolutePath).st_mode }.getOrDefault(OsConstants.S_IFDIR),
                     shortcut = true,
-                    label = "android"
+                    label = getString(R.string.files_android_folder)
                 )
             }
             adapter.submitList(entries)

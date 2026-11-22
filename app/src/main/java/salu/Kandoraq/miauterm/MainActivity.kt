@@ -16,7 +16,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.core.view.WindowCompat
 import androidx.drawerlayout.widget.DrawerLayout
@@ -54,12 +53,35 @@ class MainActivity : AppCompatActivity() {
 
         private val bootstrapLock = Any()
         private var bootstrapInProgress = false
-        private const val REQUEST_POST_NOTIFICATIONS = 1001
         private const val EXTRA_SHORTCUT_ACTION = "salu.Kandoraq.Miauterm.extra.SHORTCUT_ACTION"
         private const val SHORTCUT_NEW_SESSION = "new_session"
         private const val SHORTCUT_FAILSAFE = "failsafe"
         private const val SHORTCUT_SETTINGS = "settings"
 
+        private fun runBootstrapOnce(
+            app: android.content.Context,
+            onProgress: ((Int) -> Unit)? = null,
+            isCancelled: () -> Boolean
+        ): Boolean {
+            val owner = synchronized(bootstrapLock) {
+                if (bootstrapInProgress) false else {
+                    bootstrapInProgress = true
+                    true
+                }
+            }
+            if (!owner) {
+                while (synchronized(bootstrapLock) { bootstrapInProgress }) {
+                    if (isCancelled()) return false
+                    Thread.sleep(250)
+                }
+                return !isCancelled() && DebianRuntime.isInstalled(app)
+            }
+            return try {
+                DebianRuntime.install(app, onProgress, isCancelled = isCancelled)
+            } finally {
+                synchronized(bootstrapLock) { bootstrapInProgress = false }
+            }
+        }
     }
 
     private lateinit var binding: ActivityMainBinding
@@ -78,14 +100,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var sessionManager: SessionManager
     private lateinit var extraKeysConfig: ExtraKeysConfig
     private val applyExtraKeysRunnable = Runnable { applyExtraKeys() }
+    private val extraKeysExecutor = java.util.concurrent.Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "Miauterm-ExtraKeys").apply { isDaemon = true }
+    }
+    private val extraKeysGeneration = java.util.concurrent.atomic.AtomicInteger()
     private var isBootstrapping = false
     private var runtimeInitializationStarted = false
-    private var waitingForNotificationPrompt = false
-    private var notificationPromptInterruptedActivity = false
     private var bootstrapDialog: BootstrapDialog? = null
+    private val reinstallConfirmationHandler: () -> Boolean = { confirmRootfsReinstall() }
     @Volatile
-    private var bootstrapCancelled = false
-    private var removedRootfsNoticeShown = false
+    private var bootstrapCancelFlag: java.util.concurrent.atomic.AtomicBoolean? = null
     private var shortcutNewSession = false
     private var shortcutSettings = false
     private var releaseCheckStarted = false
@@ -106,23 +130,11 @@ class MainActivity : AppCompatActivity() {
         }
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        DebianRuntime.reinstallConfirmation = { confirmRootfsReinstall() }
+        DebianRuntime.reinstallConfirmation = reinstallConfirmationHandler
         extraKeysConfig = ExtraKeysConfig(Environment.getHomeDir(this))
 
         setupBackPressedDispatcher()
         drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
-        try {
-            val mLeftDraggerField = DrawerLayout::class.java.getDeclaredField("mLeftDragger")
-            mLeftDraggerField.isAccessible = true
-            val leftDragger = mLeftDraggerField.get(drawerLayout)
-            val edgeSizeField = leftDragger.javaClass.getDeclaredField("mEdgeSize")
-            edgeSizeField.isAccessible = true
-            val density = resources.displayMetrics.density
-            edgeSizeField.setInt(leftDragger, (TerminalView.EDGE_SLOP_DP * density).toInt())
-        } catch (e: Exception) {
-            android.util.Log.w("MainActivity", "Could not widen the drawer edge", e)
-        }
-
         terminalView.onTerminalTouchWhenDrawerOpen = {
             if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
                 drawerLayout.closeDrawer(GravityCompat.START)
@@ -172,47 +184,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         instance = WeakReference(this)
-        requestNotificationsThenInitialize()
-    }
-
-    private fun requestNotificationsThenInitialize() {
-        if (runtimeInitializationStarted) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) !=
-            android.content.pm.PackageManager.PERMISSION_GRANTED
-        ) {
-            val manager = getSystemService(android.app.NotificationManager::class.java)
-            if (manager.getNotificationChannel(MiautermService.CHANNEL_ID) == null) {
-                waitingForNotificationPrompt = true
-                manager.createNotificationChannel(
-                    android.app.NotificationChannel(
-                        MiautermService.CHANNEL_ID,
-                        getString(R.string.notif_channel_name),
-                        android.app.NotificationManager.IMPORTANCE_LOW
-                    ).apply { description = getString(R.string.notif_channel_description) }
-                )
-
-                requestPermissions(
-                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
-                    REQUEST_POST_NOTIFICATIONS
-                )
-                return
-            }
-        }
         initializeRuntime()
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_POST_NOTIFICATIONS) {
-            waitingForNotificationPrompt = false
-            notificationPromptInterruptedActivity = false
-            if (!isFinishing && !isDestroyed) initializeRuntime()
-        }
     }
 
     private fun initializeRuntime() {
@@ -299,14 +271,15 @@ class MainActivity : AppCompatActivity() {
             pendingFailsafeSession = false
             createNewSession(failsafeMode = true)
             terminalView.post { terminalView.showKeyboard() }
-        } else if (!systemReady && DebianRuntime.isRemoved(this)) {
-            showRemovedRootfsDialog()
         } else if (!systemReady) {
             isBootstrapping = true
-            bootstrapCancelled = false
+            val cancelled = java.util.concurrent.atomic.AtomicBoolean(false)
+            bootstrapCancelFlag = cancelled
+            val appContext = applicationContext
+            val activityRef = java.lang.ref.WeakReference(this)
             val progress = BootstrapDialog(this)
             bootstrapDialog = progress
-            progress.setOnCancel { bootstrapCancelled = true }
+            progress.setOnCancel { cancelled.set(true) }
             val progressRef = java.lang.ref.WeakReference(progress)
             try {
                 progress.show()
@@ -314,40 +287,39 @@ class MainActivity : AppCompatActivity() {
                 android.util.Log.e("MainActivity", "Failed to show progress dialog", e)
             }
             kotlin.concurrent.thread(name = "Miauterm-Debian") {
-
                 val success = try {
-                    runBootstrapOnce { percent ->
-                        if (!bootstrapCancelled) {
-                            runOnUiThread {
+                    runBootstrapOnce(appContext, { percent ->
+                        if (!cancelled.get()) {
+                            activityRef.get()?.runOnUiThread {
+                                val activity = activityRef.get() ?: return@runOnUiThread
                                 val dialog = progressRef.get() ?: return@runOnUiThread
-                                if (!isFinishing && !isDestroyed && !bootstrapCancelled && dialog.isShowing) {
+                                if (!activity.isFinishing && !activity.isDestroyed && !cancelled.get() && dialog.isShowing) {
                                     dialog.isIndeterminate = false
                                     dialog.progress = percent
                                 }
                             }
                         }
-                    }
+                    }, cancelled::get)
                 } catch (t: Throwable) {
                     android.util.Log.e("MainActivity", "Bootstrap failed", t)
                     false
                 }
-
-                runOnUiThread {
+                activityRef.get()?.runOnUiThread {
+                    val activity = activityRef.get() ?: return@runOnUiThread
                     try {
                         progressRef.get()?.takeIf { it.isShowing }?.dismiss()
-                    } catch (e: Exception) {}
-                    bootstrapDialog = null
-                    isBootstrapping = false
-                    if (isFinishing || isDestroyed || bootstrapCancelled) {
-                        return@runOnUiThread
-                    }
+                    } catch (_: Exception) {}
+                    activity.bootstrapDialog = null
+                    activity.bootstrapCancelFlag = null
+                    activity.isBootstrapping = false
+                    if (activity.isFinishing || activity.isDestroyed || cancelled.get()) return@runOnUiThread
                     if (success) {
-                        startInitialSession()
+                        activity.startInitialSession()
                     } else {
                         val detail = DebianRuntime.lastInstallError
-                        val message = if (detail.isNullOrBlank()) getString(R.string.debian_install_failed)
-                        else getString(R.string.debian_install_failed_details, detail)
-                        android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_LONG).show()
+                        val message = if (detail.isNullOrBlank()) activity.getString(R.string.debian_install_failed)
+                        else activity.getString(R.string.debian_install_failed_details, detail)
+                        android.widget.Toast.makeText(activity, message, android.widget.Toast.LENGTH_LONG).show()
                     }
                 }
             }
@@ -402,7 +374,7 @@ class MainActivity : AppCompatActivity() {
         val tabs = sessions.mapIndexed { index, session ->
             SessionTabsView.Tab(
                 session.sessionName?.takeIf { it.isNotBlank() }
-                    ?: getString(R.string.session_label, index)
+                    ?: getString(R.string.session_label, index + 1)
             )
         }
         val active = sessionManager.currentSessionIndex
@@ -412,29 +384,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (waitingForNotificationPrompt && notificationPromptInterruptedActivity) {
-            waitingForNotificationPrompt = false
-            notificationPromptInterruptedActivity = false
-
-            initializeRuntime()
-        }
         applyPreferences()
 
-        extraKeysConfig.setHome(Environment.getHomeDir(this))
-        applyExtraKeys()
-        extraKeysConfig.watch {
-            terminalView.removeCallbacks(applyExtraKeysRunnable)
-            terminalView.postDelayed(applyExtraKeysRunnable, 150)
-        }
+        applyExtraKeys(watch = true)
         if (!::sessionManager.isInitialized || !::sessionAdapter.isInitialized) return
-        val failsafeSessionActive = pendingFailsafeSession || sessionManager.currentSession?.failsafeMode == true
-        if (!failsafeSessionActive && DebianRuntime.isRemoved(this) && !removedRootfsNoticeShown) {
-            showRemovedRootfsDialog()
-        }
-        if (!failsafeSessionActive && DebianRuntime.isInstalled(this)) {
-            runCatching { MiautermCommandInstaller.install(this, Environment.getMiautermRoot(this)) }
-                .onFailure { android.util.Log.e("MainActivity", "Could not update miauterm-cmd in Debian", it) }
-        }
         var current = sessionManager.currentSession
         if (current != null) {
             terminalView.session = current
@@ -463,10 +416,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkForReleaseNotification() {
         if (releaseCheckStarted) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) !=
-            android.content.pm.PackageManager.PERMISSION_GRANTED
-        ) return
         if (!androidx.core.app.NotificationManagerCompat.from(this).areNotificationsEnabled()) return
         releaseCheckStarted = true
         val preferences = PreferenceManager.getDefaultSharedPreferences(this)
@@ -490,39 +439,67 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        if (waitingForNotificationPrompt) notificationPromptInterruptedActivity = true
         terminalView.clearSelection()
-        extraKeysConfig.stopWatching()
+        if (::extraKeysConfig.isInitialized) {
+            runCatching { extraKeysExecutor.execute { extraKeysConfig.stopWatching() } }
+        }
         terminalView.removeCallbacks(applyExtraKeysRunnable)
     }
 
     internal fun reloadExtraKeys() {
-        if (::extraKeysConfig.isInitialized) {
-            extraKeysConfig.setHome(Environment.getHomeDir(this))
-            applyExtraKeys(force = true)
-            extraKeysView.scrollLastRowToEnd()
-        }
+        if (::extraKeysConfig.isInitialized) applyExtraKeys(force = true)
     }
 
-    private fun applyExtraKeys(force: Boolean = false) {
-        if (DebianRuntime.isInstalled(this)) {
-            runCatching { extraKeysConfig.ensureConfigFile() }
-                .onFailure { android.util.Log.e("MainActivity", "Could not create the default extra-keys file", it) }
-        }
-        val result = if (force) extraKeysConfig.reload() else extraKeysConfig.loadIfChanged() ?: return
-        val rows = result.rows
-            .map { row -> row.filterNot { it is ExtraKeysLayout.SpecialKey && it.special == ExtraKeysLayout.Special.FIND } }
-            .filter { it.isNotEmpty() }
-            .ifEmpty { ExtraKeysLayout.DEFAULT_ROWS }
-        extraKeysView.setKeys(rows)
-        val bar = binding.bottomBarContainer
-        val height = (ExtraKeysView.barHeightDp(rows.size) * resources.displayMetrics.density).toInt()
-        if (bar.layoutParams.height != height) {
-            bar.layoutParams = bar.layoutParams.apply { this.height = height }
-        }
-        extraKeysView.scrollLastRowToEnd()
-        result.error?.let {
-            Toast.makeText(this, getString(R.string.extra_keys_error, it), Toast.LENGTH_LONG).show()
+    private fun applyExtraKeys(force: Boolean = false, watch: Boolean = false) {
+        if (!::extraKeysConfig.isInitialized || isDestroyed) return
+        val generation = extraKeysGeneration.incrementAndGet()
+        val home = Environment.getHomeDir(applicationContext)
+        val app = applicationContext
+        val activityRef = java.lang.ref.WeakReference(this)
+        try {
+            extraKeysExecutor.execute {
+                val result = runCatching {
+                    extraKeysConfig.setHome(home)
+                    if (DebianRuntime.isInstalled(app)) {
+                        runCatching { MiautermCommandInstaller.install(app, Environment.getMiautermRoot(app)) }
+                            .onFailure { android.util.Log.e("MainActivity", "Could not update miauterm-cmd in Debian", it) }
+                        runCatching { extraKeysConfig.ensureConfigFile() }
+                            .onFailure { android.util.Log.e("MainActivity", "Could not create the default extra-keys file", it) }
+                    }
+                    if (watch) {
+                        extraKeysConfig.watch {
+                            activityRef.get()?.runOnUiThread {
+                                activityRef.get()?.let { activity ->
+                                    activity.terminalView.removeCallbacks(activity.applyExtraKeysRunnable)
+                                    activity.terminalView.postDelayed(activity.applyExtraKeysRunnable, 150)
+                                }
+                            }
+                        }
+                    }
+                    if (force) extraKeysConfig.reload() else extraKeysConfig.loadIfChanged()
+                }.onFailure { android.util.Log.e("MainActivity", "Could not apply extra-key configuration", it) }.getOrNull()
+                    ?: return@execute
+                val rows = result.rows
+                    .map { row -> row.filterNot { it is ExtraKeysLayout.SpecialKey && it.special == ExtraKeysLayout.Special.FIND } }
+                    .filter { it.isNotEmpty() }
+                    .ifEmpty { ExtraKeysLayout.DEFAULT_ROWS }
+                activityRef.get()?.runOnUiThread {
+                    val activity = activityRef.get() ?: return@runOnUiThread
+                    if (activity.isFinishing || activity.isDestroyed || generation != activity.extraKeysGeneration.get()) return@runOnUiThread
+                    activity.extraKeysView.setKeys(rows)
+                    val bar = activity.binding.bottomBarContainer
+                    val height = (ExtraKeysView.barHeightDp(rows.size) * activity.resources.displayMetrics.density).toInt()
+                    if (bar.layoutParams.height != height) {
+                        bar.layoutParams = bar.layoutParams.apply { this.height = height }
+                    }
+                    activity.extraKeysView.scrollLastRowToEnd()
+                    result.error?.let { error ->
+                        Toast.makeText(activity, activity.getString(R.string.extra_keys_error, error), Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        } catch (_: java.util.concurrent.RejectedExecutionException) {
+            Unit
         }
     }
 
@@ -558,7 +535,7 @@ class MainActivity : AppCompatActivity() {
                 sessionManager.snapshot().forEach { it.emulator.remapColors(remap) }
             }
         }
-        Chrome.apply(salu.Kandoraq.miauterm.emulator.TerminalColor.SCHEMES.getValue(salu.Kandoraq.miauterm.emulator.TerminalColor.currentThemeId))
+        Chrome.apply()
         terminalView.applyTheme()
         applyChrome()
 
@@ -598,7 +575,6 @@ class MainActivity : AppCompatActivity() {
 
         binding.navDrawer.setBackgroundColor(p.bar)
         binding.drawerTitle.setTextColor(p.text)
-        binding.drawerDivider.visibility = View.GONE
         binding.drawerSessionsLabel.setTextColor(p.textFaint)
         val iconTint = ColorStateList(
             arrayOf(intArrayOf(android.R.attr.state_pressed), intArrayOf()),
@@ -627,16 +603,6 @@ class MainActivity : AppCompatActivity() {
         controller.isAppearanceLightNavigationBars = !p.dark
     }
 
-    private fun showRemovedRootfsDialog() {
-        if (removedRootfsNoticeShown || isFinishing || isDestroyed) return
-        removedRootfsNoticeShown = true
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle(R.string.rootfs_removed_title)
-            .setMessage(R.string.rootfs_removed_message)
-            .setPositiveButton(R.string.close, null)
-            .show()
-    }
-
     private fun confirmRootfsReinstall(): Boolean {
         if (isFinishing || isDestroyed) return false
         val confirmed = java.util.concurrent.atomic.AtomicBoolean(false)
@@ -656,33 +622,15 @@ class MainActivity : AppCompatActivity() {
                         latch.countDown()
                     }
                     .setOnCancelListener { latch.countDown() }
+                    .setOnDismissListener { latch.countDown() }
                     .show()
             } catch (e: Exception) {
                 android.util.Log.w("MainActivity", "Could not show rootfs confirmation", e)
                 latch.countDown()
             }
         }
-        if (!latch.await(3, java.util.concurrent.TimeUnit.MINUTES)) return false
+        if (!latch.await(30, java.util.concurrent.TimeUnit.SECONDS)) return false
         return confirmed.get()
-    }
-
-    private fun runBootstrapOnce(onProgress: ((Int) -> Unit)? = null): Boolean {
-        val app = applicationContext
-        val owner = synchronized(bootstrapLock) {
-            if (bootstrapInProgress) false else {
-                bootstrapInProgress = true
-                true
-            }
-        }
-        if (!owner) {
-            while (synchronized(bootstrapLock) { bootstrapInProgress }) Thread.sleep(250)
-            return DebianRuntime.isInstalled(app)
-        }
-        return try {
-            DebianRuntime.install(app, onProgress)
-        } finally {
-            synchronized(bootstrapLock) { bootstrapInProgress = false }
-        }
     }
 
     private fun restoreOrCreateSession() {
@@ -841,6 +789,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        bootstrapCancelFlag?.set(true)
+        if (DebianRuntime.reinstallConfirmation === reinstallConfirmationHandler) {
+            DebianRuntime.reinstallConfirmation = null
+        }
+        if (::extraKeysConfig.isInitialized) extraKeysConfig.stopWatching()
+        extraKeysExecutor.shutdownNow()
         try {
             if (bootstrapDialog?.isShowing == true) {
                 bootstrapDialog?.dismiss()

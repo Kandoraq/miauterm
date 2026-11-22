@@ -3,6 +3,8 @@ package salu.Kandoraq.miauterm.emulator
 import java.util.ArrayDeque
 
 class TerminalBuffer(var rows: Int, var cols: Int, private val maxHistory: Int = 5000) {
+    private data class ReflowCell(val row: Int, val col: Int)
+
     val history = ArrayDeque<TerminalRow>()
     private var historyGeneration = 0
     private var historyArrayCache: Array<TerminalRow>? = null
@@ -186,15 +188,41 @@ class TerminalBuffer(var rows: Int, var cols: Int, private val maxHistory: Int =
             var j = i
             while (j < src.size - 1 && src[j].isWrapped) j++
 
-            val segment = IntArray(j - i + 1) { k -> if (i + k < j) src[i + k].cols else contentLength(src[i + k]) }
-            var length = 0
-            var cursorOffset = -1
-            var topOffset = -1
-            for (k in i..j) {
-                if (k == topSrc) topOffset = length
-                if (k == cursorSrc) cursorOffset = length + cursorCol.coerceIn(0, src[k].cols - 1)
-                length += segment[k - i]
+            val segment = IntArray(j - i + 1) { k ->
+                val sourceIndex = i + k
+                val visibleLength = if (sourceIndex < j) src[sourceIndex].cols else contentLength(src[sourceIndex])
+                if (sourceIndex == cursorSrc) maxOf(visibleLength, cursorCol.coerceIn(0, src[sourceIndex].cols - 1) + 1)
+                else visibleLength
             }
+            val cells = ArrayList<ReflowCell?>(segment.sum() + 4)
+            val rawToOutput = IntArray(segment.sum() + 1)
+            var rawOffset = 0
+            var topOffset = -1
+            var cursorRawOffset = -1
+            for (k in i..j) {
+                val sourceRow = src[k]
+                if (k == topSrc) topOffset = cells.size
+                if (k == cursorSrc) cursorRawOffset = rawOffset + cursorCol.coerceIn(0, sourceRow.cols - 1)
+                val count = segment[k - i]
+                var sourceCol = 0
+                while (sourceCol < count) {
+                    val wide = sourceRow.isWideHead(sourceCol) && sourceCol + 1 < count
+                    if (wide && cells.size % newCols == newCols - 1) cells.add(null)
+                    rawToOutput[rawOffset] = cells.size
+                    cells.add(ReflowCell(k, sourceCol))
+                    rawOffset++
+                    sourceCol++
+                    if (wide) {
+                        rawToOutput[rawOffset] = cells.size
+                        cells.add(ReflowCell(k, sourceCol))
+                        rawOffset++
+                        sourceCol++
+                    }
+                    rawToOutput[rawOffset] = cells.size
+                }
+            }
+            val length = cells.size
+            val cursorOffset = if (cursorRawOffset >= 0) rawToOutput[cursorRawOffset] else -1
 
             var cursorPos = -1
             var wrapPending = false
@@ -215,28 +243,39 @@ class TerminalBuffer(var rows: Int, var cols: Int, private val maxHistory: Int =
             if (cursorPos >= 0) needed = maxOf(needed, cursorPos / newCols + 1)
 
             val base = out.size
-            var srcRow = i
-            var srcCol = 0
             for (n in 0 until needed) {
                 val row = TerminalRow(newCols)
-                var c = 0
+                var col = 0
                 var copied = n * newCols
-                while (c < newCols && copied < length) {
-
-                    while (srcCol >= segment[srcRow - i]) {
-                        srcRow++
-                        srcCol = 0
+                val end = minOf(length, copied + newCols)
+                while (copied < end) {
+                    val cell = cells[copied]
+                    if (cell == null) {
+                        col++
+                        copied++
+                        continue
                     }
-                    val from = src[srcRow]
-                    val ch = from.chars[srcCol]
-                    if (ch == TerminalRow.ASTRAL) {
-                        row.setAstral(c, from.astralAt(srcCol), from.fgColors[srcCol], from.bgColors[srcCol], from.styles[srcCol], from.linkAt(srcCol))
+                    val from = src[cell.row]
+                    val sourceCol = cell.col
+                    if (from.isWideHead(sourceCol) && copied + 1 < end && cells[copied + 1] == ReflowCell(cell.row, sourceCol + 1)) {
+                        if (from.chars[sourceCol] == TerminalRow.ASTRAL) {
+                            row.setAstral(col, from.astralAt(sourceCol), from.fgColors[sourceCol], from.bgColors[sourceCol], from.styles[sourceCol], from.linkAt(sourceCol))
+                            row.setChar(col + 1, TerminalRow.WIDE_TAIL, from.fgColors[sourceCol + 1], from.bgColors[sourceCol + 1], from.styles[sourceCol + 1], from.linkAt(sourceCol + 1))
+                        } else {
+                            row.setWide(col, from.chars[sourceCol], from.chars[sourceCol + 1], from.fgColors[sourceCol], from.bgColors[sourceCol], from.styles[sourceCol], from.linkAt(sourceCol))
+                        }
+                        col += 2
+                        copied += 2
                     } else {
-                        row.setChar(c, ch, from.fgColors[srcCol], from.bgColors[srcCol], from.styles[srcCol], from.linkAt(srcCol))
+                        val ch = from.chars[sourceCol]
+                        if (ch == TerminalRow.ASTRAL) {
+                            row.setAstral(col, from.astralAt(sourceCol), from.fgColors[sourceCol], from.bgColors[sourceCol], from.styles[sourceCol], from.linkAt(sourceCol))
+                        } else {
+                            row.setChar(col, ch, from.fgColors[sourceCol], from.bgColors[sourceCol], from.styles[sourceCol], from.linkAt(sourceCol))
+                        }
+                        col++
+                        copied++
                     }
-                    c++
-                    srcCol++
-                    copied++
                 }
                 row.isWrapped = n < needed - 1
                 out.add(row)
@@ -291,14 +330,9 @@ class TerminalBuffer(var rows: Int, var cols: Int, private val maxHistory: Int =
             isWrapPending = false
             isAlternate = true
         } else if (!enable && isAlternate) {
-            val restored = alternateScreen
-            if (restored != null) {
-                screen = restored
-                screenGeneration++
-            } else {
-                screen = Array(rows) { TerminalRow(cols) }
-                screenGeneration++
-            }
+            val restored = alternateScreen ?: return
+            screen = restored
+            screenGeneration++
             alternateScreen = null
             cursorRow = savedCursorRow.coerceIn(0, rows - 1)
             cursorCol = savedCursorCol.coerceIn(0, cols - 1)
@@ -486,14 +520,14 @@ class TerminalBuffer(var rows: Int, var cols: Int, private val maxHistory: Int =
         }
     }
 
-    fun scrollUp(top: Int, bottom: Int) {
+    fun scrollUp(top: Int, bottom: Int, addToHistory: Boolean = true) {
         val t = top.coerceIn(0, rows - 1)
         val b = bottom.coerceIn(t, rows - 1)
 
         val departing = screen[t]
         var incoming: TerminalRow? = departing
 
-        if (t == 0 && b == rows - 1 && !isAlternate) {
+        if (addToHistory && t == 0 && b == rows - 1 && !isAlternate) {
             history.addLast(departing)
 
             incoming = if (history.size > maxHistory) history.removeFirst().takeIf { it.cols == cols } else null

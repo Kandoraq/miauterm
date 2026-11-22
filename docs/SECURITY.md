@@ -6,4 +6,4 @@ The Debian root filesystem is stored in app-private storage. Access to Download 
 
 ## Reporting a vulnerability
 
-Please report security issues through [GitHub private vulnerability reporting](https://github.com/synccatcode/miauterm/security/advisories/new) when it is enabled for this repository. Otherwise, contact the maintainer through the [synccatcode GitHub profile](https://github.com/synccatcode) before posting details publicly. Include steps to reproduce, the affected app version, Android version, device model, and CPU architecture. Do not include personal files or secrets in a report.
+Please report security issues through [GitHub private vulnerability reporting](https://github.com/Kandoraq/miauterm/security/advisories/new) when it is enabled for this repository. Otherwise, contact the maintainer through the [synccatcode GitHub profile](https://github.com/Kandoraq) before posting details publicly. Include steps to reproduce, the affected app version, Android version, device model, and CPU architecture. Do not include personal files or secrets in a report.

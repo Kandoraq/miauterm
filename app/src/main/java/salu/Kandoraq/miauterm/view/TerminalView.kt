@@ -66,6 +66,7 @@ class TerminalView @JvmOverloads constructor(
             val previous = field
             field?.onRedraw = null
             field?.emulator?.onScreenUpdate = null
+            field?.emulator?.onBell = null
             field = value
             value?.onRedraw = { postInvalidate() }
             value?.emulator?.onScreenUpdate = onEmulatorScreenUpdate
@@ -95,6 +96,14 @@ class TerminalView @JvmOverloads constructor(
 
 
     private val screenUpdatePosted = AtomicBoolean(false)
+    private val searchScanPending = AtomicBoolean(false)
+    private val urlScanPending = AtomicBoolean(false)
+    private val searchScanGeneration = java.util.concurrent.atomic.AtomicInteger(0)
+    private val searchScanOwner = java.util.concurrent.atomic.AtomicInteger(0)
+    private val urlScanGeneration = java.util.concurrent.atomic.AtomicInteger(0)
+    private val urlScanOwner = java.util.concurrent.atomic.AtomicInteger(0)
+    @Volatile
+    private var terminalScanExecutor: java.util.concurrent.ExecutorService? = null
     private val onEmulatorScreenUpdate: () -> Unit = {
         if (screenUpdatePosted.compareAndSet(false, true)) {
             val posted = post {
@@ -103,7 +112,7 @@ class TerminalView @JvmOverloads constructor(
                 if (urlRefreshCounter % URL_REFRESH_CADENCE == 0) {
                     try { refreshUrlLinks() } catch (_: Exception) {}
                     if (searchQuery.isNotEmpty()) {
-                        try { startSearch(searchQuery) } catch (_: Exception) {}
+                        try { refreshSearchHighlights() } catch (_: Exception) {}
                     }
                 }
                 postScreenUpdate()
@@ -132,9 +141,24 @@ class TerminalView @JvmOverloads constructor(
         isSelecting = false
         session?.setFocused(false)
         session?.onRedraw = null
+        session?.emulator?.onBell = null
         clipboardExecutor?.shutdownNow()
         clipboardExecutor = null
         session?.emulator?.onScreenUpdate = null
+        searchScanGeneration.incrementAndGet()
+        urlScanGeneration.incrementAndGet()
+        synchronized(this) {
+            terminalScanExecutor?.shutdownNow()
+            terminalScanExecutor = null
+        }
+        searchScanPending.set(false)
+        urlScanPending.set(false)
+    }
+
+    private fun scanExecutor(): java.util.concurrent.ExecutorService = synchronized(this) {
+        terminalScanExecutor?.takeIf { !it.isShutdown } ?: java.util.concurrent.Executors.newSingleThreadExecutor { runnable ->
+            Thread(runnable, "Miauterm-TerminalScan").apply { isDaemon = true }
+        }.also { terminalScanExecutor = it }
     }
 
     override fun onWindowFocusChanged(hasWindowFocus: Boolean) {
@@ -1354,6 +1378,8 @@ class TerminalView @JvmOverloads constructor(
                 val hPad = (14 * density).toInt()
                 val vPad = (10 * density).toInt()
                 setPadding(hPad, vPad, hPad, vPad)
+                minHeight = (48 * density).toInt()
+                minimumHeight = (48 * density).toInt()
                 background = Chrome.ripple(Chrome.rounded(p.raised, 10 * density), Chrome.withAlpha(p.accent, 70), 10 * density)
                 setOnClickListener { onClick() }
             }
@@ -1666,23 +1692,71 @@ class TerminalView @JvmOverloads constructor(
     }
 
     fun startSearch(query: String) {
-        val emulator = session?.emulator ?: return
         searchQuery = query
-        emulator.lock.withLock {
-            if (query.isEmpty()) {
-                searchHits = emptyList()
-                searchIndex = -1
-                emulator.buffer.clearSearchHighlights()
-            } else {
-                val hits = TerminalSearch.findAll(emulator.buffer, query, ignoreCase = true)
-                searchHits = hits
-                searchIndex = if (hits.isEmpty()) -1 else hits.size - 1
-                emulator.buffer.markSearchHits(hits, searchIndex)
-                if (searchIndex >= 0) scrollToSearchHit(hits[searchIndex])
-            }
+        searchIndex = -1
+        searchScanGeneration.incrementAndGet()
+        if (query.isEmpty()) {
+            searchHits = emptyList()
+            session?.emulator?.let { emulator -> emulator.lock.withLock { emulator.buffer.clearSearchHighlights() } }
+            postSearchChanged()
+            postInvalidate()
+            return
         }
-        postSearchChanged()
-        postInvalidate()
+        queueSearchScan(resetToLatest = true)
+    }
+
+    private fun refreshSearchHighlights() = queueSearchScan(resetToLatest = false)
+
+    private fun queueSearchScan(resetToLatest: Boolean) {
+        val emulator = session?.emulator ?: return
+        val query = searchQuery
+        if (query.isEmpty()) return
+        val generation = searchScanGeneration.incrementAndGet()
+        if (!searchScanPending.compareAndSet(false, true)) return
+        searchScanOwner.set(generation)
+        val sessionAtRequest = session
+        try {
+            scanExecutor().execute {
+                val hits = try {
+                    emulator.lock.withLock { TerminalSearch.findAll(emulator.buffer, query, ignoreCase = true) }
+                } catch (_: Exception) {
+                    emptyList()
+                }
+                val posted = post {
+                    if (searchScanOwner.get() != generation) return@post
+                    searchScanPending.set(false)
+                    if (generation != searchScanGeneration.get() || session !== sessionAtRequest || searchQuery != query) {
+                        if (isAttachedToWindow && searchQuery.isNotEmpty()) {
+                            queueSearchScan(resetToLatest = resetToLatest || searchQuery != query)
+                        }
+                        return@post
+                    }
+                    val priorAnchor = searchHits.getOrNull(searchIndex)?.let { it.row to it.startCol }
+                    val priorIndex = searchIndex
+                    val anchorIndex = priorAnchor?.let { old ->
+                        hits.indexOfFirst { it.row == old.first && it.startCol == old.second }.takeIf { it >= 0 }
+                    }
+                    searchHits = hits
+                    searchIndex = when {
+                        hits.isEmpty() -> -1
+                        resetToLatest -> hits.lastIndex
+                        anchorIndex != null -> anchorIndex
+                        else -> priorIndex.coerceIn(0, hits.lastIndex)
+                    }
+                    emulator.lock.withLock {
+                        emulator.buffer.markSearchHits(hits, searchIndex)
+                        if (resetToLatest || (priorAnchor != null && anchorIndex == null)) {
+                            hits.getOrNull(searchIndex)?.let(::scrollToSearchHit)
+                        }
+                    }
+                    postSearchChanged()
+                    postInvalidate()
+                }
+                if (!posted && searchScanOwner.compareAndSet(generation, 0)) searchScanPending.set(false)
+            }
+        } catch (_: java.util.concurrent.RejectedExecutionException) {
+            if (searchScanOwner.compareAndSet(generation, 0)) searchScanPending.set(false)
+        }
     }
 
     fun nextSearchHit() {
@@ -1733,19 +1807,42 @@ class TerminalView @JvmOverloads constructor(
 
     fun refreshUrlLinks() {
         val emulator = session?.emulator ?: return
-        emulator.lock.withLock {
-            val urls = TerminalSearch.findUrls(emulator.buffer)
-            urlHits = urls
-            emulator.buffer.clearUrlHighlights()
-            for (u in urls) {
-                val row = u.rowRef ?: emulator.buffer.rowForIndex(u.row) ?: continue
-                for (c in u.startCol..u.endCol) {
-                    if (c in 0 until row.cols) row.isUrlLink[c] = true
+        val generation = urlScanGeneration.incrementAndGet()
+        if (!urlScanPending.compareAndSet(false, true)) return
+        urlScanOwner.set(generation)
+        val sessionAtRequest = session
+        try {
+            scanExecutor().execute {
+                val urls = try {
+                    emulator.lock.withLock { TerminalSearch.findUrls(emulator.buffer) }
+                } catch (_: Exception) {
+                    emptyList()
                 }
-                row.hasUrlFlags = true
+                val posted = post {
+                    if (urlScanOwner.get() != generation) return@post
+                    urlScanPending.set(false)
+                    if (generation != urlScanGeneration.get() || session !== sessionAtRequest) {
+                        if (isAttachedToWindow && session != null) refreshUrlLinks()
+                        return@post
+                    }
+                    emulator.lock.withLock {
+                        urlHits = urls
+                        emulator.buffer.clearUrlHighlights()
+                        for (url in urls) {
+                            val row = url.rowRef ?: emulator.buffer.rowForIndex(url.row) ?: continue
+                            for (col in url.startCol..url.endCol) {
+                                if (col in 0 until row.cols) row.isUrlLink[col] = true
+                            }
+                            row.hasUrlFlags = true
+                        }
+                    }
+                    postInvalidate()
+                }
+                if (!posted && urlScanOwner.compareAndSet(generation, 0)) urlScanPending.set(false)
             }
+        } catch (_: java.util.concurrent.RejectedExecutionException) {
+            if (urlScanOwner.compareAndSet(generation, 0)) urlScanPending.set(false)
         }
-        postInvalidate()
     }
 
     private fun handleUrlTap(x: Float, y: Float): Boolean {

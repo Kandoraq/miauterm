@@ -47,7 +47,7 @@ class SessionTabsView @JvmOverloads constructor(
         scroll.addView(strip, android.widget.FrameLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT))
         addView(scroll, LayoutParams(0, LayoutParams.MATCH_PARENT, 1f))
 
-        newButton.text = "+"
+        newButton.text = context.getString(R.string.session_tab_add)
         newButton.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
         newButton.typeface = Typeface.MONOSPACE
         newButton.gravity = Gravity.CENTER
@@ -56,7 +56,7 @@ class SessionTabsView @JvmOverloads constructor(
             it.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
             onNew?.invoke()
         }
-        addView(newButton, LayoutParams(dp(46), LayoutParams.MATCH_PARENT))
+        addView(newButton, LayoutParams(dp(48), LayoutParams.MATCH_PARENT))
         applyPalette()
     }
 
@@ -116,6 +116,7 @@ class SessionTabsView @JvmOverloads constructor(
         val row = LinearLayout(context).apply {
             orientation = HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
+            minimumHeight = dp(48)
             setPadding(dp(10), 0, dp(if (isActive) 3 else 10), 0)
             background = Chrome.flatPressable(if (isActive) p.raised else p.bar, p.raisedHigh)
             isClickable = true
@@ -133,9 +134,11 @@ class SessionTabsView @JvmOverloads constructor(
         }
         row.addView(text(tab.title, 12f, if (isActive) p.accent else p.textDim, false))
         if (isActive) {
-            val close = text("✕", 12f, p.textDim, false).apply {
+            val close = text(context.getString(R.string.session_tab_close), 12f, p.textDim, false).apply {
                 gravity = Gravity.CENTER
                 contentDescription = context.getString(R.string.close_session)
+                minimumWidth = dp(48)
+                minimumHeight = dp(48)
                 setOnClickListener {
                     it.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                     onClose?.invoke(index)
@@ -146,9 +149,9 @@ class SessionTabsView @JvmOverloads constructor(
                     intArrayOf(p.danger, p.textDim)
                 ))
             }
-            row.addView(close, LayoutParams(dp(30), dp(26)).apply { marginStart = dp(2) })
+            row.addView(close, LayoutParams(dp(48), dp(48)).apply { marginStart = dp(2) })
         }
-        row.layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, dp(30)).apply {
+        row.layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, dp(48)).apply {
             marginStart = dp(2)
             marginEnd = dp(2)
         }

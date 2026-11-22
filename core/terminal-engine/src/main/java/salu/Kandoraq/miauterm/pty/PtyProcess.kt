@@ -98,8 +98,9 @@ class PtyProcess private constructor(
                 }
             }, "Miauterm-PtyReaper").apply { isDaemon = true }
             t.start()
+        } else if (reaped) {
+            closeMasterFdOnce()
         }
-        closeMasterFdOnce()
     }
 
     companion object {

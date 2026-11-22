@@ -57,6 +57,10 @@
     <string name="session_label">session %1$d</string>
     <string name="max_sessions_reached" translatable="false">Miauterm supports up to 8 sessions.</string>
     <string name="close_session">Close session</string>
+    <string name="session_tab_close" translatable="false">✕</string>
+    <string name="session_tab_add" translatable="false">+</string>
+    <string name="settings_linux_system_fallback" translatable="false">Linux system</string>
+    <string name="files_android_folder" translatable="false">android</string>
     <string name="exit_confirm_title">Exit Session</string>
     <string name="exit_confirm_message">Do you want to close this terminal session?</string>
 
@@ -133,7 +137,6 @@
     <!-- Settings -->
     <string name="pref_cat_appearance">Appearance &amp; Font</string>
     <string name="pref_font_title">Terminal Font</string>
-    <string name="pref_theme_title">Color Scheme</string>
     <string name="pref_font_size_title">Font Size</string>
     <string name="pref_session_tabs_title">Session tabs</string>
     <string name="pref_session_tabs_summary">A strip above the terminal for switching between sessions and starting new ones</string>
@@ -211,8 +214,6 @@
     <string name="rootfs_remove_confirm_message">This permanently deletes Debian and its files. Miauterm will not reinstall it after deletion. To restore the bundled Debian system, clear Miauterm app data in Android settings.</string>
     <string name="rootfs_remove_done">Debian was deleted.</string>
     <string name="close">Close</string>
-    <string name="rootfs_removed_title">Debian is not installed</string>
-    <string name="rootfs_removed_message">Debian was deleted. Clear Miauterm app data in Android settings to install the bundled Debian system again.</string>
     <string name="debian_reset_confirm_title">Reset %1$s?</string>
     <string name="debian_reset_confirm_message">Reset replaces Debian with the bundled original and removes packages and files added since installation. The selected Linux user and Debian hostname return to defaults; custom DNS and other Miauterm settings stay unchanged. Export a backup first if you need to keep Debian files.</string>
     <string name="debian_restore_confirm_title">Replace Debian?</string>

@@ -580,7 +580,7 @@ class TerminalEmulator(
             'M' -> {
                 val count = (if (p1 == 0) 1 else p1).coerceAtMost(buffer.rows)
                 for (i in 0 until count) {
-                    buffer.scrollUp(buffer.cursorRow, buffer.scrollBottom)
+                    buffer.scrollUp(buffer.cursorRow, buffer.scrollBottom, addToHistory = false)
                 }
                 buffer.isWrapPending = false
             }

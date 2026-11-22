@@ -124,7 +124,7 @@ class TerminalSession(
                 if (shellPath == null || !shellPath.isFile || !shellPath.canExecute()) {
                     val probe = DebianRuntime.shellProbeSummary(root)
                     DebianRuntime.recordRuntimeEvent(context, "Debian shell probe failed: $probe")
-                    if (!DebianRuntime.isRemoved(context) && rootfsRecoveryStarted.compareAndSet(false, true)) {
+                    if (rootfsRecoveryStarted.compareAndSet(false, true)) {
                         val notice = "\r\nDebian shell is missing. Repairing the bundled Linux system...\r\n"
                         val noticeBytes = notice.toByteArray(Charsets.UTF_8)
                         emulator.processInput(noticeBytes, 0, noticeBytes.size)
@@ -149,12 +149,8 @@ class TerminalSession(
                         }
                         return
                     }
-                    val detail = if (DebianRuntime.isRemoved(context)) {
-                        "The Debian system was removed. Restore it from Settings > Linux system."
-                    } else {
-                        "No valid executable ARM64 Debian shell was found under ${root.absolutePath}. " +
-                            "Shell check: $probe"
-                    }
+                    val detail = "No valid executable ARM64 Debian shell was found under ${root.absolutePath}. " +
+                        "Shell check: $probe"
                     throw IllegalStateException(detail)
                 }
 

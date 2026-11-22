@@ -121,25 +121,29 @@ object DebianBackup {
     }
 
     fun import(context: Context, uri: Uri) {
-        val input = context.contentResolver.openInputStream(uri) ?: error("Cannot open backup file")
-        val archive = File(context.cacheDir, "miauterm-restore-${System.currentTimeMillis()}.zip")
-        try {
-            input.use { source ->
-                archive.outputStream().buffered().use { sink ->
-                    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-                    var total = 0L
-                    while (true) {
-                        val count = source.read(buffer)
-                        if (count < 0) break
-                        total += count
-                        require(total <= MAX_IMPORT_BYTES) { "Backup is too large" }
-                        sink.write(buffer, 0, count)
+        val lock = FileLocks.tryLock(listOf(File(context.filesDir, ".debian-install.lock")))
+            ?: error("Another Debian operation is already in progress")
+        lock.use {
+            val input = context.contentResolver.openInputStream(uri) ?: error("Cannot open backup file")
+            val archive = File(context.cacheDir, "miauterm-restore-${System.currentTimeMillis()}.zip")
+            try {
+                input.use { source ->
+                    archive.outputStream().buffered().use { sink ->
+                        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                        var total = 0L
+                        while (true) {
+                            val count = source.read(buffer)
+                            if (count < 0) break
+                            total += count
+                            require(total <= MAX_IMPORT_BYTES) { "Backup is too large" }
+                            sink.write(buffer, 0, count)
+                        }
                     }
                 }
+                restoreArchive(context, archive)
+            } finally {
+                archive.delete()
             }
-            restoreArchive(context, archive)
-        } finally {
-            archive.delete()
         }
     }
 
@@ -260,8 +264,6 @@ object DebianBackup {
             }
             SafeDelete.deleteRecursively(previous)
             SafeDelete.deleteRecursively(failed)
-            androidx.preference.PreferenceManager.getDefaultSharedPreferences(context).edit()
-                .remove(DebianRuntime.PREF_ROOTFS_REMOVED).apply()
         } finally {
             SafeDelete.deleteRecursively(staging)
         }

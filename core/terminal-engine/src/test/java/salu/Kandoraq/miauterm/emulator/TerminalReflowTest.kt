@@ -164,6 +164,44 @@ class TerminalReflowTest {
     }
 
     @Test
+    fun reflowKeepsWideGlyphTogetherAtNewRowBoundary() {
+        val e = TerminalEmulator(rows = 3, cols = 8)
+        e.feed("abcd你z")
+
+        e.resize(3, 5)
+
+        assertEquals("abcd", e.buffer.screen[0].getText())
+        assertEquals("你z", e.buffer.screen[1].getText())
+        assertTrue(e.buffer.screen[1].isWideHead(0))
+        assertTrue(e.buffer.screen[1].hasWide)
+    }
+
+    @Test
+    fun reflowKeepsAstralGlyphTogetherAtNewRowBoundary() {
+        val e = TerminalEmulator(rows = 3, cols = 8)
+        e.feed("abcd😀z")
+
+        e.resize(3, 5)
+
+        assertEquals("abcd", e.buffer.screen[0].getText())
+        assertEquals("😀z", e.buffer.screen[1].getText())
+        assertTrue(e.buffer.screen[1].isWideHead(0))
+        assertTrue(e.buffer.screen[1].hasWide)
+    }
+
+    @Test
+    fun deletingTopLinesDoesNotAppendToScrollback() {
+        val e = TerminalEmulator(rows = 3, cols = 8)
+        e.feed("one\r\ntwo\r\nthree")
+        val historyBefore = e.buffer.history.size
+
+        e.feed("$esc[H$esc[M")
+
+        assertEquals(historyBefore, e.buffer.history.size)
+        assertEquals("two", e.buffer.screen[0].getText())
+    }
+
+    @Test
     fun theAlternateScreenIsLeftToTheProgram() {
         val e = TerminalEmulator(rows = 4, cols = 10)
         e.feed("$esc[?1049habcdefghijKLMNO")

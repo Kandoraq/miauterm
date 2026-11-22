@@ -68,16 +68,12 @@ object DebianRuntime {
     )
     private val networkPackages = listOf("iputils-ping", "iproute2", "net-tools", "curl", "wget")
     const val PREF_PROOT_DIAGNOSTICS = "proot_diagnostics"
-    const val PREF_ROOTFS_REMOVED = "rootfs_removed"
     @Volatile
     var lastInstallError: String? = null
         private set
     @Volatile
     var reinstallConfirmation: (() -> Boolean)? = null
     private const val LOG_LIMIT = 2 * 1024 * 1024L
-
-    fun isRemoved(context: Context): Boolean = PreferenceManager.getDefaultSharedPreferences(context)
-        .getBoolean(PREF_ROOTFS_REMOVED, false)
 
     private fun expectedVersionMarker(): String = "$VERSION\n${BuildConfig.ROOTFS_SHA256}\n"
 
@@ -88,7 +84,6 @@ object DebianRuntime {
     }.getOrNull()
 
     fun isInstalled(context: Context): Boolean {
-        if (isRemoved(context)) return false
         val root = Environment.getMiautermRoot(context)
         return runCatching {
             readVersionMarker(root) == expectedVersionMarker().trim() &&
@@ -128,17 +123,46 @@ object DebianRuntime {
     }
 
     @Synchronized
-    fun install(context: Context, onProgress: ((Int) -> Unit)? = null, force: Boolean = false): Boolean {
+    fun install(
+        context: Context,
+        onProgress: ((Int) -> Unit)? = null,
+        force: Boolean = false,
+        isCancelled: (() -> Boolean)? = null
+    ): Boolean {
         val installLock = FileLocks.tryLock(listOf(File(context.filesDir, ".debian-install.lock")))
         if (installLock == null) {
             lastInstallError = "Another Debian installation is already in progress"
             Log.w(TAG, lastInstallError.orEmpty())
             return false
         }
-        return installLock.use { installRootfs(context, onProgress, force) }
+        val installed = installLock.use { installRootfs(context, onProgress, force, isCancelled) }
+        if (installed) scheduleOptionalNetworkProvision(context.applicationContext)
+        return installed
     }
 
-    private fun installRootfs(context: Context, onProgress: ((Int) -> Unit)?, force: Boolean): Boolean {
+    private fun scheduleOptionalNetworkProvision(context: Context) {
+        Thread {
+            val lock = FileLocks.tryLock(listOf(File(context.filesDir, ".debian-install.lock"))) ?: return@Thread
+            lock.use {
+                val root = Environment.getMiautermRoot(context)
+                if (readVersionMarker(root) == expectedVersionMarker().trim() && root.isDirectory) {
+                    updateResolvConf(root, networkDnsServers(context), customDnsServers(context))
+                    provisionOptionalNetworkTools(context, root)
+                }
+            }
+        }.apply { isDaemon = true; name = "Miauterm-NetworkProvision"; start() }
+    }
+
+    private fun checkNotCancelled(isCancelled: (() -> Boolean)?) {
+        if (isCancelled?.invoke() == true) throw java.util.concurrent.CancellationException("Debian setup was cancelled")
+    }
+
+    private fun installRootfs(
+        context: Context,
+        onProgress: ((Int) -> Unit)?,
+        force: Boolean,
+        isCancelled: (() -> Boolean)?
+    ): Boolean {
         val root = Environment.getMiautermRoot(context)
         val runtime = File(context.filesDir, "proot")
         val archive = File(context.cacheDir, ROOTFS_ASSET)
@@ -147,6 +171,7 @@ object DebianRuntime {
         val failed = File(context.filesDir, "debian-install-failed")
         val restorePrevious = File(context.filesDir, "debian-restore-previous")
         return try {
+            checkNotCancelled(isCancelled)
             onProgress?.invoke(2)
             installProot(context, runtime)
             if (!root.exists()) {
@@ -183,16 +208,11 @@ object DebianRuntime {
                 if (shouldReuseRootfs(force, existingRootWorks, existingMarker == expectedVersionMarker().trim())) {
                     onProgress?.invoke(92)
                     updateResolvConf(root, networkDnsServers(context), customDnsServers(context))
-                    Thread {
-                        runCatching { provisionOptionalNetworkTools(context, root) }
-                    }.apply { isDaemon = true; start() }
                     File(context.filesDir, "rootfs-original.tar.zst").delete()
                     File(context.filesDir, "rootfs-original.installing").delete()
                     SafeDelete.deleteRecursively(previous)
                     SafeDelete.deleteRecursively(failed)
                     SafeDelete.deleteRecursively(restorePrevious)
-                    PreferenceManager.getDefaultSharedPreferences(context).edit()
-                        .remove(PREF_ROOTFS_REMOVED).commit()
                     lastInstallError = null
                     onProgress?.invoke(100)
                     return true
@@ -217,6 +237,7 @@ object DebianRuntime {
                 onProgress?.invoke(percent)
             }
             if (result != 0) throw IllegalStateException("Rootfs archive extraction failed ($result)")
+            checkNotCancelled(isCancelled)
             onProgress?.invoke(92)
             verifyRootfs(staging)
             ElfLinkerPatcher.patchAllDynamicLinkers(staging)
@@ -225,10 +246,8 @@ object DebianRuntime {
             prepareHome(staging)
             MiautermCommandInstaller.install(context, staging)
             updateResolvConf(staging, networkDnsServers(context), customDnsServers(context))
-            Thread {
-                runCatching { provisionOptionalNetworkTools(context, staging) }
-            }.apply { isDaemon = true; start() }
             verifyProotStartsBash(context, staging)
+            checkNotCancelled(isCancelled)
             FileInstaller.install(File(staging, ".miauterm-version"), expectedVersionMarker(), 420)
 
             if (!SafeDelete.deleteRecursively(previous)) {
@@ -251,8 +270,6 @@ object DebianRuntime {
             SafeDelete.deleteRecursively(failed)
             SafeDelete.deleteRecursively(restorePrevious)
             File(context.filesDir, "rootfs-original.tar.zst").delete()
-            PreferenceManager.getDefaultSharedPreferences(context).edit()
-                .remove(PREF_ROOTFS_REMOVED).commit()
             lastInstallError = null
             onProgress?.invoke(100)
             true
@@ -264,34 +281,6 @@ object DebianRuntime {
             archive.delete()
             SafeDelete.deleteRecursively(staging)
         }
-    }
-
-    fun removeDebian(context: Context) {
-        val lock = FileLocks.tryLock(listOf(File(context.filesDir, ".debian-install.lock")))
-            ?: error("Another Debian operation is already in progress")
-        lock.use { removeDebianLocked(context) }
-    }
-
-    private fun removeDebianLocked(context: Context) {
-        val root = Environment.getMiautermRoot(context)
-        val extras = listOf(
-            root,
-            File(context.filesDir, "debian-reset-staging"),
-            File(context.filesDir, "debian-install-staging"),
-            File(context.filesDir, "debian-install-previous"),
-            File(context.filesDir, "debian-install-failed"),
-            File(context.filesDir, "debian-restore-staging"),
-            File(context.filesDir, "debian-restore-previous"),
-            File(context.filesDir, "debian-restore-failed"),
-            File(context.filesDir, "rootfs-original.tar.zst"),
-            File(context.filesDir, "rootfs-original.installing")
-        )
-        extras.forEach { path ->
-            if (!SafeDelete.deleteRecursively(path)) error("Could not remove ${path.name}")
-        }
-        File(context.filesDir, "proot/proot.log").delete()
-        PreferenceManager.getDefaultSharedPreferences(context).edit()
-            .putBoolean(PREF_ROOTFS_REMOVED, true).commit()
     }
 
     internal fun prepareHome(root: File) {
@@ -465,7 +454,7 @@ object DebianRuntime {
             "Set custom DNS servers and a Debian hostname from Miauterm Settings > Network. DNS accepts up to three IPv4 or IPv6 addresses separated by commas. Leave it blank to use Android-provided DNS with public fallbacks. The hostname sets the shell prompt, `\$HOSTNAME`, `\$MIAUTERM_HOSTNAME`, `/etc/hostname`, and the guest results of `gethostname()` and `uname()` used by Fastfetch. Android's kernel hostname is unchanged. Debian process and hardware reporting use the bound `/proc` and `/sys` views.\n\n" +
             "Miauterm maps guest server binds from port 80 to 2080 and 443 to 2443. Loopback clients use the same mapping; connections to remote hosts keep their original ports. Guest services listen on the mapped high ports, which are also shown in local server notifications. For outgoing SSH, Miauterm attempts to install Debian's `openssh-client` during rootfs setup when network access is available. If `ssh` is still missing, run `apt install openssh-client`, then connect with `ssh user@host`. Miauterm does not start an SSH server.\n\n" +
             "Miauterm checks GitHub Releases only when you tap Settings > Updates & Support > Check for updates. If a newer release exists, Android shows a notification that opens the release page in your browser; APK download and installation remain manual.\n\n" +
-            "This Miauterm version is 0.1.5-coral, with Coral as its release codename.\n\n" +
+            "This Miauterm version is 0.1.6-coral, with Coral as its release codename.\n\n" +
             "The `root` shell identity is simulated by PRoot; it is not Android root. Linux account names do not create separate Android security identities. Miauterm does not start a privileged chroot session.\n"
 
     internal fun prepareRestoredRootfs(context: Context, root: File) {
@@ -1411,8 +1400,10 @@ object DebianRuntime {
     fun hasSharedFolderPermission(context: Context): Boolean {
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) return true
         val granted = android.content.pm.PackageManager.PERMISSION_GRANTED
-        return context.checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) == granted &&
-            context.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == granted
+        val readGranted = context.checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) == granted
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) readGranted else {
+            readGranted && context.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == granted
+        }
     }
 
     fun isSharedFolderAccessEnabled(context: Context): Boolean {

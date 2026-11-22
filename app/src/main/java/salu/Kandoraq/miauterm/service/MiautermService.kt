@@ -192,7 +192,12 @@ class MiautermService : Service() {
         } catch (e: Exception) {
             Log.e("MiautermService", "startForeground failed", e)
 
-            try { startForeground(NOTIFICATION_ID, buildNotification()) } catch (e2: Exception) {}
+            try {
+                startForeground(NOTIFICATION_ID, buildNotification())
+            } catch (retry: Exception) {
+                Log.e("MiautermService", "Could not start foreground service after retry", retry)
+                stopSelf()
+            }
         }
 
         try {
