@@ -116,19 +116,12 @@ class MiautermService : Service() {
                 val intent = Intent(context, MiautermService::class.java).apply {
                     action = ACTION_START
                 }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    try {
-                        context.startForegroundService(intent)
-                    } catch (e: IllegalStateException) {
-
-                        Log.w("MiautermService", "startForegroundService blocked, using startService", e)
-                        try { context.startService(intent) } catch (e2: Exception) {
-                            Log.e("MiautermService", "Failed to start service", e2)
-                        }
-                    }
-                } else {
-                    context.startService(intent)
-                }
+                // Use startService() instead of startForegroundService(). On some Android 16
+                // builds startForegroundService() can be deferred when the app process is still
+                // starting, so onCreate() never runs before the foreground-promotion timeout and
+                // the system kills the app with ForegroundServiceDidNotStartInTimeException.
+                // The service still promotes itself to foreground in onCreate().
+                context.startService(intent)
             } catch (e: Exception) {
                 Log.e("MiautermService", "Failed to start service", e)
             }
@@ -177,11 +170,11 @@ class MiautermService : Service() {
         // that calls startForegroundService() without a prompt startForeground(), and building
         // the full notification can be slow on first run.
         try {
-            startForeground(NOTIFICATION_ID, buildBootNotification())
+            startForegroundBoot()
         } catch (e: Exception) {
             Log.e("MiautermService", "initial startForeground failed", e)
             try {
-                startForeground(NOTIFICATION_ID, buildBootNotification())
+                startForegroundBoot()
             } catch (retry: Exception) {
                 Log.e("MiautermService", "Could not start foreground service after retry", retry)
                 stopSelf()
@@ -332,6 +325,21 @@ class MiautermService : Service() {
                 setShowBadge(false)
             }
             nm.createNotificationChannel(channel)
+        }
+    }
+
+    private fun startForegroundBoot() {
+        val notification = buildBootNotification()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            )
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, notification, 0)
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
         }
     }
 
