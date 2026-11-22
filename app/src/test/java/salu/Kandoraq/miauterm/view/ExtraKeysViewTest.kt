@@ -178,7 +178,7 @@ class ExtraKeysViewTest {
             assertTrue(sent.isEmpty())
             assertEquals(Chrome.palette.onAccent, button.currentTextColor)
         }
-        assertEquals(Chrome.palette.accent, shownColor(button))
+        assertEquals(Chrome.palette.accentStrong, shownColor(button))
         assertTrue(sent.isEmpty())
 
         tapButton(button) {}
@@ -205,7 +205,7 @@ class ExtraKeysViewTest {
         val otherKey = keys.getChildAt(1) as Button
 
         holdButton(f2) { fireHolds() }
-        assertEquals(Chrome.palette.accent, shownColor(f2))
+        assertEquals(Chrome.palette.accentStrong, shownColor(f2))
 
         tapButton(otherKey) {}
         assertEquals(listOf(android.view.KeyEvent.KEYCODE_F2), sent)
@@ -231,7 +231,7 @@ class ExtraKeysViewTest {
         val f5 = keys.getChildAt(1) as Button
 
         holdButton(f2) { fireHolds() }
-        assertEquals(Chrome.palette.accent, shownColor(f2))
+        assertEquals(Chrome.palette.accentStrong, shownColor(f2))
 
         tapButton(f5) {}
         assertEquals(listOf(android.view.KeyEvent.KEYCODE_F5), sent)
@@ -277,6 +277,6 @@ class ExtraKeysViewTest {
 
         tapButton(button) {}
         assertTrue(terminalView.isCtrlPressed)
-        assertEquals(Chrome.palette.accent, shownColor(button))
+        assertEquals(Chrome.palette.accentStrong, shownColor(button))
     }
 }
