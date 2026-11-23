@@ -32,6 +32,7 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
     testOptions {
+        // Robolectric needs Android stub defaults; disable only with explicit stubs for each call.
         unitTests.isReturnDefaultValues = true
         unitTests.isIncludeAndroidResources = true
         unitTests.all {

@@ -141,6 +141,7 @@ android {
 
     testOptions {
         unitTests {
+            // Robolectric needs Android stub defaults; disable only with explicit stubs for each call.
             isReturnDefaultValues = true
 
             isIncludeAndroidResources = true
