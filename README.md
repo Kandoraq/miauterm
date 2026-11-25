@@ -7,6 +7,8 @@
 <p align="center">
   <a href="https://github.com/Kandoraq/miauterm/releases/latest"><img alt="Latest release version" src="https://img.shields.io/github/v/release/Kandoraq/miauterm?style=for-the-badge&amp;label=Latest%20release"></a>
   <img alt="Android ARM64" src="https://img.shields.io/badge/Android-arm64--v8a-3c7d5b?style=for-the-badge&amp;logo=android&amp;logoColor=white">
+</p>
+<p align="center">
   <a href="https://github.com/Kandoraq/miauterm/actions/workflows/build-apk.yml?query=branch%3Amain"><img alt="Build status on main" src="https://img.shields.io/github/actions/workflow/status/Kandoraq/miauterm/build-apk.yml?branch=main&amp;event=push&amp;style=for-the-badge&amp;label=Build%20status"></a>
 </p>
 
