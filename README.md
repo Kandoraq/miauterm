@@ -2,8 +2,6 @@
   <img src="docs/images/miauterm-banner.png" alt="Miauterm banner" width="720">
 </p>
 
-<h1 align="center">Miauterm</h1>
-
 <p align="center">An experimental Android terminal that runs Debian ARM64 in PRoot.</p>
 
 <table align="center">
