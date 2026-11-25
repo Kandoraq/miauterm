@@ -323,8 +323,6 @@ miauterm/
 │   │   │   │   │   ├── ic_tune.xml
 │   │   │   │   │   ├── ic_update.xml
 │   │   │   │   │   └── root_badge_bg.xml
-│   │   │   │   ├── drawable-nodpi/
-│   │   │   │   │   └── miauterm_logo.png
 │   │   │   │   ├── layout/
 │   │   │   │   │   ├── activity_debian_files.xml
 │   │   │   │   │   ├── activity_main.xml
