@@ -4,17 +4,11 @@
 
 <p align="center">An experimental Android terminal that runs Debian ARM64 in PRoot.</p>
 
-<table align="center">
-  <tbody>
-    <tr>
-      <td align="center"><a href="https://github.com/Kandoraq/miauterm/releases/latest"><img alt="Latest release version" src="https://img.shields.io/github/v/release/Kandoraq/miauterm?style=for-the-badge&amp;label=Latest%20release"></a></td>
-      <td align="center"><img alt="Android ARM64" src="https://img.shields.io/badge/Android-arm64--v8a-3c7d5b?style=for-the-badge&amp;logo=android&amp;logoColor=white"></td>
-    </tr>
-    <tr>
-      <td align="center" colspan="2"><a href="https://github.com/Kandoraq/miauterm/actions/workflows/build-apk.yml?query=branch%3Amain"><img alt="Build status on main" src="https://img.shields.io/github/actions/workflow/status/Kandoraq/miauterm/build-apk.yml?branch=main&amp;event=push&amp;style=for-the-badge&amp;label=Build%20status"></a></td>
-    </tr>
-  </tbody>
-</table>
+<p align="center">
+  <a href="https://github.com/Kandoraq/miauterm/releases/latest"><img alt="Latest release version" src="https://img.shields.io/github/v/release/Kandoraq/miauterm?style=for-the-badge&amp;label=Latest%20release"></a>
+  <img alt="Android ARM64" src="https://img.shields.io/badge/Android-arm64--v8a-3c7d5b?style=for-the-badge&amp;logo=android&amp;logoColor=white">
+  <a href="https://github.com/Kandoraq/miauterm/actions/workflows/build-apk.yml?query=branch%3Amain"><img alt="Build status on main" src="https://img.shields.io/github/actions/workflow/status/Kandoraq/miauterm/build-apk.yml?branch=main&amp;event=push&amp;style=for-the-badge&amp;label=Build%20status"></a>
+</p>
 
 > **Project status: Experimental**<br>
 > The current app version is **0.1.8-coral** (codename **Coral**). The experimental APK targets ARM64 Android devices; runtime behavior and package compatibility can vary by device and Android version.
