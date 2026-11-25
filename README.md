@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/miauterm-terminal.png" alt="Miauterm terminal icon" width="88" height="88">
+  <img src="docs/images/miauterm-banner.png" alt="Miauterm banner" width="720">
 </p>
 
 <h1 align="center">Miauterm</h1>
