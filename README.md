@@ -470,7 +470,8 @@ miauterm/
 │       └── build.gradle.kts
 ├── docs/
 │   ├── images/
-│   │   └── miauterm-terminal.png
+│   │   ├── miauterm-banner.png
+│   │   └── miauterm-icon.png
 │   └── SECURITY.md
 ├── gradle/
 │   ├── wrapper/
