@@ -183,7 +183,7 @@ class DebianFilesActivity : AppCompatActivity() {
                 "${entry.file.name} → ${runCatching { Os.readlink(entry.file.absolutePath) }.getOrDefault("")}",
                 Toast.LENGTH_LONG
             ).show()
-            entry.isRegular -> showPreview(entry.file, entry.mode)
+            entry.isRegular -> showPreview(entry.file)
         }
     }
 
@@ -196,7 +196,7 @@ class DebianFilesActivity : AppCompatActivity() {
         }
         if (entry.isRegular) {
             labels += getString(R.string.files_preview)
-            actions += { showPreview(entry.file, entry.mode) }
+            actions += { showPreview(entry.file) }
             if (entry.writable) {
                 labels += getString(R.string.files_edit)
                 actions += { editFile(entry.file, entry.mode) }
@@ -405,7 +405,7 @@ class DebianFilesActivity : AppCompatActivity() {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 
-    private fun showPreview(file: File, mode: Int) {
+    private fun showPreview(file: File) {
         runCatching {
             require(isInsideRoot(file) && file.isFile)
             require(file.length() <= PREVIEW_LIMIT) { getString(R.string.files_preview_too_large) }

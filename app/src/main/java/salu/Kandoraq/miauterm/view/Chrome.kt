@@ -118,5 +118,4 @@ object Chrome {
 
     fun ripple(content: Drawable, rippleColor: Int, radiusPx: Float): RippleDrawable =
         RippleDrawable(ColorStateList.valueOf(rippleColor), content, rounded(WHITE, radiusPx))
-
 }

@@ -198,12 +198,10 @@ class SessionManager(private val context: Context) {
 
     fun removeSession(session: TerminalSession) {
         val sessionToNotify: TerminalSession?
-        var toDestroy: TerminalSession? = null
-        synchronized(sessions) {
+        val toDestroy = synchronized(sessions) {
             val idx = sessions.indexOf(session)
-            if (idx >= 0) {
-                toDestroy = session
-                sessions.removeAt(idx)
+            if (idx < 0) return
+            sessions.removeAt(idx)
                 if (sessions.isEmpty()) {
                     currentSessionIndex = -1
                     sessionToNotify = null
@@ -211,11 +209,9 @@ class SessionManager(private val context: Context) {
                     currentSessionIndex = currentSessionIndex.coerceIn(0, sessions.size - 1)
                     sessionToNotify = currentSession
                 }
-            } else {
-                return
-            }
+            session
         }
-        toDestroy?.destroy()
+        toDestroy.destroy()
         notifySessionChanged(sessionToNotify)
         saveState()
     }

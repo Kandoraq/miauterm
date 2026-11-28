@@ -32,6 +32,8 @@ import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
 import android.view.inputmethod.SurroundingText
 import androidx.annotation.RequiresApi
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.inputmethod.EditorInfoCompat
 import androidx.core.view.inputmethod.InputConnectionCompat
 import android.widget.LinearLayout
@@ -1888,8 +1890,9 @@ class TerminalView @JvmOverloads constructor(
 
     fun toggleKeyboard() {
         requestFocus()
-        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-        imm?.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0)
+        val controller = ViewCompat.getWindowInsetsController(this) ?: return
+        val ime = WindowInsetsCompat.Type.ime()
+        if (controller.isVisible(ime)) controller.hide(ime) else controller.show(ime)
     }
 
     override fun onCheckIsTextEditor(): Boolean = true
@@ -2122,7 +2125,7 @@ class TerminalView @JvmOverloads constructor(
             }
         }
 
-        return InputConnectionCompat.createWrapper(baseConnection, outAttrs, callback)
+        return InputConnectionCompat.createWrapper(this, baseConnection, outAttrs, callback)
     }
 
     fun sendChar(ch: Char) {

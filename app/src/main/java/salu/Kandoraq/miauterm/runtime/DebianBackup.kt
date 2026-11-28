@@ -36,12 +36,12 @@ object DebianBackup {
             ZipOutputStream(BufferedOutputStream(temp.outputStream())).use { zip ->
                 zip.setLevel(6)
                 fun visit(file: File, relative: String) {
-                    val stat = try {
+                    val fileStat = try {
                         Os.lstat(file.absolutePath)
                     } catch (e: Exception) {
                         throw IllegalStateException("Cannot read $relative for backup", e)
                     }
-                    val mode = stat.st_mode
+                    val mode = fileStat.st_mode
                     val type = mode and OsConstants.S_IFMT
                     val item = JSONObject().put("path", relative).put("mode", mode)
                     when (type) {

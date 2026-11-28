@@ -410,12 +410,12 @@ class MiautermService : Service() {
             .setOngoing(true)
             .addAction(
                 Notification.Action.Builder(
-                    0, lc.getString(R.string.notif_action_exit), exitPendingIntent
+                    null, lc.getString(R.string.notif_action_exit), exitPendingIntent
                 ).build()
             )
             .addAction(
                 Notification.Action.Builder(
-                    0, wlActionTitle, wlPendingIntent
+                    null, wlActionTitle, wlPendingIntent
                 ).build()
             )
 

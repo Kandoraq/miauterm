@@ -17,7 +17,7 @@ class DebianRuntimeDnsTest {
     fun writesAndroidDnsServersIntoAnEmptyDebianResolverFile() {
         val root = temporaryFolder.newFolder("debian")
         val resolvConf = File(root, "etc/resolv.conf").apply {
-            parentFile.mkdirs()
+            requireNotNull(parentFile).mkdirs()
             writeText("")
         }
 
@@ -36,7 +36,7 @@ class DebianRuntimeDnsTest {
     fun refreshesManagedDnsAndReplacesStaleResolverFiles() {
         val root = temporaryFolder.newFolder("debian")
         val resolvConf = File(root, "etc/resolv.conf").apply {
-            parentFile.mkdirs()
+            requireNotNull(parentFile).mkdirs()
             writeText("")
         }
         val firstServer = InetAddress.getByName("192.0.2.53")
@@ -56,7 +56,7 @@ class DebianRuntimeDnsTest {
     fun writesFallbackDnsServersWhenAndroidHasNoDnsServers() {
         val root = temporaryFolder.newFolder("debian")
         val resolvConf = File(root, "etc/resolv.conf").apply {
-            parentFile.mkdirs()
+            requireNotNull(parentFile).mkdirs()
             writeText("")
         }
 
@@ -64,6 +64,7 @@ class DebianRuntimeDnsTest {
         assertTrue(resolvConf.readText().contains("nameserver 1.1.1.1\n"))
         assertTrue(resolvConf.readText().contains("nameserver 8.8.8.8\n"))
     }
+
     @Test
     fun parsesIpv4AnswersFromDnsOverHttpsJson() {
         val addresses = DebianRuntime.parseDnsJsonAddresses(

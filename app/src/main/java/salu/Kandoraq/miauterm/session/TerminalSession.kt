@@ -83,7 +83,6 @@ class TerminalSession(
             val ptyEnv: Array<String>
             val cwd: File
             if (failsafeMode) {
-                stage = "preparing Android shell"
                 accountName = "shell"
                 shell = if (File("/system/bin/sh").canExecute()) "/system/bin/sh" else "/bin/sh"
                 args = arrayOf("-i")
@@ -154,7 +153,6 @@ class TerminalSession(
                     throw IllegalStateException(detail)
                 }
 
-                stage = "preparing PRoot launcher"
                 val prootShell = DebianRuntime.shellCommand(context)
                 check(launcher.isFile && launcher.canExecute()) {
                     "PRoot launcher could not be created at ${launcher.absolutePath}."

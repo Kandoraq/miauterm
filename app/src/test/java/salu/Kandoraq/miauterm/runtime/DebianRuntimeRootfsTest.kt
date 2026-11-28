@@ -95,7 +95,7 @@ class DebianRuntimeRootfsTest {
             "usr/bin/apt-get"
         ).forEach { path ->
             val command = File(root, path)
-            command.parentFile.mkdirs()
+            requireNotNull(command.parentFile).mkdirs()
             val elf = ByteArray(4096)
             elf[0] = 0x7f
             elf[1] = 'E'.code.toByte()

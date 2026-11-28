@@ -795,7 +795,7 @@ object DebianRuntime {
         MiautermCommandInstaller.removeLegacySu(rootfs)
         migrateManagedReadme(rootfs, File(rootfs, "root"))
         updateHostnameFile(rootfs, configuredHostname(context))
-        updateAndroidHostFile(rootfs, context)
+        updateAndroidHostFile(rootfs)
         updateResolvConf(rootfs, networkDnsServers(context), customDnsServers(context))
         scheduleResolverUpdate(context, rootfs)
         lastResolverSummary?.let { recordRuntimeEvent(context, it) }
@@ -867,12 +867,12 @@ object DebianRuntime {
         }
         val library = File(rootPath, PORT_REMAP_GUEST_PATH.removePrefix("/"))
         var parent = library.parentFile ?: error("Invalid port map library path")
-        while (parent != rootPath && parent != null) {
+        while (parent != rootPath) {
             check(!ElfLinkerPatcher.isSymlink(parent)) { "Port map directory is a symlink: ${parent.path}" }
             check(parent.canonicalFile.path.startsWith(rootPath.path + File.separator)) {
                 "Port map directory leaves the Debian root filesystem"
             }
-            parent = parent.parentFile
+            parent = parent.parentFile ?: error("Port map directory leaves the Debian root filesystem")
         }
         val bytes = context.assets.open(PORT_REMAP_ASSET).use { it.readBytes() }
         FileInstaller.install(library, bytes, 420)
@@ -1113,10 +1113,14 @@ object DebianRuntime {
                 val validIpv4 = octets.size == 4 && octets.all { it != null && it in 0..255 }
                 if (validIpv4) InetAddress.getByAddress(octets.map { it!!.toByte() }.toByteArray()) else null
             }
-            require(address != null && !address.isAnyLocalAddress && !address.isLoopbackAddress) {
+            val parsedAddress = requireNotNull(address) {
                 "DNS entries must be valid non-local IP addresses"
             }
-            address.hostAddress.substringBefore('%')
+            require(!parsedAddress.isAnyLocalAddress && !parsedAddress.isLoopbackAddress) {
+                "DNS entries must be valid non-local IP addresses"
+            }
+            parsedAddress.hostAddress?.substringBefore('%')
+                ?: error("DNS entry has no textual address")
         }.distinct()
     }
 
@@ -1147,7 +1151,7 @@ object DebianRuntime {
         }
     }
 
-    private fun updateAndroidHostFile(root: File, context: Context) {
+    private fun updateAndroidHostFile(root: File) {
         val etc = File(root, "etc")
         if (ElfLinkerPatcher.isSymlink(etc) || !etc.isDirectory) return
         val hostFile = File(etc, "miauterm-android-host")
@@ -1162,7 +1166,7 @@ object DebianRuntime {
         if (customDnsServers.isNotEmpty()) return customDnsServers.distinct().take(3)
         val androidServers = dnsServers
             .filterNot { it.isLoopbackAddress || it.isAnyLocalAddress }
-            .map { it.hostAddress.substringBefore('%') }
+            .mapNotNull { it.hostAddress?.substringBefore('%')?.takeIf(String::isNotBlank) }
         return (androidServers.take(1) + FALLBACK_DNS_SERVERS).distinct().take(3)
     }
 
