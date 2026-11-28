@@ -45,7 +45,7 @@ class DebianBackupSecurityTest {
 
     @Test
     fun collapsesSelfAndEmptySegmentsInSymlinkTarget() {
-        assertEquals("../lib/loader.so", DebianBackup.safeSymlinkTarget("usr/bin/loader", "././usr//lib/loader.so"))
+        assertEquals("usr/lib/loader.so", DebianBackup.safeSymlinkTarget("usr/bin/loader", "././usr//lib/loader.so"))
     }
 
     @Test

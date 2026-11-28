@@ -16,7 +16,7 @@ class DebianRuntimeRootfsTest {
         assertTrue(contents.contains(BuildConfig.VERSION_NAME))
         assertFalse(contents.contains("0.1.6-coral"))
         assertTrue(contents.contains("does not install SSH packages automatically"))
-        assertTrue(contents.contains("checks GitHub Releases daily"))
+        assertTrue(contents.contains("checks GitHub Releases once a day"))
     }
 
     @Test
