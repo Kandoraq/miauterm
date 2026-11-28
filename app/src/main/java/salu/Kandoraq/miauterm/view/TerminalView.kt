@@ -1892,7 +1892,8 @@ class TerminalView @JvmOverloads constructor(
         requestFocus()
         val controller = ViewCompat.getWindowInsetsController(this) ?: return
         val ime = WindowInsetsCompat.Type.ime()
-        if (controller.isVisible(ime)) controller.hide(ime) else controller.show(ime)
+        val isImeVisible = ViewCompat.getRootWindowInsets(this)?.isVisible(ime) == true
+        if (isImeVisible) controller.hide(ime) else controller.show(ime)
     }
 
     override fun onCheckIsTextEditor(): Boolean = true
@@ -2125,7 +2126,7 @@ class TerminalView @JvmOverloads constructor(
             }
         }
 
-        return InputConnectionCompat.createWrapper(this, baseConnection, outAttrs, callback)
+        return InputConnectionCompat.createWrapper(baseConnection, outAttrs, callback)
     }
 
     fun sendChar(ch: Char) {
