@@ -72,24 +72,4 @@ class DebianRuntimeDnsTest {
 
         assertEquals(listOf("151.101.2.132"), addresses.map { it.hostAddress })
     }
-
-    @Test
-    fun upgradesDebianRepositorySourcesToHttps() {
-        val root = temporaryFolder.newFolder("debian")
-        val apt = File(root, "etc/apt")
-        val sourceList = File(apt, "sources.list").apply {
-            parentFile.mkdirs()
-            writeText("deb http://deb.debian.org/debian trixie main\n")
-        }
-        val deb822 = File(apt, "sources.list.d/debian.sources").apply {
-            parentFile.mkdirs()
-            writeText("URIs: http://deb.debian.org/debian-security\n")
-        }
-
-        DebianRuntime.enforceRepositoryHttps(root)
-
-        assertEquals("deb https://deb.debian.org/debian trixie main\n", sourceList.readText())
-        assertEquals("URIs: https://deb.debian.org/debian-security\n", deb822.readText())
-    }
-
 }

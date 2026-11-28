@@ -55,17 +55,6 @@ object DebianRuntime {
         "usr/bin/apt",
         "usr/bin/apt-get"
     )
-    private val networkCommands = listOf(
-        "usr/bin/ping",
-        "usr/sbin/ip",
-        "usr/bin/ss",
-        "usr/sbin/ifconfig",
-        "usr/sbin/route",
-        "usr/bin/netstat",
-        "usr/sbin/arp",
-        "usr/bin/curl",
-        "usr/bin/wget"
-    )
     const val PREF_PROOT_DIAGNOSTICS = "proot_diagnostics"
     @Volatile
     var lastInstallError: String? = null
@@ -420,7 +409,7 @@ object DebianRuntime {
         }
     }.getOrDefault(false)
 
-    private fun managedReadmeContents(): String =
+    internal fun managedReadmeContents(): String =
         "# Miauterm Linux system\n\n" +
             "This Debian system is launched by Miauterm through PRoot. No separate terminal app is required.\n\n" +
             "## Shared folders\n\n" +
@@ -436,9 +425,9 @@ object DebianRuntime {
             "Use Miauterm Settings to view or clear PRoot diagnostics, open a failsafe session, read the rootfs and symlink guide, back up or restore files, or reset the bundled Debian system. Reset replaces the complete Debian root filesystem and restores the Debian user and hostname settings to defaults. Custom DNS and other Miauterm settings stay unchanged. Export a backup first if you need to keep files or packages.\n\n" +
             "## Network settings\n\n" +
             "Set custom DNS servers and a Debian hostname from Miauterm Settings > Network. DNS accepts up to three IPv4 or IPv6 addresses separated by commas. Leave it blank to use Android-provided DNS with public fallbacks. The hostname sets the shell prompt, `\$HOSTNAME`, `\$MIAUTERM_HOSTNAME`, `/etc/hostname`, and the guest results of `gethostname()` and `uname()` used by Fastfetch. Android's kernel hostname is unchanged. Debian process and hardware reporting use the bound `/proc` and `/sys` views.\n\n" +
-            "Miauterm maps guest server binds from port 80 to 2080 and 443 to 2443. Loopback clients use the same mapping; connections to remote hosts keep their original ports. Guest services listen on the mapped high ports, which are also shown in local server notifications. For outgoing SSH, Miauterm attempts to install Debian's `openssh-client` during rootfs setup when network access is available. If `ssh` is still missing, run `apt install openssh-client`, then connect with `ssh user@host`. Miauterm does not start an SSH server.\n\n" +
-            "Miauterm checks GitHub Releases only when you tap Settings > Updates & Support > Check for updates. If a newer release exists, Android shows a notification that opens the release page in your browser; APK download and installation remain manual.\n\n" +
-            "This Miauterm version is 0.1.6-coral, with Coral as its release codename.\n\n" +
+            "Miauterm maps guest server binds from port 80 to 2080 and 443 to 2443. Loopback clients use the same mapping; connections to remote hosts keep their original ports. Guest services listen on the mapped high ports, which are also shown in local server notifications. For outgoing SSH, install Debian's `openssh-client` with `apt install openssh-client`, then connect with `ssh user@host`. Miauterm does not install SSH packages automatically or start an SSH server.\n\n" +
+            "Miauterm checks GitHub Releases once a day while the app is in use when notifications are enabled, or when you tap Settings > Updates & Support > Check for updates. If a newer release exists, Android shows a notification that opens the release page in your browser; APK download and installation remain manual.\n\n" +
+            "This Miauterm build is version ${BuildConfig.VERSION_NAME}.\n\n" +
             "The `root` shell identity is simulated by PRoot; it is not Android root. Linux account names do not create separate Android security identities. Miauterm does not start a privileged chroot session.\n"
 
     internal fun prepareRestoredRootfs(context: Context, root: File) {
@@ -1111,22 +1100,6 @@ object DebianRuntime {
         return InetAddress.getByAddress(bytes) as? Inet4Address
     }
 
-    internal fun enforceRepositoryHttps(root: File) {
-        val apt = File(root, "etc/apt")
-        val sourceFiles = buildList {
-            add(File(apt, "sources.list").takeIf { it.isFile })
-            File(apt, "sources.list.d").listFiles()
-                ?.filter { it.isFile && (it.extension == "list" || it.extension == "sources") }
-                ?.forEach(::add)
-        }.filterNotNull()
-        val insecureDebianUrl = Regex("(?i)http://((?:[a-z0-9-]+\\.)*debian\\.org)(?=[:/\\s])")
-        sourceFiles.filterNot(ElfLinkerPatcher::isSymlink).forEach { source ->
-            val current = runCatching { source.readText() }.getOrNull() ?: return@forEach
-            val updated = insecureDebianUrl.replace(current, "https://$1")
-            if (updated != current) FileInstaller.install(source, updated, 420)
-        }
-    }
-
     internal fun parseCustomDnsServers(value: String): List<String> {
         val entries = value.split(Regex("[,;\\s]+")).filter(String::isNotBlank)
         require(entries.size <= 3) { "at most three DNS addresses are supported" }
@@ -1218,15 +1191,6 @@ object DebianRuntime {
         if (updated == current) return false
         return FileInstaller.install(resolvConf, updated, 420)
     }
-
-    internal fun verifyNetworkCommands(root: File) {
-        val invalidCommand = invalidNetworkCommand(root)
-        check(invalidCommand == null) {
-            "Debian network command /$invalidCommand is missing, truncated, or not an executable ARM64 binary."
-        }
-    }
-
-    private fun invalidNetworkCommand(root: File): String? = invalidCommand(root, networkCommands)
 
     private fun networkDnsServers(context: Context): List<InetAddress> {
         val connectivity = context.getSystemService(ConnectivityManager::class.java)

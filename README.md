@@ -65,7 +65,7 @@ Package compatibility depends on the program's kernel requirements, architecture
 - Bundled Debian 13 ARM64 root filesystem with first-run extraction progress.
 - Up to eight named terminal sessions, a failsafe shell, and Debian reset, backup, and restore tools.
 - Rootless Debian port mapping from guest ports `80`/`443` to Android-compatible `2080`/`2443`.
-- Manual GitHub release checks with an Android notification linking to the release page; APK download stays in the browser.
+- Daily GitHub release checks with an Android notification linking to the release page; APK download stays in the browser.
 - File browser for the app's Linux files, with file type and write-permission indicators.
 - Optional access to Android's Download and Documents folders. Access is off until enabled by the user.
 - Terminal color schemes, font and text-size selection, custom font reload, and configurable extra keys.
@@ -278,7 +278,6 @@ miauterm/
 │   │   │   │               │   ├── SessionTabsView.kt
 │   │   │   │               │   └── TerminalView.kt
 │   │   │   │               ├── BootstrapDialog.kt
-│   │   │   │               ├── BugReport.kt
 │   │   │   │               ├── DebianFilesActivity.kt
 │   │   │   │               ├── GitHubUpdateChecker.kt
 │   │   │   │               ├── MainActivity.kt
@@ -302,9 +301,6 @@ miauterm/
 │   │   │   │   │   ├── ic_history.xml
 │   │   │   │   │   ├── ic_info.xml
 │   │   │   │   │   ├── ic_keyboard.xml
-│   │   │   │   │   ├── ic_launcher_background.xml
-│   │   │   │   │   ├── ic_launcher_foreground.xml
-│   │   │   │   │   ├── ic_launcher_monochrome.xml
 │   │   │   │   │   ├── ic_layers.xml
 │   │   │   │   │   ├── ic_lightbulb.xml
 │   │   │   │   │   ├── ic_more_vert.xml
@@ -329,15 +325,38 @@ miauterm/
 │   │   │   │   │   ├── dialog_bootstrap.xml
 │   │   │   │   │   ├── item_debian_file.xml
 │   │   │   │   │   └── item_session.xml
-│   │   │   │   ├── mipmap-anydpi/
-│   │   │   │   │   ├── ic_launcher.xml
-│   │   │   │   │   └── ic_launcher_round.xml
+│   │   │   │   ├── mipmap-hdpi/
+│   │   │   │   │   ├── ic_launcher.png
+│   │   │   │   │   ├── ic_launcher_foreground.png
+│   │   │   │   │   ├── ic_launcher_monochrome.png
+│   │   │   │   │   └── ic_launcher_round.png
+│   │   │   │   ├── mipmap-mdpi/
+│   │   │   │   │   ├── ic_launcher.png
+│   │   │   │   │   ├── ic_launcher_foreground.png
+│   │   │   │   │   ├── ic_launcher_monochrome.png
+│   │   │   │   │   └── ic_launcher_round.png
+│   │   │   │   ├── mipmap-xhdpi/
+│   │   │   │   │   ├── ic_launcher.png
+│   │   │   │   │   ├── ic_launcher_foreground.png
+│   │   │   │   │   ├── ic_launcher_monochrome.png
+│   │   │   │   │   └── ic_launcher_round.png
+│   │   │   │   ├── mipmap-xxhdpi/
+│   │   │   │   │   ├── ic_launcher.png
+│   │   │   │   │   ├── ic_launcher_foreground.png
+│   │   │   │   │   ├── ic_launcher_monochrome.png
+│   │   │   │   │   └── ic_launcher_round.png
+│   │   │   │   ├── mipmap-xxxhdpi/
+│   │   │   │   │   ├── ic_launcher.png
+│   │   │   │   │   ├── ic_launcher_foreground.png
+│   │   │   │   │   ├── ic_launcher_monochrome.png
+│   │   │   │   │   └── ic_launcher_round.png
 │   │   │   │   ├── mipmap-anydpi-v26/
 │   │   │   │   │   ├── ic_launcher.xml
 │   │   │   │   │   └── ic_launcher_round.xml
 │   │   │   │   ├── values/
 │   │   │   │   │   ├── arrays.xml
 │   │   │   │   │   ├── colors.xml
+│   │   │   │   │   ├── ic_launcher_background.xml
 │   │   │   │   │   ├── strings.xml
 │   │   │   │   │   └── themes.xml
 │   │   │   │   └── xml/
@@ -366,6 +385,7 @@ miauterm/
 │   │                       │   ├── ShadowJavaFilesOs.java
 │   │                       │   └── SharedFolderAccessTest.kt
 │   │                       ├── service/
+│   │                       │   ├── LocalServerLinkTest.kt
 │   │                       │   └── ServerPortsTest.kt
 │   │                       ├── session/
 │   │                       │   ├── CommandNotificationsTest.kt
@@ -381,7 +401,6 @@ miauterm/
 │   │                       │   ├── ExtraKeysViewTest.kt
 │   │                       │   ├── PinchTextSizeTest.kt
 │   │                       │   └── TerminalInterfaceTest.kt
-│   │                       └── BugReportTest.kt
 │   ├── build.gradle.kts
 │   ├── lint.xml
 │   └── proguard-rules.pro

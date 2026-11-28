@@ -210,9 +210,6 @@
     <string name="proot_log_empty">There are no PRoot diagnostics yet.</string>
     <string name="proot_log_cleared">PRoot log cleared</string>
     <string name="proot_log_clear_failed">Could not clear the PRoot log</string>
-    <string name="rootfs_remove_confirm_title">Delete %1$s?</string>
-    <string name="rootfs_remove_confirm_message">This permanently deletes Debian and its files. Miauterm will not reinstall it after deletion. To restore the bundled Debian system, clear Miauterm app data in Android settings.</string>
-    <string name="rootfs_remove_done">Debian was deleted.</string>
     <string name="close">Close</string>
     <string name="debian_reset_confirm_title">Reset %1$s?</string>
     <string name="debian_reset_confirm_message">Reset replaces Debian with the bundled original and removes packages and files added since installation. The selected Linux user and Debian hostname return to defaults; custom DNS and other Miauterm settings stay unchanged. Export a backup first if you need to keep Debian files.</string>
@@ -274,8 +271,6 @@
     <string name="pref_cat_updates_support" translatable="false">Updates &amp; Support</string>
     <string name="pref_bug_report_title">Send a bug report</string>
 
-    <string name="bug_report_chooser">Send the bug report with</string>
-    <string name="bug_report_failed">The bug report could not be made: %1$s</string>
     <string name="bug_report_open_failed">Could not open GitHub Issues.</string>
 
     <!-- Settings choices -->

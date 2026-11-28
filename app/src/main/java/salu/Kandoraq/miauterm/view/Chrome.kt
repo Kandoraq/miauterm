@@ -119,22 +119,4 @@ object Chrome {
     fun ripple(content: Drawable, rippleColor: Int, radiusPx: Float): RippleDrawable =
         RippleDrawable(ColorStateList.valueOf(rippleColor), content, rounded(WHITE, radiusPx))
 
-    fun keyBackground(p: Palette, radiusPx: Float, strokePx: Int): Drawable =
-        pressable(
-            rounded(p.raised, radiusPx, p.outline, strokePx),
-            rounded(p.raisedHigh, radiusPx, p.outline, strokePx)
-        )
-
-    fun activeKeyBackground(p: Palette, radiusPx: Float, strokePx: Int): Drawable =
-        pressable(
-            rounded(p.accent, radiusPx, p.accent, strokePx),
-            rounded(mix(p.accent, p.fg, 0.25f), radiusPx, p.accent, strokePx)
-        )
-
-    fun buttonBackground(p: Palette, radiusPx: Float, strokePx: Int, filled: Boolean): Drawable =
-        if (filled) {
-            ripple(rounded(p.accent, radiusPx), withAlpha(p.onAccent, 70), radiusPx)
-        } else {
-            ripple(rounded(p.raised, radiusPx, p.outline, strokePx), withAlpha(p.accent, 70), radiusPx)
-        }
 }

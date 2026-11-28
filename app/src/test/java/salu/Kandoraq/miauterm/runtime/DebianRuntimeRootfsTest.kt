@@ -5,9 +5,20 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
+import salu.Kandoraq.Miauterm.BuildConfig
 import java.io.File
 
 class DebianRuntimeRootfsTest {
+    @Test
+    fun generatedReadmeMatchesTheCurrentBuildAndNetworkBehavior() {
+        val contents = DebianRuntime.managedReadmeContents()
+
+        assertTrue(contents.contains(BuildConfig.VERSION_NAME))
+        assertFalse(contents.contains("0.1.6-coral"))
+        assertTrue(contents.contains("does not install SSH packages automatically"))
+        assertTrue(contents.contains("checks GitHub Releases daily"))
+    }
+
     @Test
     fun forcedResetDoesNotReuseAHealthyMatchingRootfs() {
         assertFalse(DebianRuntime.shouldReuseRootfs(force = true, rootfsWorks = true, versionMatches = true))
@@ -53,28 +64,10 @@ class DebianRuntimeRootfsTest {
     }
 
     @Test
-    fun rejectsMissingNetworkBinaries() {
-        val root = createValidRootfs()
-        try {
-            File(root, "usr/bin/ping").delete()
-
-            try {
-                DebianRuntime.verifyNetworkCommands(root)
-                fail("A missing ping binary must invalidate the rootfs")
-            } catch (error: IllegalStateException) {
-                assertTrue(error.message.orEmpty().contains("/usr/bin/ping"))
-            }
-        } finally {
-            root.deleteRecursively()
-        }
-    }
-
-    @Test
     fun acceptsCompleteArm64AccountAndPackageCommands() {
         val root = createValidRootfs()
         try {
             DebianRuntime.verifyRootfs(root)
-            DebianRuntime.verifyNetworkCommands(root)
         } finally {
             root.deleteRecursively()
         }
@@ -99,16 +92,7 @@ class DebianRuntimeRootfsTest {
             "usr/bin/chown",
             "usr/bin/dpkg",
             "usr/bin/apt",
-            "usr/bin/apt-get",
-            "usr/bin/ping",
-            "usr/sbin/ip",
-            "usr/bin/ss",
-            "usr/sbin/ifconfig",
-            "usr/sbin/route",
-            "usr/bin/netstat",
-            "usr/sbin/arp",
-            "usr/bin/curl",
-            "usr/bin/wget"
+            "usr/bin/apt-get"
         ).forEach { path ->
             val command = File(root, path)
             command.parentFile.mkdirs()

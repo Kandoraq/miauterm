@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
@@ -212,8 +213,7 @@ class MiautermService : Service() {
             }
             ACTION_COPY_LINK -> {
                 intent.getStringExtra(EXTRA_LINK)?.let { link ->
-                    val uri = runCatching { android.net.Uri.parse(link) }.getOrNull()
-                    if (uri?.scheme == "http" && uri.host == "localhost" && uri.port in 1..65535) {
+                    if (isCopyableLocalServerUrl(link)) {
                         try {
                             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
                             clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("URL", link))
@@ -447,3 +447,11 @@ class MiautermService : Service() {
         }
     }
 }
+
+internal fun isCopyableLocalServerUrl(link: String): Boolean = runCatching {
+    val uri = Uri.parse(link)
+    val scheme = uri.scheme
+    (scheme.equals("http", ignoreCase = true) || scheme.equals("https", ignoreCase = true)) &&
+        uri.host.equals("localhost", ignoreCase = true) &&
+        uri.port in 1..65535
+}.getOrDefault(false)
