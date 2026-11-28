@@ -1888,6 +1888,7 @@ class TerminalView @JvmOverloads constructor(
         imm?.hideSoftInputFromWindow(windowToken, 0)
     }
 
+    @Suppress("DEPRECATION")
     fun toggleKeyboard() {
         requestFocus()
         val controller = ViewCompat.getWindowInsetsController(this) ?: return
@@ -1898,6 +1899,7 @@ class TerminalView @JvmOverloads constructor(
 
     override fun onCheckIsTextEditor(): Boolean = true
 
+    @Suppress("DEPRECATION")
     override fun onCreateInputConnection(outAttrs: EditorInfo): InputConnection {
         outAttrs.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
         outAttrs.imeOptions = EditorInfo.IME_FLAG_NO_FULLSCREEN
